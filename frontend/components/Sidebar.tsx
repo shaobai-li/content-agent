@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
-  const pathname = usePathname();
+  const currentPath = usePathname();
   
   const routes = [
     { href: "/agent1", label: "机器人1" },
@@ -16,22 +16,19 @@ export function Sidebar() {
   ];
 
   return (
-    <Card className="w-80 rounded-none border-0 shadow-none bg-sidebar">
-      <CardContent className="p-4 flex flex-col gap-1">
+    <Card className="w-60 rounded-none border-0 shadow-none bg-sidebar">
+      <CardContent className="p-4 flex flex-col">
         {routes.map((route) => {
-          const isActive = pathname === route.href;
+          const isActive = currentPath === route.href;
           return (
-            <Link key={route.href} href={route.href}>
-              <Button
-                variant="ghost"
+              <Button asChild variant="ghost"
                 className={cn(
-                  "w-full justify-start text-lg h-10 hover:bg-sidebar-accent",
+                  "w-full justify-start text-sm hover:bg-sidebar-accent",
                   isActive && "bg-sidebar-accent"
                 )}
               >
-                {route.label}
+                <Link href={route.href}>{route.label}</Link>
               </Button>
-            </Link>
           );
         })}
       </CardContent>
