@@ -6,14 +6,15 @@ from datetime import datetime
 from .video_download import VideoDownloader
 import json
 import os
+from pathlib import Path
 from app.core.config import DATA_DIR
+from app.core.ids import new_uuid
 
 class XiaohongshuCrawler:
 
     def __init__(self, data_dir=DATA_DIR):
-        self.video_downloader = VideoDownloader(data_dir)
         self.data_dir = data_dir
-        self.records_path = data_dir / "records.jsonl"
+        self.records_path = self.data_dir / "records.jsonl"
 
         os.makedirs(self.data_dir, exist_ok=True)
         if not os.path.exists(self.records_path):
@@ -142,15 +143,22 @@ class XiaohongshuCrawler:
             data = self._parse_content(html, clean_url)
             print(html)
 
+            # 先生成 record_id，后续下载/落盘都按该目录组织
+            data["record_id"] = data.get("record_id") or new_uuid()
+            record_dir = self.data_dir / data["record_id"]
+            os.makedirs(record_dir, exist_ok=True)
+
             # 检测是否有视频内容
             if self._has_video_content(html):
                 print(f"[XiaohongshuCrawler] 检测到视频内容，开始下载...")
                 
                 # 直接下载原始URL
                 try:
-                    filename = self.video_downloader.download_video(clean_url)
+                    downloader = VideoDownloader(record_dir)
+                    filename = downloader.download_video(clean_url)
                     if filename:
-                        data["videos"].append(filename)
+                        # 存相对路径，便于从 DATA_DIR 定位文件
+                        data["videos"].append((Path(data["record_id"]) / filename).as_posix())
                         print(f"[XiaohongshuCrawler] 视频下载成功: {filename}")
                     else:
                         print(f"[XiaohongshuCrawler] 视频下载失败")
