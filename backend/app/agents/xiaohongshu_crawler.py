@@ -163,3 +163,27 @@ class XiaohongshuCrawler:
                 "type": "error",
                 "data": None
             }
+
+def main():
+    # 从 backend/test/urls.txt 挑的样例（可自行增删）
+    test_urls = [
+        "https://www.xiaohongshu.com/explore/69521554000000001e035658?xsec_token=ABkzg2CYlgCu419P_iDdwgK5O-MlNln5-UiXUxZHfUzEw=&xsec_source=pc_feed",
+        "https://www.xiaohongshu.com/explore/696204f1000000002200bfd6?xsec_token=ABCvIn39KwblGPS9HmxFV8On6azZyjm_DIB-_kwGRvjPE=&xsec_source=pc_feed",
+    ]
+
+    crawler = XiaohongshuCrawler(download_path="./downloads")
+
+    async def _run():
+        for url in test_urls:
+            print("\n" + "=" * 80)
+            print(f"[TEST] {url}")
+
+            # 小红书：解析图文；如检测到视频会触发下载并写入 data["videos"]
+            result = await crawler.crawl_note(url)
+            print(result)
+
+    asyncio.run(_run())
+
+
+if __name__ == "__main__":
+    main()
