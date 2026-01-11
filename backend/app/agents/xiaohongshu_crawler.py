@@ -5,11 +5,11 @@ from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy
 from datetime import datetime
 from .video_download import VideoDownloader
 import json
-
+from app.core.config import DATA_DIR
 
 class XiaohongshuCrawler:
 
-    def __init__(self, download_path="./downloads"):
+    def __init__(self, download_path=DATA_DIR):
         self.video_downloader = VideoDownloader(download_path)
         self.download_path = download_path# 无需任何初始化参数
 
@@ -171,7 +171,7 @@ def main():
         "https://www.xiaohongshu.com/explore/696204f1000000002200bfd6?xsec_token=ABCvIn39KwblGPS9HmxFV8On6azZyjm_DIB-_kwGRvjPE=&xsec_source=pc_feed",
     ]
 
-    crawler = XiaohongshuCrawler(download_path="./downloads")
+    crawler = XiaohongshuCrawler(download_path=DATA_DIR)
 
     async def _run():
         for url in test_urls:
