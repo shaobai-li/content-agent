@@ -3,8 +3,8 @@ from urllib.parse import urlparse
 import os
 
 class VideoDownloader:
-    def __init__(self, download_path="./downloads"):
-        self.download_path = os.path.abspath("./downloads")
+    def __init__(self, download_path):
+        self.download_path = os.path.abspath(download_path)
         os.makedirs(self.download_path, exist_ok=True)
     
     def get_platform(self, url):

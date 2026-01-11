@@ -5,13 +5,23 @@ from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy
 from datetime import datetime
 from .video_download import VideoDownloader
 import json
+import os
 from app.core.config import DATA_DIR
 
 class XiaohongshuCrawler:
 
-    def __init__(self, download_path=DATA_DIR):
-        self.video_downloader = VideoDownloader(download_path)
-        self.download_path = download_path# 无需任何初始化参数
+    def __init__(self, data_dir=DATA_DIR):
+        self.video_downloader = VideoDownloader(data_dir)
+        self.data_dir = data_dir
+        self.records_path = data_dir / "records.jsonl"
+
+        os.makedirs(self.data_dir, exist_ok=True)
+        if not os.path.exists(self.records_path):
+            with open(self.records_path, "w", encoding="utf-8") as f:
+                pass
+    def _persist_result(self, data: dict):
+        with open(self.records_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
     def _has_video_content(self, html: str) -> bool:
         """
@@ -149,7 +159,8 @@ class XiaohongshuCrawler:
             else:
                 print(f"[XiaohongshuCrawler] 未检测到视频内容")
                 data["videos"] = []
-            # 保持原有的返回格式不变
+            
+            self._persist_result(data)
             return {
                 "message":  f"{data}",
                 "type": "xiaohongshu",
@@ -171,7 +182,7 @@ def main():
         "https://www.xiaohongshu.com/explore/696204f1000000002200bfd6?xsec_token=ABCvIn39KwblGPS9HmxFV8On6azZyjm_DIB-_kwGRvjPE=&xsec_source=pc_feed",
     ]
 
-    crawler = XiaohongshuCrawler(download_path=DATA_DIR)
+    crawler = XiaohongshuCrawler(data_dir=DATA_DIR)
 
     async def _run():
         for url in test_urls:
