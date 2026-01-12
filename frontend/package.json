@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev:front": "next dev",
+    "dev:back": "cd ../backend && D:\\prog\\miniconda\\envs\\langgraph\\python.exe -m uvicorn main:app --reload",
+    "dev": "concurrently \"pnpm dev:front\" \"pnpm dev:back\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -23,6 +25,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.0",
     "tailwindcss": "^4",
