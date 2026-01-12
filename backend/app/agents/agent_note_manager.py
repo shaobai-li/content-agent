@@ -1,17 +1,17 @@
 from openai import OpenAI
 import os
-from .xiaohongshu_crawler import XiaohongshuCrawler
+from .crawler import Crawler
 
 
 SYSTEM_PROMPT = """
 
 """
-class RootAgent:
+class NoteManager:
     def __init__(self):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url="https://api.deepseek.com")
         self.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         self.json_file = "todos.json"
-        self.xhs_crawler = XiaohongshuCrawler()
+        self.crawler = Crawler()
 
     def generate_response(self, user_content):
         self.messages.append({"role": "user", "content": user_content})
@@ -61,7 +61,7 @@ class RootAgent:
                 # 严格校验格式
                 if url:  # 只要大模型返回了非空字符串，就直接用
                     print(f"[Agent] 提取到链接: {url}")
-                    return self.xhs_crawler.crawl_note(url)
+                    return self.crawler.crawl_note(url)
                     
 
             except Exception as e:

@@ -3,7 +3,7 @@ from openai import OpenAI
 from pydantic import BaseModel
 from typing import List
 from dotenv import load_dotenv
-from app.agents.agent_1 import RootAgent
+from app.agents.agent_note_manager import NoteManager
 from fastapi.middleware.cors import CORSMiddleware
 from app.agents.Text_to_Image import ImageGenerator
 import os
@@ -12,8 +12,7 @@ import os
 load_dotenv()
 
 app = FastAPI(title="Inspiration Library AI", version="1.0.0")
-assistant = RootAgent()
-image_service = ImageGenerator()
+note_manager = NoteManager()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://192.168.1.3:3000"], # 允许前端地址
@@ -33,11 +32,8 @@ class Message(BaseModel):
 @app.post("/api/chat")
 async def chat(request: Message):
     user_content = request.content
-    if request.agent_id == "agent1":
-        result = await assistant.handle_user_message(user_content)
-        return result
-    elif request.agent_id == "agent2":
-        result = await image_service.generate_and_wait(user_content)
+    if request.agent_id == "note_manager":
+        result = await note_manager.handle_user_message(user_content)
         return result
 
 if __name__ == "__main__":

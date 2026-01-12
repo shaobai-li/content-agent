@@ -11,7 +11,7 @@ from pathlib import Path
 from app.core.config import DATA_DIR
 from app.core.ids import new_uuid
 
-class XiaohongshuCrawler:
+class Crawler:
 
     def __init__(self, data_dir=DATA_DIR):
         self.data_dir = data_dir
@@ -159,12 +159,12 @@ class XiaohongshuCrawler:
                         filename = img_downloader.download_image(url)
                         saved_images.append((Path(data["record_id"]) / filename).as_posix())
                     except Exception as e:
-                        print(f"[XiaohongshuCrawler] 图片下载失败: {url} | {str(e)}")
+                        print(f"[Crawler] 图片下载失败: {url} | {str(e)}")
                 data["images"] = saved_images
 
             # 检测是否有视频内容
             if self._has_video_content(html):
-                print(f"[XiaohongshuCrawler] 检测到视频内容，开始下载...")
+                print(f"[Crawler] 检测到视频内容，开始下载...")
                 
                 # 直接下载原始URL
                 try:
@@ -173,13 +173,13 @@ class XiaohongshuCrawler:
                     if filename:
                         # 存相对路径，便于从 DATA_DIR 定位文件
                         data["videos"].append((Path(data["record_id"]) / filename).as_posix())
-                        print(f"[XiaohongshuCrawler] 视频下载成功: {filename}")
+                        print(f"[Crawler] 视频下载成功: {filename}")
                     else:
-                        print(f"[XiaohongshuCrawler] 视频下载失败")
+                        print(f"[Crawler] 视频下载失败")
                 except Exception as e:
-                    print(f"[XiaohongshuCrawler] 视频下载异常: {str(e)}")
+                    print(f"[Crawler] 视频下载异常: {str(e)}")
             else:
-                print(f"[XiaohongshuCrawler] 未检测到视频内容")
+                print(f"[Crawler] 未检测到视频内容")
                 data["videos"] = []
             
             self._persist_result(data)
@@ -204,7 +204,7 @@ def main():
         "https://www.xiaohongshu.com/explore/69627d9f000000000a02a407?xsec_token=ABCvIn39KwblGPS9HmxFV8OoH0D6lZxsR9p2iZOsv5Uik=&xsec_source=pc_cfeed"
     ]
 
-    crawler = XiaohongshuCrawler(data_dir=DATA_DIR)
+    crawler = Crawler(data_dir=DATA_DIR)
 
     async def _run():
         for url in test_urls:
