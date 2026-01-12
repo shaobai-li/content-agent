@@ -22,6 +22,7 @@ export function Sidebar() {
           const isActive = currentPath === route.href;
           return (
               <Button asChild variant="ghost"
+                key={route.href}
                 className={cn(
                   "w-full justify-start text-sm hover:bg-sidebar-accent",
                   isActive && "bg-sidebar-accent"
