@@ -35,12 +35,10 @@ async def chat(request: Message):
     user_content = request.content
     if request.agent_id == "agent1":
         result = await assistant.handle_user_message(user_content)
-        return {"reply": result}
+        return result
     elif request.agent_id == "agent2":
         result = await image_service.generate_and_wait(user_content)
-        return {"reply": result}
-
-
+        return result
 
 if __name__ == "__main__":
     import uvicorn

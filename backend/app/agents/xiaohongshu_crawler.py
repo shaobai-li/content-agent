@@ -183,18 +183,16 @@ class XiaohongshuCrawler:
                 data["videos"] = []
             
             self._persist_result(data)
+            reply_message = f"笔记下载完成，作者：{data['author_name']}\n{data['words']}"
             return {
-                "message":  f"{data}",
-                "type": "xiaohongshu",
-                "data": data
+                "reply": reply_message
             }
 
         except Exception as e:
-            print(f"[XiaohongshuCrawler] 爬取失败: {str(e)}")
+            error_message = f"爬取失败: {str(e)}"
+            print(error_message)
             return {
-                "message": f"爬取失败：{str(e)}",
-                "type": "error",
-                "data": None
+                "reply": error_message
             }
 
 def main():

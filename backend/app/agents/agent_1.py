@@ -69,9 +69,7 @@ class RootAgent:
 
             # 没有提取到有效链接
             return {
-                "message": "未检测到有效的小红书笔记链接，请分享正确的笔记链接～",
-                "type": "chat",
-                "data": None
+                "reply": "未检测到有效的小红书笔记链接，请分享正确的笔记链接～"
             }
 
 
