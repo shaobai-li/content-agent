@@ -25,6 +25,71 @@ class Crawler:
         with open(self.records_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(data, ensure_ascii=False) + "\n")
 
+    def _identify_platform(self, url: str) -> str:
+        """识别 URL 所属平台"""
+        if "xiaohongshu.com" in url or "xhslink.com" in url:
+            return "xhs"
+        elif "bilibili.com" in url or "b23.tv" in url:
+            return "bilibili"
+        return "unknown"
+
+    def _parse_bilibili_content(self, html: str, source_url: str):
+        """解析B站视频页面内容"""
+        info = {
+            "source_url": source_url,
+            "source_platform": "Bilibili",
+            "author_name": "",
+            "words": "",
+            "videos": [],
+            "images": []
+        }
+        
+        # 提取标题 
+        title_match = re.search(r'data-title="([^"]+)"', html)   
+        title = title_match.group(1) if title_match else ""
+
+        # 提取作者
+        author_match = re.search(r'<meta[^>]*itemprop="author"[^>]*content="([^"]+)"', html)
+        info["author_name"] = author_match.group(1) if author_match else "未知作者"
+
+        # 提取发布时间
+        time_match = re.search(r'<div[^>]*class="[^"]*pubdate-ip-text[^"]*"[^>]*>([^<]+)</div>', html)
+        time = time_match.group(1) if time_match else ""
+
+        desc_match = re.search(r'<meta[^>]*itemprop="description"[^>]*content="([^"]+)"', html)
+        desc_content = desc_match.group(1) if desc_match else ""
+        
+        # 提取所有统计数据
+        stats_matches = re.findall(r'(视频播放量|弹幕量|点赞数|投硬币枚数|收藏人数|转发人数)\s*([\d,]+)', desc_content)
+        
+        # 统计信息格式
+        stats_text = ""
+        if stats_matches:
+            stats_dict = {}
+            for stat_name, stat_value in stats_matches:
+                short_name = {
+                    "视频播放量": "播放",
+                    "弹幕量": "弹幕",
+                    "点赞数": "点赞",
+                    "投硬币枚数": "硬币",
+                    "收藏人数": "收藏",
+                    "转发人数": "转发"
+                }.get(stat_name, stat_name)
+                stats_dict[short_name] = stat_value.replace(",", "")
+            
+            # 将统计信息拼接成字符串
+            stats_list = [f"{k}:{v}" for k, v in stats_dict.items()]
+            stats_text = " ".join(stats_list)
+        # 组合文字信息
+        info["words"] = f"{title} {time} {stats_text}".strip()
+        
+        # 提取封面图 (Open Graph 协议)
+        cover_match = re.search(r'meta property="og:image" content="([^"]+)"', html)
+        if cover_match:
+            info["images"] = [cover_match.group(1)]
+
+        return info
+    
     def _has_video_content(self, html: str) -> bool:
         """
         判断HTML中是否包含视频内容
@@ -140,9 +205,21 @@ class Crawler:
         """
 
         try:
+            platform = self._identify_platform(clean_url)
+            if platform == "unknown":
+                return {"reply": "暂不支持该平台地址"}
+
+            # 1. 抓取 HTML
             html = await self._fetch_html(clean_url)
-            data = self._parse_content(html, clean_url)
             print(html)
+            
+            # 2. 根据平台分发解析逻辑
+            if platform == "xhs":
+                data = self._parse_content(html, clean_url)
+                is_video = self._has_video_content(html)
+            else:
+                data = self._parse_bilibili_content(html, clean_url)
+                is_video = True # B站链接默认为视频
 
             # 先生成 record_id，后续下载/落盘都按该目录组织
             data["record_id"] = data.get("record_id") or new_uuid()
@@ -159,35 +236,32 @@ class Crawler:
                         filename = img_downloader.download_image(url)
                         saved_images.append((Path(data["record_id"]) / filename).as_posix())
                     except Exception as e:
-                        print(f"[Crawler] 图片下载失败: {url} | {str(e)}")
+                        print(f"[XiaohongshuCrawler] 图片下载失败: {url} | {str(e)}")
                 data["images"] = saved_images
 
             # 检测是否有视频内容
-            if self._has_video_content(html):
-                print(f"[Crawler] 检测到视频内容，开始下载...")
-                
-                # 直接下载原始URL
+            if is_video:
+                print(f"[{platform}] 识别为视频内容，开始下载...")
                 try:
                     downloader = VideoDownloader(record_dir)
                     filename = downloader.download_video(clean_url)
                     if filename:
-                        # 存相对路径，便于从 DATA_DIR 定位文件
+                        # 确保 data["videos"] 是列表并存入路径
+                        if "videos" not in data: data["videos"] = []
                         data["videos"].append((Path(data["record_id"]) / filename).as_posix())
-                        print(f"[Crawler] 视频下载成功: {filename}")
-                    else:
-                        print(f"[Crawler] 视频下载失败")
+                        print(f"[{platform}] 视频下载成功")
                 except Exception as e:
-                    print(f"[Crawler] 视频下载异常: {str(e)}")
+                    print(f"[{platform}] 视频下载异常: {e}")
             else:
-                print(f"[Crawler] 未检测到视频内容")
+                print(f"[{platform}] 识别为纯图文，跳过视频下载")
                 data["videos"] = []
-            
+
+            # 6. 保存并返回
             self._persist_result(data)
-            reply_message = f"笔记下载完成，作者：{data['author_name']}\n{data['words']}"
+            reply_message = f"下载完成，作者：{data['author_name']}\n{data['words']}"
             return {
                 "reply": reply_message
             }
-
         except Exception as e:
             error_message = f"爬取失败: {str(e)}"
             print(error_message)
@@ -198,10 +272,7 @@ class Crawler:
 def main():
     # 从 backend/test/urls.txt 挑的样例（可自行增删）
     test_urls = [
-        "https://www.xiaohongshu.com/explore/69521554000000001e035658?xsec_token=ABkzg2CYlgCu419P_iDdwgK5O-MlNln5-UiXUxZHfUzEw=&xsec_source=pc_feed",
-        "https://www.xiaohongshu.com/explore/696204f1000000002200bfd6?xsec_token=ABCvIn39KwblGPS9HmxFV8On6azZyjm_DIB-_kwGRvjPE=&xsec_source=pc_feed",
-        "https://www.xiaohongshu.com/explore/6957c911000000001e0052a6?xsec_token=ABLLDxF81CLnALitGMZ3TI6La8RH3MsJqdj3cxgCaBTco=&xsec_source=pc_cfeed",
-        "https://www.xiaohongshu.com/explore/69627d9f000000000a02a407?xsec_token=ABCvIn39KwblGPS9HmxFV8OoH0D6lZxsR9p2iZOsv5Uik=&xsec_source=pc_cfeed"
+        "https://www.bilibili.com/video/BV1ysqBBgEoW/?spm_id_from=333.1007.tianma.12-2-36.click",
     ]
 
     crawler = Crawler(data_dir=DATA_DIR)
