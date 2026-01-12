@@ -1,10 +1,7 @@
-interface Message {
-  role: "user" | "assistant" | string;
-  content: string;
-}
+import type { ChatMessage as ChatMessageType } from "@/types/chat";
 
 interface ChatMessageProps {
-  messages: Message[];
+  messages: ChatMessageType[];
 }
 
 export function ChatMessage({ messages }: ChatMessageProps) {
