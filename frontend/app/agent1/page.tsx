@@ -1,8 +1,8 @@
 "use client" // 必须保留，因为有交互逻辑
 
 import { useState } from "react" // 引入状态管理
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { ChatMessage } from "@/components/features/chat/ChatMessage"
+import { ChatInput } from "@/components/features/chat/ChatInput"
 
 export default function AgentPage() {
   // 1. 定义状态：input 存储输入内容，messages 存储对话历史
@@ -55,28 +55,8 @@ export default function AgentPage() {
 
   return (
     <div className="h-full flex flex-grow flex-col border">
-        <div className="flex-1 flex flex-col overflow-y-auto gap-4">
-            {messages.map((msg, index) => (
-                <div key={index} className={`p-3 rounded-lg max-w-[90%] ${
-                    msg.role === "user" 
-                        ? "bg-slate-100 text-slate-800 self-end"
-                        : "bg-white text-slate-800 self-start"
-                }`}>
-                    <span>{msg.content}</span>
-                </div>
-            ))}
-        </div>
-        <div className="sticky bottom-0 bg-white border">
-            <div className="flex w-full items-center space-x-2 bg-white p-2 rounded-lg border shadow-sm">
-                <Input 
-                    className="flex-1 border-none focus-visible:ring-0 shadow-none" 
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()} 
-                />
-                <Button className="px-6" onClick={handleSend}>发送</Button>
-            </div>
-        </div>
+      <ChatMessage messages={messages} />
+      <ChatInput value={input} onChange={setInput} onSend={handleSend} />
     </div>
   )
 }
