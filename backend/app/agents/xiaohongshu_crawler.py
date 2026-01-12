@@ -4,6 +4,7 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy
 from datetime import datetime
 from .video_download import VideoDownloader
+from .image_download import ImageDownloader
 import json
 import os
 from pathlib import Path
@@ -148,6 +149,19 @@ class XiaohongshuCrawler:
             record_dir = self.data_dir / data["record_id"]
             os.makedirs(record_dir, exist_ok=True)
 
+            # 下载图片，并把相对路径写回 images 字段
+            image_urls = data.get("images") or []
+            if image_urls:
+                saved_images = []
+                img_downloader = ImageDownloader(record_dir)
+                for url in image_urls:
+                    try:
+                        filename = img_downloader.download_image(url)
+                        saved_images.append((Path(data["record_id"]) / filename).as_posix())
+                    except Exception as e:
+                        print(f"[XiaohongshuCrawler] 图片下载失败: {url} | {str(e)}")
+                data["images"] = saved_images
+
             # 检测是否有视频内容
             if self._has_video_content(html):
                 print(f"[XiaohongshuCrawler] 检测到视频内容，开始下载...")
@@ -188,6 +202,8 @@ def main():
     test_urls = [
         "https://www.xiaohongshu.com/explore/69521554000000001e035658?xsec_token=ABkzg2CYlgCu419P_iDdwgK5O-MlNln5-UiXUxZHfUzEw=&xsec_source=pc_feed",
         "https://www.xiaohongshu.com/explore/696204f1000000002200bfd6?xsec_token=ABCvIn39KwblGPS9HmxFV8On6azZyjm_DIB-_kwGRvjPE=&xsec_source=pc_feed",
+        "https://www.xiaohongshu.com/explore/6957c911000000001e0052a6?xsec_token=ABLLDxF81CLnALitGMZ3TI6La8RH3MsJqdj3cxgCaBTco=&xsec_source=pc_cfeed",
+        "https://www.xiaohongshu.com/explore/69627d9f000000000a02a407?xsec_token=ABCvIn39KwblGPS9HmxFV8OoH0D6lZxsR9p2iZOsv5Uik=&xsec_source=pc_cfeed"
     ]
 
     crawler = XiaohongshuCrawler(data_dir=DATA_DIR)
