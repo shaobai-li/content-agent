@@ -9,7 +9,7 @@ interface ChatInputProps {
 
 export function ChatInput({ value, onChange, onSend }: ChatInputProps) {
     return (
-        <div className="sticky bottom-0 bg-white border">
+        <div className="sticky bottom-0 bg-white">
             <div className="flex w-full items-center space-x-2 bg-white p-2 rounded-lg border shadow-sm">
                 <Input
                     className="flex-1 border-none focus-visible:ring-0 shadow-none"
