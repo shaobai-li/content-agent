@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev:front": "next dev",
-    "dev:back": "cd ../backend && D:\\prog\\miniconda\\envs\\langgraph\\python.exe -m uvicorn main:app --reload",
-    "dev": "concurrently \"pnpm dev:front\" \"pnpm dev:back\"",
+    "dev": "next dev",    
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

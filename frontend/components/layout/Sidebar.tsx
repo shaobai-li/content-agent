@@ -10,9 +10,7 @@ export function Sidebar() {
   const currentPath = usePathname();
   
   const routes = [
-    { href: "/agent1", label: "机器人1" },
-    { href: "/agent2", label: "机器人2" },
-    { href: "/agent3", label: "机器人3" },
+    { href: "/agent_nm", label: "笔记收集Agent" },
   ];
 
   return (
