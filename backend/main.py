@@ -6,7 +6,9 @@ from dotenv import load_dotenv
 from app.agents.agent_note_manager import NoteManager
 from fastapi.middleware.cors import CORSMiddleware
 from app.agents.Text_to_Image import ImageGenerator
+from app.core.config import DATA_DIR
 import os
+import json
 
 
 load_dotenv()
@@ -35,6 +37,18 @@ async def chat(request: Message):
     if request.agent_id == "note_manager":
         result = await note_manager.handle_user_message(user_content)
         return result
+
+@app.get("/api/records")
+async def get_records():
+    records = []
+    records_path = DATA_DIR / "records.jsonl"
+    if records_path.exists():
+        with open(records_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    records.append(json.loads(line))
+    return {"records": records}
 
 if __name__ == "__main__":
     import uvicorn
