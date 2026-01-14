@@ -14,7 +14,7 @@ export function Sidebar() {
   ];
 
   return (
-    <Card className="w-60 rounded-none border-0 shadow-none bg-sidebar">
+    <Card className="w-80 rounded-none border-r shadow-none bg-white">
       <CardContent className="p-4 flex flex-col">
         {routes.map((route) => {
           const isActive = currentPath === route.href;

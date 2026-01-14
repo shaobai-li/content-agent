@@ -1,6 +1,6 @@
 import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { DataPanel } from "@/components/layout/DataPanel";
+import { DataPanel } from "@/components/features/data/DataPanel";
 
 export default function RootLayout({
   children,
