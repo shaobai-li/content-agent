@@ -1,6 +1,5 @@
 import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { DataPanel } from "@/components/features/data/DataPanel";
 
 export default function RootLayout({
   children,
@@ -13,7 +12,7 @@ export default function RootLayout({
         <div className="flex h-screen">
           <Sidebar />
 
-          <div className="flex-1 flex flex-col p-4">{children}</div>
+          <div className="flex-1 flex flex-col">{children}</div>
         </div>
       </body>
     </html>

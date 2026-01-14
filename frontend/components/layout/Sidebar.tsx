@@ -22,7 +22,7 @@ export function Sidebar() {
               <Button asChild variant="ghost"
                 key={route.href}
                 className={cn(
-                  "w-full justify-start text-sm hover:bg-sidebar-accent",
+                  "w-full justify-start text-sm hover:bg-sidebar-accent text-sidebar-foreground",
                   isActive && "bg-sidebar-accent"
                 )}
               >

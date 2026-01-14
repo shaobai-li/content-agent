@@ -40,8 +40,7 @@ export function DataPanel() {
   }
 
   return (
-    <div className="h-full flex flex-grow flex-col border bg-white p-4">
-      <div className="overflow-auto border rounded-lg">
+      <div className="overflow-auto border rounded-lg bg-white shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -87,6 +86,5 @@ export function DataPanel() {
           </TableBody>
         </Table>
       </div>
-    </div>
   );
 }
