@@ -3,9 +3,8 @@ from openai import OpenAI
 from pydantic import BaseModel
 from typing import List
 from dotenv import load_dotenv
-from app.agents.agent_note_manager import NoteManager
+from app.agents import NoteManager
 from fastapi.middleware.cors import CORSMiddleware
-from app.agents.Text_to_Image import ImageGenerator
 from app.core.config import DATA_DIR
 import os
 import json
