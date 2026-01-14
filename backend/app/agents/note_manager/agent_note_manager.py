@@ -1,19 +1,49 @@
 from openai import OpenAI
 import os
+import json
 from .crawler import Crawler
 
 
-SYSTEM_PROMPT = """
+SYSTEM_PROMPT = """你是一个 URL 提取助手。
 
+你的任务：
+从用户输入中识别并提取出“第一个”URL，并按照规定的 JSON 格式输出结果。
+
+规则（必须严格遵守）：
+1) 扫描用户输入的全部文本，识别所有符合 URL 格式的链接（必须以 http:// 或 https:// 开头）
+2) 如果找到多个 URL，只返回第一个
+3) 只输出 JSON，不要添加任何解释、注释、额外文字或换行
+4) JSON 中只允许一个字段
+5) 如果找不到任何 URL，url 字段必须是空字符串 ""
+
+JSON 输出格式（必须严格一致）：
+{
+  "url": "<提取到的第一个URL或空字符串>"
+}
+
+示例 1：
+输入：帮我提取这个 https://www.xiaohongshu.com/explore/xxx?abc=1
+输出：
+{
+  "url": "https://www.xiaohongshu.com/explore/xxx?abc=1"
+}
+
+示例 2：
+输入：这段话里没有链接
+输出：
+{
+  "url": ""
+}
 """
 class NoteManager:
     def __init__(self):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url="https://api.deepseek.com")
-        self.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        self.messages = []
         self.json_file = "todos.json"
         self.crawler = Crawler()
 
     def generate_response(self, user_content):
+        self.messages.append({"role": "system", "content": SYSTEM_PROMPT})
         self.messages.append({"role": "user", "content": user_content})
         response = self.client.chat.completions.create(
             model="deepseek-chat",
@@ -21,56 +51,31 @@ class NoteManager:
         )
             
         ai_content = response.choices[0].message.content 
-        self.messages.append({"role": "assistant", "content": ai_content})
         return ai_content
 
-
-
     async def handle_user_message(self, user_content: str) -> dict:
-            user_content = user_content.strip()
+        user_content = user_content.strip()
 
-            # Step 1: 用大模型提取纯净小红书URL
-            prompt  = """你是URL提取助手。你的任务是从用户输入的内容中识别并提取出纯净URL。
+        
+        try:
+            resp = self.generate_response(user_content)
 
-                请严格按照以下规则执行：
-                1. 仔细扫描用户输入的全部文本内容
-                2. 识别出所有符合URL格式的链接）
-                3. 如果找到多个URL链接，只返回第一个
-                4. 只返回纯粹的URL链接
-                5. 如果找不到符合条件URL，返回空字符串 ""
+            # 解析 JSON
+            data = json.loads(resp)
+            url = data.get("url", "")
 
-                示例：
-                用户输入："帮我提取这个小红书笔记 https://www.xiaohongshu.com/explore/69327271000000001e021002?xsec_token=ABKPhNpGT-KmvTfRRpKLWNgxPMDCtRt6hjnTQ47mrC6cU=&xsec_source=pc_feed"
-                你返回："https://www.xiaohongshu.com/explore/69327271000000001e021002?xsec_token=ABKPhNpGT-KmvTfRRpKLWNgxPMDCtRt6hjnTQ47mrC6cU=&xsec_source=pc_feed"
-            
+            # 只要返回了非空 URL，就直接用
+            if url:
+                print(f"[Agent] 提取到链接: {url}")
+                return await self.crawler.crawl_note(url)
 
+            else:
+                return {
+                    "reply": "未检测到有效URL，请分享正确的URL～"
+                }
 
-                现在请处理当前用户输入："""
-
-            try:
-                response = self.client.chat.completions.create(
-                    model="deepseek-chat",
-                    messages=[
-                        {"role": "system", "content": prompt + user_content},
-                    ],
-                    temperature=0.0,
-                    max_tokens=100
-                )
-                url = response.choices[0].message.content.strip().strip('"')
-                
-                # 严格校验格式
-                if url:  # 只要大模型返回了非空字符串，就直接用
-                    print(f"[Agent] 提取到链接: {url}")
-                    return await self.crawler.crawl_note(url)
-                    
-
-            except Exception as e:
-                print(f"[提取URL失败] {e}")
-
-            # 没有提取到有效链接
-            return {
-                "reply": "未检测到有效URL，请分享正确的URL～"
-            }
+        except Exception as e:
+            print(f"[提取URL失败] {e}")
 
 
 
