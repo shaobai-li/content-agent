@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { Settings } from "lucide-react"
 
 export function Sidebar() {
   const currentPath = usePathname();
@@ -14,8 +16,17 @@ export function Sidebar() {
   ];
 
   return (
-    <Card className="w-80 rounded-none border-r shadow-none bg-white">
-      <CardContent className="p-4 flex flex-col">
+    <Card className="w-80 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
+      <div className="flex items-center p-6">
+        <Image 
+          src="/nexus-logo.png" 
+          alt="Nexus Logo" 
+          width={110}
+          height={200}
+          priority
+        />
+      </div>
+      <CardContent className="flex-grow flex flex-col p-4">
         {routes.map((route) => {
           const isActive = currentPath === route.href;
           return (
@@ -31,6 +42,11 @@ export function Sidebar() {
           );
         })}
       </CardContent>
+      <div className="p-4 flex justify-end border-t">
+        <Button variant="ghost" size="icon">
+          <Settings className="size-6" />
+        </Button>
+      </div>
     </Card>
   );
 }
