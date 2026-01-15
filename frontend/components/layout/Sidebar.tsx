@@ -7,6 +7,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Settings } from "lucide-react"
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
+import { User } from "lucide-react";
 
 export function Sidebar() {
   const currentPath = usePathname();
@@ -42,7 +44,17 @@ export function Sidebar() {
           );
         })}
       </CardContent>
-      <div className="p-4 flex justify-end border-t">
+      <div className="p-4 flex justify-between items-center border-t">
+        <Avatar className="size-6">
+          <AvatarImage src="https://github.com/shadcn.png" />
+          <AvatarFallback>CNZ</AvatarFallback> 
+        </Avatar>
+        <div className="flex-1 flex flex-col px-2">
+          <span className="text-sm font-medium">User Name</span>
+          <span className="text-xs text-muted-foreground">
+            Level 1 Pilot
+          </span>
+        </div>
         <Button variant="ghost" size="icon">
           <Settings className="size-6" />
         </Button>
