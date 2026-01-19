@@ -6,9 +6,7 @@ import type { ChatMessage } from "@/types/chat";
 export function useChat({ agentId }: { agentId: string }) {
   // 1. 定义状态：input 存储输入内容，messages 存储对话历史
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: "你好！请发送你想分析的小红书笔记。" },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   // 2. 定义发送逻辑（MVP：只做最小可用，不做过度抽象）
   const handleSend = useCallback(async () => {

@@ -6,7 +6,7 @@ interface ChatMessageProps {
 
 export function ChatMessage({ messages }: ChatMessageProps) {
     return (
-        <div className="flex-1 flex flex-col overflow-y-auto gap-4">
+        <div className="flex flex-col overflow-y-auto gap-4">
             {messages.map((msg, index) => (
                 <div
                     key={index}

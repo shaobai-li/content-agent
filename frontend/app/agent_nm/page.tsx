@@ -17,11 +17,15 @@ export default function AgentPage() {
 					<DataPanel />
 				</div>
 			</div>
-			<div className="w-100 flex-none flex flex-col">
+			<div className="w-100 flex flex-col flex-none">
 				<ChatHeader />
-				<div className="flex-1 flex flex-col p-4 border bg-neutral-50">
-					<ChatMessage messages={messages} />
-					<ChatInput value={input} onChange={setInput} onSend={handleSend} />
+				<div className="flex-1 flex flex-col">
+					<div className="flex-1 flex flex-col border p-4 bg-neutral-50">
+						<ChatMessage messages={messages} />
+					</div>
+					<div className="flex flex-col border p-4 bg-background">
+						<ChatInput value={input} onChange={setInput} onSend={handleSend} />
+					</div>
 				</div>
 			</div>
 		</div>
