@@ -6,3 +6,4 @@ with open(CONFIG_PATH, "r") as f:
     config = yaml.safe_load(f)
 
 DATA_DIR = Path(config["DATA_DIR"])
+RECORDS_FILE = DATA_DIR / "records.jsonl"

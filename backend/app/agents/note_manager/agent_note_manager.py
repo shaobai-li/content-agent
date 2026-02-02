@@ -2,6 +2,7 @@ from openai import OpenAI
 import os
 import json
 from .crawler import Crawler
+from app.core.config import RECORDS_FILE
 
 
 SYSTEM_PROMPT = """你是一个 URL 提取助手。
@@ -41,6 +42,7 @@ class NoteManager:
         self.messages = []
         self.json_file = "todos.json"
         self.crawler = Crawler()
+        self.records_file = RECORDS_FILE
 
     def generate_response(self, user_content):
         self.messages.append({"role": "system", "content": SYSTEM_PROMPT})
@@ -53,6 +55,26 @@ class NoteManager:
         ai_content = response.choices[0].message.content 
         return ai_content
 
+    def _has_been_crawled(self, url: str) -> bool:
+
+            if not self.records_file.is_file():
+                return False
+
+
+            with self.records_file.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        record = json.loads(line)
+                        existing_url = record.get("source_url", "").strip()
+                        if existing_url == url:
+                            return True
+                    except json.JSONDecodeError:
+                        # 跳过格式错误的行
+                        continue
+            return False
     async def handle_user_message(self, user_content: str) -> dict:
         user_content = user_content.strip()
 
@@ -67,8 +89,12 @@ class NoteManager:
             # 只要返回了非空 URL，就直接用
             if url:
                 print(f"[Agent] 提取到链接: {url}")
-                return await self.crawler.crawl_note(url)
+                if self._has_been_crawled(url):
+                    return {
+                        "reply": "该链接已经爬取过",
+                    }
 
+                return await self.crawler.crawl_note(url)
             else:
                 return {
                     "reply": "未检测到有效URL，请分享正确的URL～"
