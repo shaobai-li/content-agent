@@ -10,12 +10,17 @@ import { Settings } from "lucide-react"
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import { User } from "lucide-react";
 
-export function Sidebar() {
+export interface RouteItem {
+  href: string;
+  label: string;
+}
+
+interface SidebarProps {
+  routes: RouteItem[];
+}
+
+export function Sidebar({ routes }: SidebarProps) {
   const currentPath = usePathname();
-  
-  const routes = [
-    { href: "/agent_nm", label: "笔记收集Agent" },
-  ];
 
   return (
     <Card className="w-80 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
