@@ -7,7 +7,7 @@ import { DataPanel } from "@/components/features/data/DataPanel"
 import { DataHeader } from "@/components/features/data/DataHeader"
 import { ChatHeader } from "@/components/features/chat/ChatHeader"
 
-export default function AgentPage() {
+export default function AgentNmPage() {
 	const { input, setInput, messages, handleSend } = useChat({ agentId: "note_manager" })
 	return (
 		<div className="h-full flex flex-grow flex-row">

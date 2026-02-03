@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PlatformIconMap } from "@/components/ui/icons";
+import { AGENT_NM_COLUMNS } from "@/app/agent_nm/columns";
 
 interface DataRecord {
   record_id: string;
@@ -46,11 +47,14 @@ export function DataPanel() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[30px]"></TableHead>
-              <TableHead className="w-[80px]">平台</TableHead>
-              <TableHead className="w-[100px]">作者</TableHead>
-              <TableHead>图片</TableHead>
-              <TableHead>视频</TableHead>
+              {AGENT_NM_COLUMNS.map((col) => (
+                <TableHead
+                  key={col.key}
+                  className={col.width ? `w-[${col.width}]` : col.className}
+                >
+                  {col.label}
+                </TableHead>
+              ))} 
             </TableRow>
           </TableHeader>
           <TableBody>

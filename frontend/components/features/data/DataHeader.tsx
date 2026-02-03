@@ -3,7 +3,7 @@ import Image from "next/image";
 
 export function DataHeader() {
   return (
-    <div className="flex items-center h-16 px-4 border bg-card">
+    <div className="flex flex-row items-center w-full">
       <h2 className="text-sm font-semibold text-foreground">DATA</h2>
 
       <div className="ml-auto flex items-center gap-2">
