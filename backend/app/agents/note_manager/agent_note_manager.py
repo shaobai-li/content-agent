@@ -102,6 +102,3 @@ class NoteManager:
 
         except Exception as e:
             print(f"[提取URL失败] {e}")
-
-
-

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   Table,
   TableBody,
@@ -9,8 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PlatformIconMap } from "@/components/ui/icons";
 
-interface Record {
+interface DataRecord {
   record_id: string;
   source_platform: string;
   author_name: string;
@@ -19,7 +21,7 @@ interface Record {
 }
 
 export function DataPanel() {
-  const [records, setRecords] = useState<Record[]>([]);
+  const [records, setRecords] = useState<DataRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export function DataPanel() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[30px]"></TableHead>
               <TableHead className="w-[80px]">平台</TableHead>
               <TableHead className="w-[100px]">作者</TableHead>
               <TableHead>图片</TableHead>
@@ -51,19 +54,30 @@ export function DataPanel() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {records.map((item) => (
-              <TableRow key={item.record_id}>
-                <TableCell>{item.source_platform}</TableCell>
+            {records.map((item) => {
+              const platformIcon = PlatformIconMap[item.source_platform as keyof typeof PlatformIconMap];
+              
+              return (
+                <TableRow key={item.record_id}>
+                  <TableCell>
+                    {platformIcon && (
+                      <Image
+                        src={platformIcon}
+                        alt={item.source_platform}
+                        title={item.source_platform}
+                        width={24}
+                        height={24}
+                        className="w-6 h-6 object-contain"
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell>{item.source_platform}</TableCell>
                 <TableCell className="font-medium">{item.author_name}</TableCell>
                 <TableCell className="text-sm text-gray-600">
                   {item.images.length > 0 ? (
-                    <ul className="list-none space-y-1">
-                      {item.images.map((path, i) => (
-                        <li key={i} className="truncate max-w-[200px]" title={path}>
-                          {path}
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="truncate max-w-[200px]" title={item.images.join("\n")}>
+                      {item.images[0]}
+                    </div>
                   ) : (
                     <span className="text-gray-400">无</span>
                   )}
@@ -82,7 +96,8 @@ export function DataPanel() {
                   )}
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </div>
