@@ -64,18 +64,20 @@ export function DataPanel() {
               return (
                 <TableRow key={item.record_id}>
                   <TableCell>
-                    {platformIcon && (
-                      <Image
-                        src={platformIcon}
-                        alt={item.source_platform}
-                        title={item.source_platform}
-                        width={24}
-                        height={24}
-                        className="w-6 h-6 object-contain"
-                      />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {platformIcon && (
+                        <Image
+                          src={platformIcon}
+                          alt={item.source_platform}
+                          title={item.source_platform}
+                          width={16}
+                          height={16}
+                          className="w-4 h-4 object-contain"
+                        />
+                      )}
+                      <span>{item.source_platform}</span>
+                    </div>
                   </TableCell>
-                  <TableCell>{item.source_platform}</TableCell>
                 <TableCell className="font-medium">{item.author_name}</TableCell>
                 <TableCell className="text-sm text-gray-600">
                   {item.images.length > 0 ? (
