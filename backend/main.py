@@ -1,14 +1,15 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
 # 导入各个 agent 的路由
 from app.agents.note_manager.routes import router as nm_router
 from app.agents.knowledge_base.routes import router as kb_router
 from app.agents.content_detection.routes import router as c_router
 from app.agents.write_agent.routes import router as w_router
-
-load_dotenv()
 
 app = FastAPI(
     title="OmniAge System",
