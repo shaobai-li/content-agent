@@ -1,65 +1,44 @@
 from fastapi import FastAPI
-from openai import OpenAI
-from pydantic import BaseModel
-from typing import List
-from dotenv import load_dotenv
-from app.agents import NoteManager
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import DATA_DIR
-import os
-import json
+from dotenv import load_dotenv
 
+# 导入各个 agent 的路由
+from app.agents.note_manager.routes import router as nm_router
+from app.agents.knowledge_base.routes import router as kb_router
+from app.agents.content_detection.routes import router as c_router
+from app.agents.write_agent.routes import router as w_router
 
 load_dotenv()
 
-app = FastAPI(title="Inspiration Library AI", version="1.0.0")
-note_manager = NoteManager()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://192.168.1.3:3000"], # 允许前端地址
-    allow_credentials=True,
-    allow_methods=["*"], # 允许所有方法 (POST, GET等)
-    allow_headers=["*"], # 允许所有请求头
+app = FastAPI(
+    title="OmniAge System",
+    description="多 Agent 的 AI 系统平台",
+    version="0.0.1"
 )
 
-class Message(BaseModel):
-    content: str
-    agent_id: str
+# 配置 CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://192.168.1.3:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# class DownloadRequest(BaseModel):
-#     url: str
-#     separate: bool = False
+# 注册各个 agent 的路由
+# 路由模式: /api/{agentId}/{endpoint}
+app.include_router(nm_router, prefix="/api/nm", tags=["Note Manager"])
+app.include_router(kb_router, prefix="/api/kb", tags=["Knowledge Base"])
+app.include_router(c_router, prefix="/api/c", tags=["Content Detection"])
+app.include_router(w_router, prefix="/api/w", tags=["Write Agent"])
 
-@app.post("/api/chat")
-async def chat(request: Message):
-    user_content = request.content
-    if request.agent_id == "note_manager":
-        result = await note_manager.handle_user_message(user_content)
-        return result
-
-@app.get("/api/records")
-async def get_records():
-    records = []
-    records_path = DATA_DIR / "records.jsonl"
-    if records_path.exists():
-        with open(records_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    records.append(json.loads(line))
-    return {"records": records}
-
-@app.get("/api/knowledge_base")
-async def get_knowledge_base():
-    records = []
-    kb_path = DATA_DIR / "knowledge_base.jsonl"
-    if kb_path.exists():
-        with open(kb_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    records.append(json.loads(line))
-    return {"records": records}
+@app.get("/")
+async def root():
+    return {
+        "status": "running",
+        "version": "0.0.1",
+        "agents": ["nm", "kb", "c", "w"]
+    }
 
 if __name__ == "__main__":
     import uvicorn
