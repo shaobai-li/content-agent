@@ -28,7 +28,7 @@ export function AgentPageLayout({ agentId, leftHeader, leftBody }: AgentPageLayo
             </div>
             
             {/* 右侧聊天面板 */}
-            <div className="w-100 flex flex-col flex-none">
+            <div className="w-100 flex flex-col">
                 <ChatHeader />
                 <div className="flex-1 flex flex-col">
                     <div className="flex-1 flex flex-col border p-4 bg-neutral-50">
