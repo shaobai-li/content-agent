@@ -24,12 +24,14 @@ export function Sidebar({ routes }: SidebarProps) {
 
   return (
     <Card className="w-80 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
-      <div className="flex items-center p-6">
+      <div className="flex items-center px-3">
         <Image 
-          src="/nexus-logo.png" 
-          alt="Nexus Logo" 
-          width={110}
-          height={200}
+          className="mb-[-20px]"
+          src="/OmniAge_Logo_4K.svg"
+          // src="/OmniAge_Logo_black_2.svg"
+          alt="OmniAge Logo" 
+          width={190}
+          height={80}
           priority
         />
       </div>
