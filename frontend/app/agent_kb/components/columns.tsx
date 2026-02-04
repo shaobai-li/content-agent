@@ -1,38 +1,59 @@
+import Image from "next/image";
 import { DataTableColumn } from "@/components/features/data/DataTable";
+import { FileTypeIconMap } from "@/components/ui/icons";
 
 export interface KnowledgeBaseRecord {
-  id: string;
-  title: string;
-  category: string;
-  created_at: string;
+  record_id: string;
+  name: string;
+  type: string;
+  size: string;
+  date_added: string;
 }
 
 export const AGENT_KB_COLUMNS: DataTableColumn<KnowledgeBaseRecord>[] = [
   {
-    key: "title",
-    label: "标题",
-    width: "200px",
-    render: (item) => (
-      <span className="font-medium">{item.title}</span>
-    )
+    key: "type",
+    label: "类型",
+    width: "80px",
+    render: (record) => {
+      const icon = FileTypeIconMap[record.type as keyof typeof FileTypeIconMap];
+      return (
+        <div className="flex items-center gap-2">
+          {icon && (
+            <Image
+              src={icon}
+              alt={record.type}
+              width={20}
+              height={20}
+              className="w-5 h-5 object-contain"
+            />
+          )}
+          <span className="text-xs text-gray-600">{record.type.toUpperCase()}</span>
+        </div>
+      );
+    },
   },
   {
-    key: "category",
-    label: "分类",
-    width: "120px",
-    render: (item) => (
-      <span className="text-sm text-gray-600">{item.category}</span>
-    )
-  },
-  {
-    key: "created_at",
-    label: "创建时间",
-    width: "150px",
-    render: (item) => (
-      <span className="text-sm text-gray-500">
-        {new Date(item.created_at).toLocaleDateString('zh-CN')}
+    key: "name",
+    label: "文件名",
+    render: (record) => (
+      <span className="font-medium truncate max-w-[300px] block" title={record.name}>
+        {record.name}
       </span>
-    )
-  }
+    ),
+  },
+  {
+    key: "size",
+    label: "大小",
+    width: "100px",
+    className: "text-sm text-gray-600",
+    render: (record) => record.size,
+  },
+  {
+    key: "date_added",
+    label: "添加日期",
+    width: "120px",
+    className: "text-sm text-gray-600",
+    render: (record) => record.date_added,
+  },
 ];
-

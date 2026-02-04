@@ -49,6 +49,18 @@ async def get_records():
                     records.append(json.loads(line))
     return {"records": records}
 
+@app.get("/api/knowledge_base")
+async def get_knowledge_base():
+    records = []
+    kb_path = DATA_DIR / "knowledge_base.jsonl"
+    if kb_path.exists():
+        with open(kb_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    records.append(json.loads(line))
+    return {"records": records}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
