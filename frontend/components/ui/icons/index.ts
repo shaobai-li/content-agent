@@ -10,11 +10,11 @@ export const PlatformIconMap = {
 import DocxIcon from './docx.svg';
 import PdfIcon from './pdf.svg';
 import PptxIcon from './pptx.svg';
-import MkIcon from './mk.svg';
+import MdIcon from './md.svg';
 
 export const FileTypeIconMap = {
     "docx": DocxIcon,
     "pdf": PdfIcon,
     "pptx": PptxIcon,
-    "md": MkIcon,
+    "md": MdIcon,
 } as const;

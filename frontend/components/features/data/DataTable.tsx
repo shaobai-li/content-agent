@@ -12,8 +12,6 @@ import {
 export interface DataTableColumn<T> {
     key: string;
     label: string;
-    width?: string;
-    className?: string;
     render: (item: T) => React.ReactNode;
 }
 
@@ -54,10 +52,7 @@ export function DataTable<T>({
             <TableHeader>
             <TableRow>
                 {columns.map((col) => (
-                <TableHead
-                    key={col.key}
-                    className={col.width ? `w-[${col.width}]` : col.className}
-                >
+                <TableHead key={col.key} className="text-xs font-semibold text-muted-foreground px-6">
                     {col.label}
                 </TableHead>
                 ))}
@@ -67,7 +62,7 @@ export function DataTable<T>({
             {data.map((item) => (
                 <TableRow key={getRowKey(item)}>
                 {columns.map((col) => (
-                    <TableCell key={col.key}>
+                    <TableCell key={col.key} className="p-0">
                     {col.render(item)}
                     </TableCell>
                 ))}

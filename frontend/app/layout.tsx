@@ -14,8 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased bg-background">
+    <html lang="zh-CN">
+      <body className="font-sans antialiased bg-background">
         <div className="flex h-screen">
           <Sidebar routes={routes} />
 
