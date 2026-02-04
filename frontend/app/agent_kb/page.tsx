@@ -1,7 +1,7 @@
 "use client"
 
 import { AgentPageLayout } from "@/components/layout/AgentPageLayout";
-import { DataPanel } from "@/components/features/data/DataPanel";
+import { KbDataPanel } from "./components/KbDataPanel";
 import { DataHeader } from "@/components/features/data/DataHeader";
 
 export default function AgentKbPage() {
@@ -9,7 +9,7 @@ export default function AgentKbPage() {
         <AgentPageLayout 
             agentId="knowledge_base_agent"
             leftHeader={<DataHeader />}
-            leftBody={<DataPanel />}
+            leftBody={<KbDataPanel />}
         />
     );    
 }

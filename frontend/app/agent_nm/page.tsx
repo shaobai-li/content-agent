@@ -1,7 +1,7 @@
 "use client"
 
 import { AgentPageLayout } from "@/components/layout/AgentPageLayout"
-import { DataPanel } from "@/components/features/data/DataPanel"
+import { NmDataPanel } from "./components/NmDataPanel"
 import { DataHeader } from "@/components/features/data/DataHeader"
 
 export default function AgentNmPage() {
@@ -9,7 +9,7 @@ export default function AgentNmPage() {
 		<AgentPageLayout 
 			agentId="note_manager"
 			leftHeader={<DataHeader />}
-			leftBody={<DataPanel />}
+			leftBody={<NmDataPanel />}
 		/>
 	)
 }
