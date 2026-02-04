@@ -3,7 +3,12 @@
 import { useCallback, useState } from "react";
 import type { ChatMessage } from "@/types/chat";
 
-export function useChat({ agentId }: { agentId: string }) {
+interface UseChatProps {
+  agentId: string;
+  apiEndpoint: string; // 每个agent使用自己的API端点
+}
+
+export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   // 1. 定义状态：input 存储输入内容，messages 存储对话历史
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -18,13 +23,13 @@ export function useChat({ agentId }: { agentId: string }) {
     setInput(""); // 清空输入框
 
     try {
-      // 3. 调用后端 Python 接口
-      const response = await fetch("http://127.0.0.1:8000/api/chat", {
+      // 3. 调用后端 Python 接口（使用agent特定的端点）
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: currentInput,
-          agent_id: agentId,
+          agent_id: agentId, // 保留agent_id用于日志或其他用途
         }),
       });
 
@@ -42,7 +47,7 @@ export function useChat({ agentId }: { agentId: string }) {
         { role: "assistant", content: "出错了，请检查后端服务是否启动。" },
       ]);
     }
-  }, [agentId, input]);
+  }, [agentId, apiEndpoint, input]);
 
   return { input, setInput, messages, handleSend };
 }

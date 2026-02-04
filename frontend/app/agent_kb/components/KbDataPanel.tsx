@@ -7,7 +7,7 @@ export function KbDataPanel() {
   return (
     <DataPanel<KnowledgeBaseRecord>
       columns={AGENT_KB_COLUMNS}
-      apiEndpoint="http://localhost:8000/api/knowledge_base"
+      apiEndpoint="http://localhost:8000/api/kb/records"
       getRowKey={(item) => item.record_id}
       dataKey="records"
       emptyMessage="暂无知识库数据"

@@ -7,7 +7,7 @@ export function NmDataPanel() {
   return (
     <DataPanel<DataRecord>
       columns={AGENT_NM_COLUMNS}
-      apiEndpoint="http://localhost:8000/api/records"
+      apiEndpoint="http://localhost:8000/api/nm/records"
       getRowKey={(item) => item.record_id}
       dataKey="records"
       emptyMessage="暂无笔记数据"
