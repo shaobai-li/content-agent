@@ -6,13 +6,26 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Settings } from "lucide-react"
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
-import { User } from "lucide-react";
+import { Settings, Ellipsis } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
+// 菜单项接口
+export interface MenuItem {
+  label: string;
+  href?: string;  // 可选的跳转链接
+}
+
+// 路由项接口
 export interface RouteItem {
   href: string;
   label: string;
+  menuItems?: MenuItem[];  // 可选的下拉菜单项
 }
 
 interface SidebarProps {
@@ -35,19 +48,50 @@ export function Sidebar({ routes }: SidebarProps) {
           priority
         />
       </div>
-      <CardContent className="flex-grow flex flex-col p-4">
+      <CardContent className="flex-grow flex flex-col p-4 gap-1">
         {routes.map((route) => {
           const isActive = currentPath === route.href;
+          const hasMenu = route.menuItems && route.menuItems.length > 0;
+
           return (
-              <Button asChild variant="ghost"
-                key={route.href}
-                className={cn(
-                  "w-full justify-start text-sm hover:bg-sidebar-accent text-sidebar-foreground",
-                  isActive && "bg-sidebar-accent"
-                )}
+            <div
+              key={route.href}
+              className={cn(
+                "group relative flex items-center w-full rounded-md text-sm hover:bg-sidebar-accent text-sidebar-foreground",
+                isActive && "bg-sidebar-accent"
+              )}
+            >
+              <Link
+                href={route.href}
+                className="flex-1 px-4 py-2"
               >
-                <Link href={route.href}>{route.label}</Link>
-              </Button>
+                {route.label}
+              </Link>
+
+              {hasMenu && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-sidebar-accent/50 rounded"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Ellipsis className="size-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {route.menuItems!.map((item, index) => (
+                      <DropdownMenuItem key={index} asChild={!!item.href}>
+                        {item.href ? (
+                          <Link href={item.href}>{item.label}</Link>
+                        ) : (
+                          <span>{item.label}</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           );
         })}
       </CardContent>
