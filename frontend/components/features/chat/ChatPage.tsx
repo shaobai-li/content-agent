@@ -65,6 +65,27 @@ export function ChatPage({ agentId }: ChatPageProps) {
     setPendingFiles((prev) => prev.filter(item => item.id !== id));
   };
 
+  // 统一的发送处理函数
+  const handleSendWithFiles = async () => {
+    // 构建发送负载
+    const payload = {
+      text: input.trim() || undefined,
+      attachments: pendingFiles.length > 0 
+        ? pendingFiles.map(item => item.file) 
+        : undefined,
+      meta: {
+        clientMessageId: `${Date.now()}-${Math.random()}`,
+      },
+    };
+
+    // 调用 useChat 的 handleSend
+    await handleSend(payload);
+
+    // 发送成功后清空输入和文件列表
+    setInput("");
+    setPendingFiles([]);
+  };
+
   return (
     <div className="w-100 flex flex-col">
       <ChatHeader />
@@ -76,7 +97,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
           <ChatInput 
             value={input} 
             onChange={setInput} 
-            onSend={handleSend}
+            onSend={handleSendWithFiles}
             files={pendingFiles}
             onFilesDropped={handleFilesDropped}
             onFileRemove={handleFileRemove}

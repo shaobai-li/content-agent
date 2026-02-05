@@ -8,34 +8,75 @@ interface UseChatProps {
   apiEndpoint: string; // 每个agent使用自己的API端点
 }
 
+// 发送负载类型
+export type SendPayload = {
+  text?: string;        // 可选：消息文本
+  attachments?: File[]; // 可选：文件附件
+  meta?: {
+    conversationId?: string;
+    clientMessageId?: string;
+  };
+};
+
 export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   // 1. 定义状态：input 存储输入内容，messages 存储对话历史
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
-  // 2. 定义发送逻辑（MVP：只做最小可用，不做过度抽象）
-  const handleSend = useCallback(async () => {
-    if (!input.trim()) return; // 输入为空则不发送
+  // 2. 定义统一的发送逻辑，支持文本、文件、或两者组合
+  const handleSend = useCallback(async (payload: SendPayload) => {
+    const { text, attachments, meta } = payload;
+
+    // 至少要有文本或文件
+    if (!text?.trim() && (!attachments || attachments.length === 0)) {
+      return;
+    }
+
+    // 构建用户消息的显示内容
+    let userMessageContent = text || "";
+    if (attachments && attachments.length > 0) {
+      const fileNames = attachments.map(f => f.name).join(", ");
+      userMessageContent += userMessageContent 
+        ? `\n\n📎 附件: ${fileNames}` 
+        : `📎 附件: ${fileNames}`;
+    }
 
     // 先把用户的消息加到界面上
-    const currentInput = input; // 备份输入
-    setMessages((prev) => [...prev, { role: "user", content: currentInput }]);
-    setInput(""); // 清空输入框
+    setMessages((prev) => [...prev, { role: "user", content: userMessageContent }]);
 
     try {
-      // 3. 调用后端 Python 接口（使用agent特定的端点）
+      // 3. 使用 FormData 构建请求体（支持 multipart/form-data）
+      const formData = new FormData();
+      
+      // 添加文本（可选）
+      if (text?.trim()) {
+        formData.append("text", text);
+      }
+      
+      // 添加文件（可选）
+      if (attachments && attachments.length > 0) {
+        attachments.forEach((file) => {
+          formData.append("attachments", file);
+        });
+      }
+      
+      // 添加元数据
+      if (meta) {
+        formData.append("meta", JSON.stringify(meta));
+      }
+      
+      // 添加 agent_id
+      formData.append("agent_id", agentId);
+
+      // 4. 调用后端 API（使用 multipart/form-data）
       const response = await fetch(apiEndpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: currentInput,
-          agent_id: agentId, // 保留agent_id用于日志或其他用途
-        }),
+        body: formData, // FormData 会自动设置正确的 Content-Type
       });
 
       const data = await response.json();
 
-      // 4. 将后端返回的 AI 回复加入界面
+      // 5. 将后端返回的 AI 回复加入界面
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: data?.reply ?? "" },
@@ -47,7 +88,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
         { role: "assistant", content: "出错了，请检查后端服务是否启动。" },
       ]);
     }
-  }, [agentId, apiEndpoint, input]);
+  }, [agentId, apiEndpoint]);
 
   return { input, setInput, messages, handleSend };
 }
