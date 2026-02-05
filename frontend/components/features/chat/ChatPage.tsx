@@ -1,18 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useChat } from "@/hooks/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput, type FileItem } from "./ChatInput";
+import { FileTypeIconMap } from "@/components/ui/icons";
 
 interface ChatPageProps {
   agentId: string; // 简短的agent标识，用于构建API端点
-  // 文件管理（可选）
-  files?: FileItem[];
-  onFileRemove?: (index: number) => void;
 }
 
-export function ChatPage({ agentId, files, onFileRemove }: ChatPageProps) {
+export function ChatPage({ agentId }: ChatPageProps) {
   // 根据 agentId 自动构建 API 端点
   const apiEndpoint = `http://localhost:8000/api/${agentId}/chat`;
   
@@ -20,6 +19,51 @@ export function ChatPage({ agentId, files, onFileRemove }: ChatPageProps) {
     agentId, 
     apiEndpoint 
   });
+
+  // 管理待上传的文件列表
+  const [pendingFiles, setPendingFiles] = useState<FileItem[]>([]);
+
+  // 根据文件名获取文件类型
+  const getFileType = (fileName: string): keyof typeof FileTypeIconMap => {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+    
+    if (ext === 'docx' || ext === 'doc') return 'docx';
+    if (ext === 'pdf') return 'pdf';
+    if (ext === 'pptx' || ext === 'ppt') return 'pptx';
+    if (ext === 'md') return 'md';
+    
+    return 'docx';
+  };
+
+  // 处理文件拖拽
+  const handleFilesDropped = (fileList: FileList) => {
+    console.log("Files dropped, generating FILE objects:", fileList);
+    
+    const newFiles: FileItem[] = Array.from(fileList).map((file) => {
+      const fileItem: FileItem = {
+        file, // 保存原始 File 对象
+        fileName: file.name,
+        fileType: getFileType(file.name),
+        id: `${Date.now()}-${Math.random()}`, // 生成唯一ID
+      };
+      
+      console.log("Generated FILE object:", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+      });
+      
+      return fileItem;
+    });
+
+    setPendingFiles((prev) => [...prev, ...newFiles]);
+  };
+
+  // 删除文件
+  const handleFileRemove = (id: string) => {
+    setPendingFiles((prev) => prev.filter(item => item.id !== id));
+  };
 
   return (
     <div className="w-100 flex flex-col">
@@ -33,8 +77,9 @@ export function ChatPage({ agentId, files, onFileRemove }: ChatPageProps) {
             value={input} 
             onChange={setInput} 
             onSend={handleSend}
-            files={files}
-            onFileRemove={onFileRemove}
+            files={pendingFiles}
+            onFilesDropped={handleFilesDropped}
+            onFileRemove={handleFileRemove}
           />
         </div>
       </div>

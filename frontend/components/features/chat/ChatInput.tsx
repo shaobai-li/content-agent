@@ -8,8 +8,10 @@ import { FileTypeIconMap } from "@/components/ui/icons";
 
 // 文件项类型
 export type FileItem = {
+  file: File; // 保存浏览器原生 File 对象
   fileName: string;
-  fileType: keyof typeof FileTypeIconMap;
+  fileType: keyof typeof FileTypeIconMap; // 支持其他类型
+  id: string; // 唯一标识，用于删除
 };
 
 interface ChatInputProps {
@@ -18,7 +20,8 @@ interface ChatInputProps {
   onSend: () => void;
   // 文件管理（可选）
   files?: FileItem[];
-  onFileRemove?: (index: number) => void;
+  onFilesDropped?: (files: FileList) => void; // 拖拽文件回调
+  onFileRemove?: (id: string) => void; // 改为通过 id 删除
 }
 
 // 内部 Hook：处理文件拖拽逻辑
@@ -100,27 +103,24 @@ function DragOverlay() {
   );
 }
 
-export function ChatInput({ value, onChange, onSend, files, onFileRemove }: ChatInputProps) {
-  const { isDragging, dragHandlers } = useDragAndDrop((droppedFiles) => {
-    // 这里仅做样式演示，不处理实际上传逻辑
-    console.log("Files dropped:", droppedFiles);
-  });
+export function ChatInput({ value, onChange, onSend, files, onFilesDropped, onFileRemove }: ChatInputProps) {
+  const { isDragging, dragHandlers } = useDragAndDrop(onFilesDropped);
 
   return (
     <div
-      className={`relative truncate rounded-lg border shadow-sm overflow-hidden}`}
+      className="relative rounded-lg border shadow-sm overflow-hidden"
       {...dragHandlers}
     >
       {isDragging && <DragOverlay />}
      
       {files && files.length > 0 && (
         <div className="flex flex-wrap gap-2 p-2 border-b bg-slate-50/50">
-          {files.map((file, index) => (
+          {files.map((file) => (
             <FileChip
-              key={index}
+              key={file.id}
               fileName={file.fileName}
               fileType={file.fileType}
-              onRemove={() => onFileRemove?.(index)}
+              onRemove={() => onFileRemove?.(file.id)}
             />
           ))}
         </div>
