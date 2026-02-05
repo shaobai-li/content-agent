@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileChip } from "./FileChip";
 import { FileTypeIconMap } from "@/components/ui/icons";
+import { Upload } from "lucide-react";
 
 // 文件项类型
 export type FileItem = {
@@ -69,34 +70,12 @@ function useDragAndDrop(onFilesDropped?: (files: FileList) => void) {
   };
 }
 
-// 上传图标组件
-function UploadIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="text-primary"
-    >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="17 8 12 3 7 8" />
-      <line x1="12" y1="3" x2="12" y2="15" />
-    </svg>
-  );
-}
-
 // 拖拽遮罩层组件
-function DragOverlay() {
+function DragOverlay({ hasFiles }: { hasFiles: boolean }) {
   return (
-    <div className="absolute inset-0 z-10 bg-primary/5 flex flex-col items-center justify-center gap-2">
-      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-        <UploadIcon />
+    <div className={`absolute inset-0 z-10 bg-primary/5 flex ${hasFiles ? "flex-col" : "flex-row"} items-center justify-center gap-2`}>
+      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+        <Upload className="text-primary w-5 h-5" />
       </div>
       <span className="text-sm font-medium text-muted-foreground">Release to upload</span>
     </div>
@@ -106,16 +85,18 @@ function DragOverlay() {
 export function ChatInput({ value, onChange, onSend, files, onFilesDropped, onFileRemove }: ChatInputProps) {
   const { isDragging, dragHandlers } = useDragAndDrop(onFilesDropped);
 
+  const hasFiles: boolean = (files && files.length > 0) || false;
   return (
     <div
       className="relative rounded-lg border shadow-sm overflow-hidden"
       {...dragHandlers}
     >
-      {isDragging && <DragOverlay />}
+      {isDragging && <DragOverlay hasFiles={hasFiles} />}
      
-      {files && files.length > 0 && (
+
+      {hasFiles && (
         <div className="flex flex-wrap gap-2 p-2 border-b bg-slate-50/50">
-          {files.map((file) => (
+          {files?.map((file) => (
             <FileChip
               key={file.id}
               fileName={file.fileName}
