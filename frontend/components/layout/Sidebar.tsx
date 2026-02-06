@@ -62,7 +62,7 @@ export function Sidebar({ routes }: SidebarProps) {
               )}
             >
               <Link href={route.href} className="flex-1 px-4 py-2 flex items-center gap-3">
-                <Monitor className="size-4" />
+                <Monitor className="size-4 shrink-0" />
                 <span className="truncate max-w-[150px]">{route.label}</span>
               </Link>
 
