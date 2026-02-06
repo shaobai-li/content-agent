@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Settings, Ellipsis, Monitor } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, FileText } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -81,9 +81,19 @@ export function Sidebar({ routes }: SidebarProps) {
                     {route.menuItems!.map((item, index) => (
                       <DropdownMenuItem key={index} asChild={!!item.href}>
                         {item.href ? (
-                          <Link href={item.href}>{item.label}</Link>
+                          <Link href={item.href}>
+                            {item.label === "Chat History" && <History className="size-4" />}
+                            {item.label === "Knowledge Base" && <BookOpen className="size-4" />}
+                            {item.label === "Document View" && <FileText className="size-4" />}
+                            {item.label}
+                          </Link>
                         ) : (
-                          <span>{item.label}</span>
+                          <span>
+                            {item.label === "Chat History" && <History className="size-4" />}
+                            {item.label === "Knowledge Base" && <BookOpen className="size-4" />}
+                            {item.label === "Document View" && <FileText className="size-4" />}
+                            {item.label}
+                          </span>
                         )}
                       </DropdownMenuItem>
                     ))}
