@@ -36,7 +36,7 @@ export function Sidebar({ routes }: SidebarProps) {
   const currentPath = usePathname();
 
   return (
-    <Card className="w-80 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
+    <Card className="w-70 shrink-0 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
       <div className="flex items-center px-3">
         <Image 
           className="mb-[-20px]"
