@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { Settings, Ellipsis } from "lucide-react";
+import { Settings, Ellipsis, Monitor } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -61,11 +61,9 @@ export function Sidebar({ routes }: SidebarProps) {
                 isActive && "bg-sidebar-accent"
               )}
             >
-              <Link
-                href={route.href}
-                className="flex-1 px-4 py-2"
-              >
-                {route.label}
+              <Link href={route.href} className="flex-1 px-4 py-2 flex items-center gap-3">
+                <Monitor className="size-4" />
+                <span className="truncate max-w-[150px]">{route.label}</span>
               </Link>
 
               {hasMenu && (
