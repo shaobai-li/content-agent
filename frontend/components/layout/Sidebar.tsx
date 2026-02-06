@@ -50,7 +50,8 @@ export function Sidebar({ routes }: SidebarProps) {
       </div>
       <CardContent className="flex-grow flex flex-col p-4 gap-1">
         {routes.map((route) => {
-          const isActive = currentPath === route.href;
+          // 检查当前路径是否匹配该路由或其子路由
+          const isActive = currentPath === route.href || currentPath.startsWith(`${route.href}/`);
           const hasMenu = route.menuItems && route.menuItems.length > 0;
 
           return (
