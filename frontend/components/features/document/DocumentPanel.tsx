@@ -1,7 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useRef } from "react";
-import EasyMDE from "easymde";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import "easymde/dist/easymde.min.css";
 
 interface DocumentPanelProps {
@@ -11,16 +10,26 @@ interface DocumentPanelProps {
 
 export function DocumentPanel({ agentId, children }: DocumentPanelProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const easymdeRef = useRef<EasyMDE | null>(null);
+  const easymdeRef = useRef<any>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (!textareaRef.current) return;
+    setIsClient(true);
+  }, []);
 
-    easymdeRef.current = new EasyMDE({
-      element: textareaRef.current,
-      initialValue: "",
-      placeholder: "在此编写 Markdown 内容...",
-      spellChecker: false,
+  useEffect(() => {
+    if (!textareaRef.current || !isClient) return;
+
+    // 动态导入 EasyMDE，确保只在客户端加载
+    import("easymde").then((EasyMDE) => {
+      if (!textareaRef.current) return;
+      
+      easymdeRef.current = new EasyMDE.default({
+        element: textareaRef.current,
+        initialValue: "",
+        placeholder: "Edit your Markdown here...",
+        spellChecker: false,
+      });
     });
 
     return () => {
@@ -29,7 +38,7 @@ export function DocumentPanel({ agentId, children }: DocumentPanelProps) {
         easymdeRef.current = null;
       }
     };
-  }, []);
+  }, [isClient]);
 
   return (
     <div className="flex flex-col h-full">
