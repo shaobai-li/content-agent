@@ -3,7 +3,7 @@ import json
 from app.core.config import get_agent_sessions_path
 
 
-def load_chats_list(agent_id: str):
+def load_sessions_list(agent_id: str):
     sessions_path = get_agent_sessions_path(agent_id)
     if not sessions_path.exists():
         return []
