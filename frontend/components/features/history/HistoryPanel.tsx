@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import { useParams } from "next/navigation";
-import { useChatsList } from "@/hooks/useChatsList";
+import { useSessionsList } from "@/hooks/useSessionsList";
 import { HistoryItem } from "./HistoryItem";
 import { HistoryFooter } from "./HistoryFooter";
 
@@ -13,7 +13,7 @@ interface HistoryPanelProps {
 export function HistoryPanel({ children }: HistoryPanelProps) {
   const params = useParams();
   const agentId = (params?.agentId as string) ?? null;
-  const { chats, loading, error } = useChatsList(agentId);
+  const { sessions, loading, error } = useSessionsList(agentId);
 
   return (
     <div className="flex flex-col h-full overflow-auto">
@@ -27,10 +27,10 @@ export function HistoryPanel({ children }: HistoryPanelProps) {
           <div className="px-3 py-4 text-sm text-destructive">{error}</div>
         )}
         {!loading && !error &&
-          chats.map((item) => (
+          sessions.map((item) => (
             <HistoryItem
-              key={item.chat_id}
-              id={item.chat_id}
+              key={item.session_id}
+              id={item.session_id}
               title={item.title}
               preview={item.content}
             />
