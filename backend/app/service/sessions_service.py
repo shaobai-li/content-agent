@@ -10,6 +10,6 @@ def load_sessions_list(agent_id: str):
     with open(sessions_path, "r", encoding="utf-8") as f:
         chats = json.load(f)
     return [
-        {"chat_id": c.get("chat_id", ""), "title": c.get("title", ""), "content": ""}
+        {"session_id": c.get("session_id", ""), "title": c.get("title", ""), "content": ""}
         for c in chats
     ]

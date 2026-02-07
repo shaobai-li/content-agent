@@ -10,7 +10,7 @@ interface HistoryPanelProps {
   children?: ReactNode;
 }
 
-export function HistoryPanel({ children }: HistoryPanelProps) {
+export function HistoryPanel() {
   const params = useParams();
   const agentId = (params?.agentId as string) ?? null;
   const { sessions, loading, error } = useSessionsList(agentId);
@@ -18,24 +18,24 @@ export function HistoryPanel({ children }: HistoryPanelProps) {
   return (
     <div className="flex flex-col h-full overflow-auto">
       <div className="flex flex-col flex-1">
-        {loading && (
+        {loading ? (
           <div className="px-3 py-4 text-sm text-muted-foreground">
             加载中...
           </div>
-        )}
-        {error && (
+        ) : error ? (
           <div className="px-3 py-4 text-sm text-destructive">{error}</div>
-        )}
-        {!loading && !error &&
+        ) : (
           sessions.map((item) => (
-            <HistoryItem
-              key={item.session_id}
-              id={item.session_id}
-              title={item.title}
-              preview={item.content}
-            />
-          ))}
-        {children}
+              console.log(item),
+              <HistoryItem
+                key={item.session_id}
+                id={item.session_id}
+                title={item.title}
+                preview={item.content}
+              />
+            ))
+          
+        )}
       </div>
       <div className="flex flex-col p-4 border-t">
         <HistoryFooter />
