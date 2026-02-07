@@ -3,14 +3,26 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+// 为每个agent定义默认页面
+const getDefaultSection = (agentId: string): string => {
+  switch (agentId) {
+    case "kb":
+      return "knowledge"; // 知识库Agent默认显示知识库
+    case "w":
+      return "document"; // 内容生成Agent默认显示文档视图
+    case "c":
+      return "document"; // 内容检测Agent默认显示文档视图
+  }
+};
+
 export default function AgentDefaultPage() {
   const params = useParams();
   const router = useRouter();
   const agentId = params.agentId as string;
 
   useEffect(() => {
-    // 默认重定向到 history 页面
-    router.replace(`/agent/${agentId}/history`);
+    const defaultSection = getDefaultSection(agentId);
+    router.replace(`/agent/${agentId}/${defaultSection}`);
   }, [agentId, router]);
 
   return null;
