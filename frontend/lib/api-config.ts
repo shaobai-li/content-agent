@@ -37,3 +37,6 @@ export function getRecordsEndpoint(agentId: string): string {
   return `${API_BASE_URL}/${agentId}/records`;
 }
 
+export function getChatsEndpoint(): string {
+  return `${API_BASE_URL}/chats`;
+}
