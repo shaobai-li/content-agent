@@ -1,1 +1,21 @@
+# 全局数据目录
 DATA_DIR: "D:/inbox/content-agent-data/"
+
+# 各个 Agent 的独立配置
+agents:
+  w:
+    base_dir: "D:/inbox/content-agent-data/agents/agent_w/"
+    sessions_file: "sessions.json"
+    messages_file: "messages.json"
+  
+  kb:    
+    base_dir: "D:/inbox/content-agent-data/agents/agent_kb/"
+    sessions_file: "sessions.json"
+    messages_file: "messages.json"
+    knowledge_base_file: "knowledge_base.json"
+
+  c:    
+    base_dir: "D:/inbox/content-agent-data/agents/agent_c/"
+    sessions_file: "sessions.json"
+    messages_file: "messages.json"
+    
