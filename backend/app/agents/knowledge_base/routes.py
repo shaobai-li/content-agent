@@ -1,7 +1,7 @@
 from fastapi import APIRouter, File, UploadFile, Form
 from typing import Optional, List
 from pydantic import BaseModel
-from app.core.config import DATA_DIR
+from app.core.config import get_agent_knowledge_base_path
 import json
 
 router = APIRouter()
@@ -71,7 +71,7 @@ async def chat(
 async def get_records():
     """获取知识库记录"""
     records = []
-    kb_path = DATA_DIR / "knowledge_base.jsonl"
+    kb_path = get_agent_knowledge_base_path("kb")
     if kb_path.exists():
         with open(kb_path, "r", encoding="utf-8") as f:
             for line in f:
