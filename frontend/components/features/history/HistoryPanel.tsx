@@ -26,7 +26,6 @@ export function HistoryPanel() {
           <div className="px-3 py-4 text-sm text-destructive">{error}</div>
         ) : (
           sessions.map((item) => (
-              console.log(item),
               <HistoryItem
                 key={item.session_id}
                 id={item.session_id}

@@ -2,6 +2,7 @@ from fastapi import APIRouter, File, UploadFile, Form
 from typing import Optional, List
 from pydantic import BaseModel
 from app.core.config import get_agent_knowledge_base_path
+from app.service.sessions_service import load_sessions_list
 import json
 
 router = APIRouter()
@@ -66,6 +67,11 @@ async def chat(
             "attachments_count": len(attachments) if attachments else 0
         }
     }
+
+@router.get("/sessions")
+async def get_sessions():
+    """获取知识库会话列表（历史聊天）"""
+    return load_sessions_list("kb")
 
 @router.get("/records")
 async def get_records():

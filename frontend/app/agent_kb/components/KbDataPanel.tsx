@@ -10,8 +10,7 @@ export function KbDataPanel() {
       apiEndpoint="http://localhost:8000/api/kb/records"
       getRowKey={(item) => item.record_id}
       dataKey="records"
-      emptyMessage="暂无知识库数据"
+      emptyMessage="No knowledge base data available"
     />
   );
 }
-
