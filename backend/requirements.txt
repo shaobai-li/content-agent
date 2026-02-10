@@ -1,0 +1,17 @@
+# FastAPI 与服务器
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.9
+
+# 配置与环境
+python-dotenv>=1.0.0
+pyyaml>=6.0
+
+# 数据与校验（pydantic 通常随 fastapi 安装，显式列出便于调试）
+pydantic>=2.0
+
+# 业务依赖
+openai>=1.0.0
+requests>=2.32.0
+yt-dlp>=2024.0.0
+crawl4ai>=0.3.0
