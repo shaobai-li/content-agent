@@ -6,12 +6,12 @@ import { useEffect } from "react";
 // 为每个agent定义默认页面
 const getDefaultSection = (agentId: string): string => {
   switch (agentId) {
-    case "kb":
-      return "knowledge"; // 知识库Agent默认显示知识库
     case "w":
       return "document"; // 内容生成Agent默认显示文档视图
     case "c":
       return "document"; // 内容检测Agent默认显示文档视图
+    default:
+      return "knowledge"; // 默认显示知识库
   }
 };
 
