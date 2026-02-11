@@ -38,7 +38,7 @@ JSON 输出格式（必须严格一致）：
 """
 class NoteManager:
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url="https://api.deepseek.com")
+        self.client = OpenAI(api_key=os.getenv("DEEPSEEK_API_KEY"), base_url="https://api.deepseek.com")
         self.messages = []
         self.json_file = "todos.json"
         self.crawler = Crawler()
