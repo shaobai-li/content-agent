@@ -15,7 +15,6 @@ class ChatRequest(BaseModel):
 async def chat(
     text: Optional[str] = Form(None),
     attachments: Optional[List[UploadFile]] = File(None),
-    meta: Optional[str] = Form(None),
     agent_id: str = Form("kb")
 ):
     """
@@ -25,14 +24,6 @@ async def chat(
     2. 纯文件附件
     3. 文本 + 文件附件
     """
-    # 解析元数据
-    meta_data = {}
-    if meta:
-        try:
-            meta_data = json.loads(meta)
-        except:
-            pass
-    
     # 构建响应内容
     reply_parts = []
     
@@ -61,7 +52,6 @@ async def chat(
     
     return {
         "reply": reply,
-        "meta": meta_data,
         "received": {
             "text": text,
             "attachments_count": len(attachments) if attachments else 0

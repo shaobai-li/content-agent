@@ -12,10 +12,6 @@ interface UseChatProps {
 export type SendPayload = {
   text?: string;        // 可选：消息文本
   attachments?: File[]; // 可选：文件附件
-  meta?: {
-    conversationId?: string;
-    clientMessageId?: string;
-  };
 };
 
 export function useChat({ agentId, apiEndpoint }: UseChatProps) {
@@ -25,7 +21,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
 
   // 2. 定义统一的发送逻辑，支持文本、文件、或两者组合
   const handleSend = useCallback(async (payload: SendPayload) => {
-    const { text, attachments, meta } = payload;
+    const { text, attachments } = payload;
 
     // 至少要有文本或文件
     if (!text?.trim() && (!attachments || attachments.length === 0)) {
@@ -58,11 +54,6 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
         attachments.forEach((file) => {
           formData.append("attachments", file);
         });
-      }
-      
-      // 添加元数据
-      if (meta) {
-        formData.append("meta", JSON.stringify(meta));
       }
       
       // 添加 agent_id
