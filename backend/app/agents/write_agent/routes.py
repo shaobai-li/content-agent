@@ -1,17 +1,22 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, Form
+from typing import Optional
 from app.service.sessions_service import load_sessions_list
+from app.service.chat_service import build_chat_response
 
 router = APIRouter()
 
-class ChatRequest(BaseModel):
-    content: str
-    agent_id: str = "w"
-
 @router.post("/chat")
-async def chat(request: ChatRequest):
-    # TODO: 实现写作助手 agent 逻辑
-    return {"reply": f"写作助手 Agent 收到消息: {request.content}"}
+async def chat(
+    text: Optional[str] = Form(None),
+    agent_id: str = Form("w")
+):
+    reply = f"写作助手收到消息: {text}"
+    
+    return build_chat_response(
+        reply=reply,
+        received={"text": text}
+    )
+
 
 @router.get("/sessions")
 async def get_sessions():

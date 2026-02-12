@@ -1,5 +1,5 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, Form
+from typing import Optional
 from app.agents import NoteManager
 from app.core.config import DATA_DIR
 import json
@@ -7,14 +7,13 @@ import json
 router = APIRouter()
 note_manager = NoteManager()
 
-class ChatRequest(BaseModel):
-    content: str
-    agent_id: str = "nm"  # 可选，用于日志
-
 @router.post("/chat")
-async def chat(request: ChatRequest):
-    """笔记管理 Agent 聊天接口"""
-    result = await note_manager.handle_user_message(request.content)
+async def chat(
+    text: Optional[str] = Form(None),
+    agent_id: str = Form("nm")
+):
+
+    result = await note_manager.handle_user_message(text)
     return result
 
 @router.get("/records")

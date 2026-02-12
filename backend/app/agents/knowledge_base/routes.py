@@ -3,6 +3,7 @@ from typing import Optional, List
 from pydantic import BaseModel
 from app.core.config import get_agent_knowledge_base_path, CACHE_DIR
 from app.service.sessions_service import load_sessions_list
+from app.service.chat_service import build_chat_response
 import json
 import uuid
 from pathlib import Path
@@ -87,13 +88,10 @@ async def chat(
     
     reply = "\n".join(reply_parts)
     
-    return {
-        "reply": reply,
-        "received": {
-            "text": text,
-            "attachments_count": len(attachments) if attachments else 0
-        }
-    }
+    # 使用公共服务构建响应
+    return build_chat_response(
+        reply=reply
+    )
 
 @router.get("/sessions")
 async def get_sessions():
