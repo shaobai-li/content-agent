@@ -4,16 +4,34 @@ from pydantic import BaseModel
 from pathlib import Path
 import json
 
-from app.core.config import get_agent_knowledge_base_path
+from app.core.config import get_agent_knowledge_base_path, get_agent_base_dir
 from app.service.sessions_service import load_sessions_list
 from app.service.chat_service import build_chat_response
 from app.service.file_service import process_attachments, FileInfo
+from .parsers import get_parser
 
 router = APIRouter()
 
-async def process_attachment_dummy(file_path: Path, filename: str, content_type: str) -> str:
-    """附件处理的 dummy 实现"""
-    return f"已处理文件: {filename} (类型: {content_type})"
+async def process_and_parse(file_path: Path, filename: str, content_type: str) -> str:
+    """
+    处理附件：对支持的文档格式进行解析
+    - PDF/DOCX/PPTX: 解析为Markdown
+    - 其他格式: 仅保存
+    """
+    # 获取解析器
+    parser = get_parser(content_type)
+    
+    # 如果不支持解析，直接返回
+    if not parser:
+        return f"文件 {filename} 已保存（不支持解析该格式）"
+    
+    # 解析文档
+    try:
+        output_dir = get_agent_base_dir("kb") / "parsed"
+        md_path = await parser.parse(file_path, output_dir)
+        return f"文件 {filename} 已解析为 Markdown: {md_path.name}"
+    except Exception as e:
+        return f"文件 {filename} 解析失败: {str(e)}"
 
 def save_to_knowledge_base(file_info: FileInfo, agent_id: str = "kb"):
     """将文件信息追加到知识库 jsonl 文件"""
@@ -50,7 +68,7 @@ async def chat(
         file_info_list = await process_attachments(
             attachments=attachments,
             agent_id=agent_id,
-            processor=process_attachment_dummy
+            processor=process_and_parse
         )
         
         # 保存到知识库
