@@ -16,9 +16,6 @@ with open(CONFIG_PATH, "r", encoding="utf-8") as f:
 
 RECORDS_FILE = DATA_DIR / "records.jsonl"
 
-CACHE_DIR = DATA_DIR / "cache"
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
 AGENTS_CONFIG: Dict[str, Dict[str, Any]] = config.get("agents", {})
 
 def get_agent_config(agent_id: str) -> Dict[str, Any]:

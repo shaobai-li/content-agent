@@ -4,7 +4,7 @@ from pathlib import Path
 import uuid
 from datetime import datetime
 
-from app.core.config import CACHE_DIR
+from app.core.config import get_agent_base_dir
 
 
 class FileInfo:
@@ -93,10 +93,12 @@ class FileInfo:
 
 async def save_uploaded_file(
     file: UploadFile, 
-    agent_id: str,
-    cache_base_dir: Path = CACHE_DIR
+    agent_id: str
 ) -> tuple[Path, bytes]:
-    agent_cache_dir = cache_base_dir / agent_id
+
+    # 获取agent的base目录，然后在其下创建cache子目录
+    agent_base_dir = get_agent_base_dir(agent_id)
+    agent_cache_dir = agent_base_dir / "cache"
     agent_cache_dir.mkdir(parents=True, exist_ok=True)
 
     file_ext = Path(file.filename).suffix if file.filename else ""
