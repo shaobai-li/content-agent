@@ -15,7 +15,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
   // 根据 agentId 自动构建 API 端点
   const apiEndpoint = `http://localhost:8000/api/${agentId}/chat`;
   
-  const { input, setInput, messages, handleSend } = useChat({ 
+  const { input, setInput, messages, handleSend, isSending } = useChat({ 
     agentId, 
     apiEndpoint 
   });
@@ -101,6 +101,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
             files={pendingFiles}
             onFilesDropped={handleFilesDropped}
             onFileRemove={handleFileRemove}
+            isSending={isSending}
           />
         </div>
       </div>
