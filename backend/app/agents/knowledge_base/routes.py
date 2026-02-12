@@ -7,21 +7,23 @@ import json
 from app.core.config import get_agent_knowledge_base_path
 from app.service.sessions_service import load_sessions_list
 from app.service.chat_service import build_chat_response
-from app.service.file_service import process_attachments
+from app.service.file_service import process_attachments, FileInfo
 
 router = APIRouter()
 
 async def process_attachment_dummy(file_path: Path, filename: str, content_type: str) -> str:
-    """
-    附件处理的 dummy 实现
-    后续可以根据文件类型调用不同的解析器
-    """
-    # 这里是占位符，将来可以实现真正的文件解析逻辑
+    """附件处理的 dummy 实现"""
     return f"已处理文件: {filename} (类型: {content_type})"
 
-class ChatRequest(BaseModel):
-    content: str
-    agent_id: str = "kb"
+def save_to_knowledge_base(file_info: FileInfo, agent_id: str = "kb"):
+    """将文件信息追加到知识库 jsonl 文件"""
+    kb_path = get_agent_knowledge_base_path(agent_id)
+    kb_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(kb_path, "a", encoding="utf-8") as f:
+        json.dump(file_info.to_kb_format(), f, ensure_ascii=False)
+        f.write("\n")
+
 
 @router.post("/chat")
 async def chat(
@@ -51,10 +53,9 @@ async def chat(
             processor=process_attachment_dummy
         )
         
-        # 构建附件摘要
-        attachments_summary = build_attachments_summary(file_info_list)
-        if attachments_summary:
-            reply_parts.append(attachments_summary)
+        # 保存到知识库
+        for file_info in file_info_list:
+            save_to_knowledge_base(file_info, agent_id)
     
     reply = "\n".join(reply_parts)
     
