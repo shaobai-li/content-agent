@@ -23,6 +23,7 @@ interface ChatInputProps {
   files?: FileItem[];
   onFilesDropped?: (files: FileList) => void; // 拖拽文件回调
   onFileRemove?: (id: string) => void; // 改为通过 id 删除
+  isLoading?: boolean; // 加载状态
 }
 
 // 内部 Hook：处理文件拖拽逻辑
@@ -82,10 +83,12 @@ function DragOverlay({ hasFiles }: { hasFiles: boolean }) {
   );
 }
 
-export function ChatInput({ value, onChange, onSend, files, onFilesDropped, onFileRemove }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSend, files, onFilesDropped, onFileRemove, isLoading }: ChatInputProps) {
   const { isDragging, dragHandlers } = useDragAndDrop(onFilesDropped);
 
   const hasFiles: boolean = (files && files.length > 0) || false;
+  const hasText: boolean = value.trim().length > 0;
+  const isSendDisabled: boolean = isLoading || (!hasFiles && !hasText);
   return (
     <div
       className="relative rounded-lg border shadow-sm overflow-hidden"
@@ -115,7 +118,7 @@ export function ChatInput({ value, onChange, onSend, files, onFilesDropped, onFi
           onKeyDown={(e) => e.key === "Enter" && onSend()}
           placeholder="Type messages ..."
         />
-        <Button size="sm" className="text-xs gap-2.5" onClick={onSend}>
+        <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
           Send
         </Button>
       </div>

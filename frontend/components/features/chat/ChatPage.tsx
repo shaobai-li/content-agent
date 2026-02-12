@@ -78,12 +78,12 @@ export function ChatPage({ agentId }: ChatPageProps) {
       },
     };
 
-    // 调用 useChat 的 handleSend
-    await handleSend(payload);
-
-    // 发送成功后清空输入和文件列表
+    // 立即清空输入和文件列表（用户体验更好）
     setInput("");
     setPendingFiles([]);
+
+    // 调用 useChat 的 handleSend
+    await handleSend(payload);
   };
 
   return (

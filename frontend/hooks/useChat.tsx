@@ -18,6 +18,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   // 1. 定义状态：input 存储输入内容，messages 存储对话历史
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // 2. 定义统一的发送逻辑，支持文本、文件、或两者组合
   const handleSend = useCallback(async (payload: SendPayload) => {
@@ -39,6 +40,9 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
 
     // 先把用户的消息加到界面上
     setMessages((prev) => [...prev, { role: "user", content: userMessageContent }]);
+    
+    // 设置加载状态
+    setIsLoading(true);
 
     try {
       // 3. 使用 FormData 构建请求体（支持 multipart/form-data）
@@ -84,8 +88,11 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
         ...prev,
         { role: "assistant", content: "出错了，请检查后端服务是否启动。" },
       ]);
+    } finally {
+      // 无论成功或失败，都要重置加载状态
+      setIsLoading(false);
     }
   }, [agentId, apiEndpoint]);
 
-  return { input, setInput, messages, handleSend };
+  return { input, setInput, messages, handleSend, isLoading };
 }
