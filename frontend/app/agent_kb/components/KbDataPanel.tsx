@@ -11,6 +11,7 @@ export function KbDataPanel() {
       getRowKey={(item) => item.record_id}
       dataKey="records"
       emptyMessage="No knowledge base data available"
+      refreshEvent="kb-data-refresh"
     />
   );
 }

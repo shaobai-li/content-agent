@@ -21,8 +21,8 @@ def save_to_knowledge_base(file_info: FileInfo, agent_id: str = "kb"):
     kb_path.parent.mkdir(parents=True, exist_ok=True)
     
     with open(kb_path, "a", encoding="utf-8") as f:
-        json.dump(file_info.to_kb_format(), f, ensure_ascii=False)
         f.write("\n")
+        json.dump(file_info.to_kb_format(), f, ensure_ascii=False)
 
 
 @router.post("/chat")
@@ -55,11 +55,11 @@ async def chat(
         
         # 保存到知识库
         for file_info in file_info_list:
+            reply_parts.append(f"文件 {file_info.filename} 已保存到知识库")
             save_to_knowledge_base(file_info, agent_id)
-    
+
     reply = "\n".join(reply_parts)
-    
-    # 使用公共服务构建响应
+
     return build_chat_response(
         reply=reply
     )
@@ -81,4 +81,3 @@ async def get_records():
                 if line:
                     records.append(json.loads(line))
     return {"records": records}
-

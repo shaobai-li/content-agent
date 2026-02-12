@@ -72,6 +72,12 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
         ...prev,
         { role: "assistant", content: data?.reply ?? "" },
       ]);
+
+      // 6. 如果有附件上传且是知识库 agent，触发刷新事件
+      if (attachments && attachments.length > 0 && agentId === "kb") {
+        console.log("触发知识库数据刷新事件");
+        window.dispatchEvent(new CustomEvent("kb-data-refresh"));
+      }
     } catch (error) {
       console.error("发送失败:", error);
       setMessages((prev) => [
