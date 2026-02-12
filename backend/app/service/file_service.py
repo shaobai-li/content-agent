@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional, Callable, Awaitable
 from fastapi import UploadFile
 from pathlib import Path
 import uuid
+from datetime import datetime
 
 from app.core.config import CACHE_DIR
 
@@ -13,21 +14,80 @@ class FileInfo:
         content_type: str, 
         size: int, 
         cached_path: Path,
-        process_result: Optional[str] = None
+        process_result: Optional[str] = None,
+        record_id: Optional[str] = None,
+        date_added: Optional[str] = None
     ):
         self.filename = filename
         self.content_type = content_type
         self.size = size
         self.cached_path = cached_path
         self.process_result = process_result
+        self.record_id = record_id or self._generate_record_id()
+        self.date_added = date_added or datetime.now().strftime("%Y-%m-%d")
+    
+    def _generate_record_id(self) -> str:
+        """生成唯一的记录ID"""
+        return f"kb-{uuid.uuid4().hex[:8]}"
+    
+    def _get_file_extension(self) -> str:
+        """从文件名或content_type获取扩展名"""
+        # 优先从文件名获取
+        if self.filename:
+            ext = Path(self.filename).suffix.lstrip('.')
+            if ext:
+                return ext
+        
+        # 从 content_type 映射
+        content_type_map = {
+            "application/pdf": "pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+            "application/msword": "doc",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+            "application/vnd.ms-powerpoint": "ppt",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+            "application/vnd.ms-excel": "xls",
+            "text/markdown": "md",
+            "text/plain": "txt",
+            "image/jpeg": "jpg",
+            "image/png": "png",
+        }
+        return content_type_map.get(self.content_type, "unknown")
+    
+    def _format_size(self) -> str:
+        """将字节数转换为人类可读的格式"""
+        size_bytes = self.size
+        
+        # 转换为合适的单位
+        if size_bytes < 1024:
+            return f"{size_bytes}B"
+        elif size_bytes < 1024 * 1024:
+            return f"{size_bytes / 1024:.1f}KB"
+        elif size_bytes < 1024 * 1024 * 1024:
+            return f"{size_bytes / (1024 * 1024):.1f}MB"
+        else:
+            return f"{size_bytes / (1024 * 1024 * 1024):.1f}GB"
     
     def to_dict(self) -> Dict[str, Any]:
+        """返回完整的内部格式"""
         return {
             "filename": self.filename,
             "content_type": self.content_type,
             "size": self.size,
             "cached_path": str(self.cached_path),
-            "process_result": self.process_result
+            "process_result": self.process_result,
+            "record_id": self.record_id,
+            "date_added": self.date_added
+        }
+    
+    def to_kb_format(self) -> Dict[str, str]:
+        """返回知识库 JSONL 格式"""
+        return {
+            "name": self.filename,
+            "type": self._get_file_extension(),
+            "size": self._format_size(),
+            "date_added": self.date_added,
+            "record_id": self.record_id
         }
 
 
