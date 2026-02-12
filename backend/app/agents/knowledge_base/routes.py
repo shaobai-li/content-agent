@@ -7,7 +7,7 @@ import json
 from app.core.config import get_agent_knowledge_base_path
 from app.service.sessions_service import load_sessions_list
 from app.service.chat_service import build_chat_response
-from app.service.file_service import process_attachments, build_attachments_summary
+from app.service.file_service import process_attachments
 
 router = APIRouter()
 
