@@ -6,6 +6,7 @@ import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput, type FileItem } from "./ChatInput";
 import { FileTypeIconMap } from "@/components/ui/icons";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChatPageProps {
   agentId: string; // 简短的agent标识，用于构建API端点
@@ -87,12 +88,12 @@ export function ChatPage({ agentId }: ChatPageProps) {
   };
 
   return (
-    <div className="w-100 flex flex-col">
+    <div className="w-100 flex h-full min-h-0 flex-col">
       <ChatHeader />
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 flex flex-col border p-4 bg-neutral-50">
+      <div className="flex-1 min-h-0 flex flex-col">
+        <ScrollArea className="flex-1 min-h-0 border p-4 bg-neutral-50">
           <ChatMessage messages={messages} />
-        </div>
+        </ScrollArea>
         <div className="flex flex-col border p-4 bg-background">
           <ChatInput 
             value={input} 
