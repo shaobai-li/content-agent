@@ -99,3 +99,35 @@ async def get_records():
                 if line:
                     records.append(json.loads(line))
     return {"records": records}
+
+
+@router.delete("/records/{record_id}")
+async def delete_record(record_id: str):
+    """根据 record_id 删除知识库记录"""
+    kb_path = get_agent_knowledge_base_path("kb")
+    if not kb_path.exists():
+        return {"success": False, "message": "知识库文件不存在"}
+
+    # 读取所有记录，过滤掉目标 record_id
+    remaining = []
+    found = False
+    with open(kb_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            record = json.loads(line)
+            if record.get("record_id") == record_id:
+                found = True
+            else:
+                remaining.append(record)
+
+    if not found:
+        return {"success": False, "message": f"记录 {record_id} 不存在"}
+
+    # 重写文件
+    with open(kb_path, "w", encoding="utf-8") as f:
+        for record in remaining:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    return {"success": True, "message": f"记录 {record_id} 已删除"}
