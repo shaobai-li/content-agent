@@ -60,7 +60,7 @@ export function DataTable<T>({
             </TableHeader>
             <TableBody>
             {data.map((item) => (
-                <TableRow key={getRowKey(item)}>
+                <TableRow key={getRowKey(item)} className="group">
                 {columns.map((col) => (
                     <TableCell key={col.key} className="p-0">
                     {col.render(item)}
