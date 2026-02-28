@@ -1,13 +1,14 @@
 // entities/agent/model.ts
 
+import { ReactNode } from "react";
+
 export type AgentId = "nm" | "kb" | "c" | "w";
 
 export interface Agent {
     id: AgentId;
     name: string;
 
-    uiModules: UIModule[];
-    defaultUI: UIModule;
+    layout: LayoutType;
 }
 
 export type UIModule =
@@ -15,3 +16,10 @@ export type UIModule =
     | "history"
     | "knowledgebase"
     | "document";
+
+export type LayoutType = {
+    left: UIModule[];
+    defaultLeft: UIModule;
+    right: UIModule[];
+    defaultRight: UIModule;
+}

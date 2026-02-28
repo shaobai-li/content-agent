@@ -75,9 +75,9 @@ export default function AgentPage() {
     );
   }
 
-  // 根据 agent 的 defaultUI 获取对应的组件
+  // 根据 agent 的 layout 配置获取对应的组件
   const { header: leftHeader, body: leftBody } = getUIComponents(
-    agent.defaultUI,
+    agent.layout.defaultLeft,
     agentId
   );
 
