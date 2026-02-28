@@ -1,40 +1,12 @@
 import "./globals.css";
 import { Sidebar, RouteItem } from "@/components/layout/Sidebar";
+import { agentRegistry } from "@/entities/agent/agent.registry";
 
-const routes: RouteItem[] = [
-  // {
-  //   href: "/agent/nm",
-  //   label: "笔记收集Agent",
-  //   menuItems: [
-  //     { label: "历史聊天", href: "/agent/nm/history" },
-  //     { label: "笔记库", href: "/agent/nm/knowledge" },
-  //   ],
-  // },
-  {
-    href: "/agent/kb",
-    label: "知识库Agent(POC)",
-    menuItems: [
-      { label: "Chat History", href: "/agent/kb/history" },
-      { label: "Knowledge Base", href: "/agent/kb/knowledge" },
-    ],
-  },
-  {
-    href: "/agent/w",
-    label: "内容生成Agent(POC)",
-    menuItems: [
-      { label: "Chat History", href: "/agent/w/history" },
-      { label: "Document View", href: "/agent/w/document" },
-    ],
-  },
-  {
-    href: "/agent/c",
-    label: "文字内容检测Agent(POC)",
-    menuItems: [
-      { label: "Chat History", href: "/agent/c/history" },
-      { label: "Document View", href: "/agent/c/document" },
-    ],
-  },
-];
+// 从 agent registry 生成路由配置
+const routes: RouteItem[] = Object.values(agentRegistry).map((agent) => ({
+  href: `/agent/${agent.id}`,
+  label: `${agent.name}`,
+}));
 
 export default function RootLayout({
   children,

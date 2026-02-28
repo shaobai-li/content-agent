@@ -2,34 +2,29 @@
 
 ## 新路由架构
 
-项目已重构为动态路由结构，使用以下模式：
+项目使用简化的动态路由结构：
 
 ```
-/agent/[agentId]/[section]
+/agent/[agentId]
 ```
 
 ### 路由参数
 
 - **agentId**: Agent 标识符（如 `kb`, `w`, `c`, `nm`）
-- **section**: 左侧面板类型（如 `history`, `knowledge`, `document`）
 
 ### 可用路由
 
 #### 知识库 Agent (kb)
-- `/agent/kb/history` - 历史聊天记录
-- `/agent/kb/knowledge` - 知识库数据面板
+- `/agent/kb` - 知识库数据面板 + 聊天界面
 
 #### 内容生成 Agent (w)
-- `/agent/w/history` - 历史聊天记录
-- `/agent/w/document` - 文档视图
+- `/agent/w` - 文档视图 + 聊天界面
 
 #### 内容检测 Agent (c)
-- `/agent/c/history` - 历史聊天记录
-- `/agent/c/document` - 文档视图
+- `/agent/c` - 文档视图 + 聊天界面
 
 #### 笔记管理 Agent (nm)
-- `/agent/nm/history` - 历史聊天记录
-- `/agent/nm/knowledge` - 笔记库数据面板
+- `/agent/nm` - 笔记库数据面板 + 聊天界面
 
 ## 页面结构
 
@@ -37,26 +32,26 @@
 
 ```tsx
 <AgentPageLayout
-  leftHeader={/* 根据 section 变化 */}
-  leftBody={/* 根据 section 变化 */}
-  rightBody={<ChatPage agentId={agentId} />} {/* agentId 保持一致 */}
+  leftHeader={/* 根据 agentId 固定 */}
+  leftBody={/* 根据 agentId 固定 */}
+  rightBody={<ChatPage agentId={agentId} />}
 />
 ```
 
 ### 组件映射
 
-| Section | Left Header | Left Body |
+| AgentId | Left Header | Left Body |
 |---------|-------------|-----------|
-| history | HistoryHeader | HistoryPanel |
-| knowledge | DataHeader | KbDataPanel / NmDataPanel |
-| document | DocumentHeader | DocumentPanel |
+| kb | DataHeader | KbDataPanel |
+| nm | DataHeader | NmDataPanel |
+| w | DocumentHeader | DocumentPanel |
+| c | DocumentHeader | DocumentPanel |
 
 ## 关键特性
 
 1. **统一的 ChatPage**: 右侧聊天界面始终存在，只是 `agentId` 不同
-2. **动态左侧面板**: 根据 URL 中的 `section` 参数切换左侧面板内容
-3. **默认重定向**: 访问 `/agent/[agentId]` 会自动重定向到 `/agent/[agentId]/history`
-4. **Sidebar 高亮**: 自动识别当前路由并高亮对应的 Agent
+2. **固定左侧面板**: 每个 Agent 有其固定的左侧面板内容
+3. **Sidebar 高亮**: 自动识别当前路由并高亮对应的 Agent
 
 ## 文件结构
 
@@ -64,9 +59,7 @@
 frontend/app/
 ├── agent/
 │   └── [agentId]/
-│       ├── page.tsx              # 默认重定向到 history
-│       └── [section]/
-│           └── page.tsx          # 动态路由主页面
+│       └── page.tsx              # 动态路由主页面
 ├── agent_kb/                     # 旧版路由（可以删除）
 ├── agent_w/                      # 旧版路由（可以删除）
 ├── agent_c/                      # 旧版路由（可以删除）
@@ -75,33 +68,23 @@ frontend/app/
 
 ## 添加新 Agent
 
-要添加新的 Agent，只需在 `layout.tsx` 中添加路由配置：
+要添加新的 Agent，需要：
+
+1. 在 `layout.tsx` 中添加路由配置：
 
 ```tsx
 {
   href: "/agent/new_agent",
   label: "新 Agent 名称",
-  menuItems: [
-    { label: "Chat History", href: "/agent/new_agent/history" },
-    { label: "Knowledge Base", href: "/agent/new_agent/knowledge" },
-  ],
 }
 ```
 
-## 添加新 Section
-
-要为特定 Agent 添加新的 section，需要：
-
-1. 在 `/app/agent/[agentId]/[section]/page.tsx` 中添加新的 case
-2. 创建对应的 Header 和 Panel 组件
-3. 在 `layout.tsx` 的 menuItems 中添加新的导航链接
-
-示例：
+2. 在 `/app/agent/[agentId]/page.tsx` 中添加新的 case：
 
 ```tsx
-case "new_section":
-  leftHeader = <NewSectionHeader />;
-  leftBody = <NewSectionPanel agentId={agentId} />;
+case "new_agent":
+  leftHeader = <NewAgentHeader />;
+  leftBody = <NewAgentPanel agentId={agentId} />;
   break;
 ```
 

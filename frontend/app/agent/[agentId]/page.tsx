@@ -1,29 +1,91 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { AgentPageLayout } from "@/components/layout/AgentPageLayout";
+import { ChatPage } from "@/components/features/chat/ChatPage";
+import { DataHeader } from "@/components/features/data/DataHeader";
+import { DocumentHeader } from "@/components/features/document/DocumentHeader";
+import { DocumentPanel } from "@/components/features/document/DocumentPanel";
+import { HistoryHeader } from "@/components/features/history/HistoryHeader";
+import { HistoryPanel } from "@/components/features/history/HistoryPanel";
+import { KbDataPanel } from "@/app/agent_kb/components/KbDataPanel";
+import { NmDataPanel } from "@/app/agent_nm/components/NmDataPanel";
+import { useParams } from "next/navigation";
+import { agentRegistry } from "@/entities/agent/agent.registry";
+import { AgentId, UIModule } from "@/entities/agent/model";
 
-// 为每个agent定义默认页面
-const getDefaultSection = (agentId: string): string => {
+// 根据 agentId 获取知识库面板
+const getKnowledgePanel = (agentId: AgentId) => {
   switch (agentId) {
-    case "w":
-      return "document"; // 内容生成Agent默认显示文档视图
-    case "c":
-      return "document"; // 内容检测Agent默认显示文档视图
+    case "kb":
+      return <KbDataPanel />;
+    case "nm":
+      return <NmDataPanel />;
     default:
-      return "knowledge"; // 默认显示知识库
+      return <div className="p-4 text-muted-foreground">暂无数据面板</div>;
   }
 };
 
-export default function AgentDefaultPage() {
+// 根据 UIModule 类型获取对应的 Header 和 Panel
+const getUIComponents = (uiModule: UIModule, agentId: AgentId) => {
+  switch (uiModule) {
+    case "history":
+      return {
+        header: <HistoryHeader />,
+        body: <HistoryPanel />,
+      };
+    case "knowledgebase":
+      return {
+        header: <DataHeader />,
+        body: getKnowledgePanel(agentId),
+      };
+    case "document":
+      return {
+        header: <DocumentHeader />,
+        body: <DocumentPanel agentId={agentId} />,
+      };
+    case "chat":
+      // chat 模块在右侧，左侧可以显示提示信息
+      return {
+        header: null,
+        body: <div className="p-4 text-muted-foreground">请开始对话</div>,
+      };
+    default:
+      return {
+        header: null,
+        body: <div className="p-4 text-muted-foreground">未知模块</div>,
+      };
+  }
+};
+
+export default function AgentPage() {
   const params = useParams();
-  const router = useRouter();
-  const agentId = params.agentId as string;
+  const agentId = params.agentId as AgentId;
 
-  useEffect(() => {
-    const defaultSection = getDefaultSection(agentId);
-    router.replace(`/agent/${agentId}/${defaultSection}`);
-  }, [agentId, router]);
+  // 从注册表获取 agent 配置
+  const agent = agentRegistry[agentId];
 
-  return null;
+  if (!agent) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">Agent 不存在</h1>
+          <p className="text-muted-foreground">找不到 ID 为 &quot;{agentId}&quot; 的 Agent</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 根据 agent 的 defaultUI 获取对应的组件
+  const { header: leftHeader, body: leftBody } = getUIComponents(
+    agent.defaultUI,
+    agentId
+  );
+
+  return (
+    <AgentPageLayout
+      leftHeader={leftHeader}
+      leftBody={leftBody}
+      rightBody={<ChatPage agentId={agentId} />}
+    />
+  );
 }

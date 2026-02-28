@@ -7,6 +7,7 @@ export interface Agent {
     name: string;
 
     uiModules: UIModule[];
+    defaultUI: UIModule;
 }
 
 export type UIModule =
