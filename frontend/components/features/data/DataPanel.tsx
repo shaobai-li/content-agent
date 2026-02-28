@@ -7,9 +7,11 @@ interface DataPanelProps<T> {
   columns: DataTableColumn<T>[];
   apiEndpoint: string;
   getRowKey: (item: T) => string;
-  dataKey?: string; // API 返回数据中的 key，默认为 "records"
+  dataKey?: string;
   emptyMessage?: string;
-  refreshEvent?: string; // 自定义刷新事件名称
+  refreshEvent?: string;
+  onView?: (item: T) => void;
+  onRemove?: (item: T) => void;
 }
 
 export function DataPanel<T>({
@@ -18,7 +20,9 @@ export function DataPanel<T>({
   getRowKey,
   dataKey = "records",
   emptyMessage = "暂无数据",
-  refreshEvent = "data-panel-refresh"
+  refreshEvent = "data-panel-refresh",
+  onView,
+  onRemove,
 }: DataPanelProps<T>) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +68,8 @@ export function DataPanel<T>({
       getRowKey={getRowKey}
       loading={loading}
       emptyMessage={emptyMessage}
+      onView={onView}
+      onRemove={onRemove}
     />
   );
 }

@@ -8,13 +8,15 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { RowActions } from "./RowActions";
+import { Eye, Trash2 } from "lucide-react";
 
 export interface DataTableColumn<T> {
     key: string;
     label: string;
     render: (item: T) => React.ReactNode;
-    width?: string; // 可选的列宽度，如 "120px" 或 "w-[120px]"
-    className?: string; // 可选的额外样式类
+    width?: string;
+    className?: string;
 }
 
 interface DataTableProps<T> {
@@ -23,6 +25,8 @@ interface DataTableProps<T> {
     getRowKey: (item: T) => string;
     loading?: boolean;
     emptyMessage?: string;
+    onView?: (item: T) => void;
+    onRemove?: (item: T) => void;
 }
 
 export function DataTable<T>({
@@ -30,8 +34,32 @@ export function DataTable<T>({
     data,
     getRowKey,
     loading = false,
-    emptyMessage = "暂无数据"
+    emptyMessage = "暂无数据",
+    onView,
+    onRemove,
 }: DataTableProps<T>) {
+    const finalColumns = [
+        ...columns,
+        {
+            key: "actions",
+            label: "",
+            width: "50px",
+            render: (record: T) => (
+                <div className="flex justify-end">
+                    <RowActions
+                        actions={[
+                            { label: "View", icon: <Eye className="size-4" /> },
+                            {
+                                label: "Remove",
+                                icon: <Trash2 className="size-4 text-red-600" />,
+                                destructive: true,
+                            },
+                        ]}
+                    />
+                </div>
+            ),
+        } as DataTableColumn<T>,
+    ];
     if (loading) {
         return (
         <div className="h-full flex items-center justify-center">
@@ -53,7 +81,7 @@ export function DataTable<T>({
         <Table>
             <TableHeader>
             <TableRow>
-                {columns.map((col) => (
+                {finalColumns.map((col) => (
                 <TableHead 
                     key={col.key} 
                     className="text-xs font-semibold text-muted-foreground px-6"
@@ -67,7 +95,7 @@ export function DataTable<T>({
             <TableBody>
             {data.map((item) => (
                 <TableRow key={getRowKey(item)} className="group">
-                {columns.map((col) => (
+                {finalColumns.map((col) => (
                     <TableCell 
                         key={col.key} 
                         className={`px-6 py-4 ${col.className || ''}`}
