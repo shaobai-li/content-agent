@@ -1,4 +1,6 @@
 import { Agent } from "./model";
+import { AGENT_NM_COLUMNS } from "@/app/agent_nm/components/columns";
+import { AGENT_KB_COLUMNS } from "@/app/agent_kb/components/columns";
 
 export const agentRegistry: Record<Agent['id'], Agent> = {
     nm: {
@@ -10,6 +12,13 @@ export const agentRegistry: Record<Agent['id'], Agent> = {
             right: ["chat"],
             defaultRight: "chat",
         },
+        dataPanelConfig: {
+            columns: AGENT_NM_COLUMNS,
+            apiEndpoint: "http://localhost:8000/api/nm/records",
+            getRowKey: (item: any) => item.record_id,
+            dataKey: "records",
+            emptyMessage: "暂无笔记数据",
+        },
     },
     kb: {
         id: "kb",
@@ -19,6 +28,14 @@ export const agentRegistry: Record<Agent['id'], Agent> = {
             defaultLeft: "knowledgebase",
             right: ["chat"],
             defaultRight: "chat",
+        },
+        dataPanelConfig: {
+            columns: AGENT_KB_COLUMNS,
+            apiEndpoint: "http://localhost:8000/api/kb/records",
+            getRowKey: (item: any) => item.record_id,
+            dataKey: "records",
+            emptyMessage: "No knowledge base data available",
+            refreshEvent: "kb-data-refresh",
         },
     },
     c: {
