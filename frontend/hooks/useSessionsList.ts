@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getSessions } from "@/lib/sessions-api";
+import { fetchSessions } from "@/shared/api/sessions";
 import type { SessionListItem } from "@/types/chat";
 
 export function useSessionsList(agentId: string | null) {
@@ -19,7 +19,7 @@ export function useSessionsList(agentId: string | null) {
     setLoading(true);
     setError(null);
     try {
-      const list = await getSessions(agentId);
+      const list = await fetchSessions(agentId);
       setSessions(list);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");

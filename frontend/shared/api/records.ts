@@ -1,3 +1,7 @@
+/**
+ * Agent data records APIs
+ */
+
 import { http } from "./http";
 
 export const fetchNmRecords = () =>
