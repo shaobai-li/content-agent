@@ -34,8 +34,9 @@ const getKnowledgePanel = (agentId: AgentId) => {
         {
           key: "actions",
           label: "",
+          width: "50px",
           render: (record: any) => (
-            <div className="px-2 py-5 w-[50px] flex justify-end">
+            <div className="flex justify-end">
               <RowActions
                 actions={[
                   { label: "View", icon: <Eye className="size-4" /> },

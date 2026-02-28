@@ -13,6 +13,8 @@ export interface DataTableColumn<T> {
     key: string;
     label: string;
     render: (item: T) => React.ReactNode;
+    width?: string; // 可选的列宽度，如 "120px" 或 "w-[120px]"
+    className?: string; // 可选的额外样式类
 }
 
 interface DataTableProps<T> {
@@ -52,7 +54,11 @@ export function DataTable<T>({
             <TableHeader>
             <TableRow>
                 {columns.map((col) => (
-                <TableHead key={col.key} className="text-xs font-semibold text-muted-foreground px-6">
+                <TableHead 
+                    key={col.key} 
+                    className="text-xs font-semibold text-muted-foreground px-6"
+                    style={col.width ? { width: col.width } : undefined}
+                >
                     {col.label}
                 </TableHead>
                 ))}
@@ -62,7 +68,11 @@ export function DataTable<T>({
             {data.map((item) => (
                 <TableRow key={getRowKey(item)} className="group">
                 {columns.map((col) => (
-                    <TableCell key={col.key} className="p-0">
+                    <TableCell 
+                        key={col.key} 
+                        className={`px-6 py-4 ${col.className || ''}`}
+                        style={col.width ? { width: col.width } : undefined}
+                    >
                     {col.render(item)}
                     </TableCell>
                 ))}

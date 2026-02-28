@@ -14,10 +14,11 @@ export const AGENT_NM_COLUMNS: DataTableColumn<DataRecord>[] = [
   {
     key: "platform",
     label: "平台",
+    width: "120px",
     render: (item) => {
       const platformIcon = PlatformIconMap[item.source_platform as keyof typeof PlatformIconMap];
       return (
-        <div className="flex items-center gap-2 px-4 py-3 w-[120px]">
+        <div className="flex items-center gap-2">
           {platformIcon && (
             <Image
               src={platformIcon}
@@ -25,7 +26,7 @@ export const AGENT_NM_COLUMNS: DataTableColumn<DataRecord>[] = [
               title={item.source_platform}
               width={16}
               height={16}
-              className="w-4 h-4 object-contain flex-shrink-0"
+              className="flex-shrink-0"
             />
           )}
           <span className="truncate">{item.source_platform}</span>
@@ -36,45 +37,39 @@ export const AGENT_NM_COLUMNS: DataTableColumn<DataRecord>[] = [
   {
     key: "author",
     label: "作者",
-    render: (item) => (
-      <div className="px-4 py-3 w-[120px]">
-        <span className="font-medium truncate block">{item.author_name}</span>
-      </div>
-    )
+    width: "120px",
+    render: (item) => <span className="truncate block">{item.author_name}</span>
   },
   {
     key: "images",
     label: "图片",
-    render: (item) => (
-      <div className="px-4 py-3 text-sm text-gray-600">
-        {item.images.length > 0 ? (
-          <div className="truncate max-w-[200px]" title={item.images.join("\n")}>
-            {item.images[0]}
-          </div>
-        ) : (
-          <span className="text-gray-400">无</span>
-        )}
-      </div>
-    )
+    width: "200px",
+    className: "text-xs text-muted-foreground",
+    render: (item) => 
+      item.images.length > 0 ? (
+        <span className="truncate block" title={item.images.join("\n")}>
+          {item.images[0]}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">无</span>
+      )
   },
   {
     key: "videos",
     label: "视频",
-    render: (item) => (
-      <div className="px-4 py-3 text-sm text-gray-600">
-        {item.videos.length > 0 ? (
-          <ul className="list-none space-y-1">
-            {item.videos.map((path, i) => (
-              <li key={i} className="truncate max-w-[200px]" title={path}>
-                {path}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <span className="text-gray-400">无</span>
-        )}
-      </div>
-    )
+    className: "text-xs text-muted-foreground",
+    render: (item) =>
+      item.videos.length > 0 ? (
+        <div className="space-y-1">
+          {item.videos.map((path, i) => (
+            <div key={i} className="truncate max-w-[200px]" title={path}>
+              {path}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <span className="text-muted-foreground">无</span>
+      )
   }
 ];
 
