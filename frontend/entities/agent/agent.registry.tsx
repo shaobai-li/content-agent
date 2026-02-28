@@ -1,0 +1,147 @@
+import { Agent } from "./model";
+import Image from "next/image";
+import { PlatformIconMap, FileTypeIconMap } from "@/components/ui/icons";
+
+export const agentRegistry: Record<Agent['id'], Agent> = {
+    nm: {
+        id: "nm",
+        name: "笔记管理Agent",
+        layout: {
+            left: ["history", "knowledgebase"],
+            defaultLeft: "knowledgebase",
+            right: ["chat"],
+            defaultRight: "chat",
+        },
+        dataPanelConfig: {
+            apiEndpoint: "http://localhost:8000/api/nm/records",
+            rowKeyField: "record_id",
+            dataKey: "records",
+            emptyMessage: "暂无笔记数据",
+            columnOrder: ["source_platform", "author_name", "images", "videos"],
+            columnLabels: {
+                source_platform: "平台",
+                author_name: "作者",
+                images: "图片",
+                videos: "视频",
+            },
+            columnWidths: {
+                source_platform: "120px",
+                author_name: "120px",
+                images: "200px",
+            },
+            customRenderers: {
+                source_platform: (row) => {
+                    const icon = PlatformIconMap[row.source_platform as keyof typeof PlatformIconMap];
+                    return (
+                        <div className="flex items-center gap-2">
+                            {icon && (
+                                <Image
+                                    src={icon}
+                                    alt={row.source_platform}
+                                    width={16}
+                                    height={16}
+                                    className="flex-shrink-0"
+                                />
+                            )}
+                            <span className="truncate">{row.source_platform}</span>
+                        </div>
+                    );
+                },
+                author_name: (row) => (
+                    <span className="truncate block">{row.author_name}</span>
+                ),
+                images: (row) =>
+                    row.images?.length > 0 ? (
+                        <span className="truncate block" title={row.images.join("\n")}>
+                            {row.images[0]}
+                        </span>
+                    ) : (
+                        <span className="text-muted-foreground">无</span>
+                    ),
+                videos: (row) =>
+                    row.videos?.length > 0 ? (
+                        <div className="space-y-1">
+                            {row.videos.map((path: string, i: number) => (
+                                <div key={i} className="truncate max-w-[200px]" title={path}>
+                                    {path}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <span className="text-muted-foreground">无</span>
+                    ),
+            },
+        },
+    },
+    kb: {
+        id: "kb",
+        name: "知识库Agent",
+        layout: {
+            left: ["history", "knowledgebase"],
+            defaultLeft: "knowledgebase",
+            right: ["chat"],
+            defaultRight: "chat",
+        },
+        dataPanelConfig: {
+            apiEndpoint: "http://localhost:8000/api/kb/records",
+            rowKeyField: "record_id",
+            dataKey: "records",
+            emptyMessage: "No knowledge base data available",
+            refreshEvent: "kb-data-refresh",
+            columnOrder: ["name", "type", "size", "date_added"],
+            columnLabels: {
+                name: "文件名",
+                type: "类型",
+                size: "大小",
+                date_added: "添加日期",
+            },
+            columnWidths: {
+                type: "100px",
+                size: "120px",
+                date_added: "140px",
+            },
+            customRenderers: {
+                name: (row) => {
+                    const icon = FileTypeIconMap[row.type as keyof typeof FileTypeIconMap];
+                    return (
+                        <div className="flex items-center gap-2">
+                            {icon && (
+                                <Image
+                                    src={icon}
+                                    alt={row.type}
+                                    width={16}
+                                    height={16}
+                                    className="flex-shrink-0"
+                                />
+                            )}
+                            <span className="truncate" title={row.name}>
+                                {row.name}
+                            </span>
+                        </div>
+                    );
+                },
+                type: (row) => row.type?.toUpperCase() || "",
+            },
+        },
+    },
+    c: {
+        id: "c",
+        name: "内容检测Agent",
+        layout: {
+            left: ["history", "document"],
+            defaultLeft: "document",
+            right: ["chat"],
+            defaultRight: "chat",
+        },
+    },
+    w: {
+        id: "w",
+        name: "写作助手Agent",
+        layout: {
+            left: ["history", "document"],
+            defaultLeft: "history",
+            right: ["chat"],
+            defaultRight: "chat",
+        },
+    },
+}

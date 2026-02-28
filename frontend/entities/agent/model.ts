@@ -1,17 +1,19 @@
 // entities/agent/model.ts
 
 import { ReactNode } from "react";
-import { DataTableColumn } from "@/components/features/data/DataTable";
 
 export type AgentId = "nm" | "kb" | "c" | "w";
 
-export interface DataPanelConfig<T = any> {
-    columns: DataTableColumn<T>[];
+export interface DataPanelConfig {
     apiEndpoint: string;
-    getRowKey: (item: T) => string;
+    rowKeyField: string;
     dataKey?: string;
     emptyMessage?: string;
     refreshEvent?: string;
+    columnLabels?: Record<string, string>;
+    customRenderers?: Record<string, (row: any) => ReactNode>;
+    columnWidths?: Record<string, string>;
+    columnOrder?: string[];
 }
 
 export interface Agent {

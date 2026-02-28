@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
     Table,
     TableBody,
@@ -11,40 +12,68 @@ import {
 import { RowActions } from "./RowActions";
 import { Eye, Trash2 } from "lucide-react";
 
-export interface DataTableColumn<T> {
+interface InferredColumn {
     key: string;
     label: string;
-    render: (item: T) => React.ReactNode;
     width?: string;
     className?: string;
+    render: (row: any) => React.ReactNode;
 }
 
-interface DataTableProps<T> {
-    columns: DataTableColumn<T>[];
-    data: T[];
-    getRowKey: (item: T) => string;
+interface DataTableProps {
+    data: any[];
+    rowKeyField: string;
+    columnLabels?: Record<string, string>;
+    customRenderers?: Record<string, (row: any) => React.ReactNode>;
+    columnWidths?: Record<string, string>;
+    columnOrder?: string[];
     loading?: boolean;
     emptyMessage?: string;
-    onView?: (item: T) => void;
-    onRemove?: (item: T) => void;
+    onView?: (item: any) => void;
+    onRemove?: (item: any) => void;
 }
 
-export function DataTable<T>({
-    columns,
+export function DataTable({
     data,
-    getRowKey,
+    rowKeyField,
+    columnLabels = {},
+    customRenderers = {},
+    columnWidths = {},
+    columnOrder,
     loading = false,
     emptyMessage = "暂无数据",
     onView,
     onRemove,
-}: DataTableProps<T>) {
-    const finalColumns = [
+}: DataTableProps) {
+    const columns = useMemo<InferredColumn[]>(() => {
+        if (data.length === 0) return [];
+
+        const firstRow = data[0];
+        const keys = columnOrder || Object.keys(firstRow).filter(k => k !== rowKeyField);
+
+        return keys.map(key => ({
+            key,
+            label: columnLabels[key] || key,
+            width: columnWidths[key],
+            className: customRenderers[key] ? "" : "text-xs text-muted-foreground",
+            render: customRenderers[key] || ((row: any) => {
+                const value = row[key];
+                if (Array.isArray(value)) {
+                    return value.length > 0 ? value.join(", ") : "无";
+                }
+                return String(value || "");
+            }),
+        }));
+    }, [data, rowKeyField, columnLabels, customRenderers, columnWidths, columnOrder]);
+
+    const finalColumns: InferredColumn[] = [
         ...columns,
         {
             key: "actions",
             label: "",
             width: "50px",
-            render: (record: T) => (
+            className: "",
+            render: (record: any) => (
                 <div className="flex justify-end">
                     <RowActions
                         actions={[
@@ -58,7 +87,7 @@ export function DataTable<T>({
                     />
                 </div>
             ),
-        } as DataTableColumn<T>,
+        },
     ];
     if (loading) {
         return (
@@ -94,7 +123,7 @@ export function DataTable<T>({
             </TableHeader>
             <TableBody>
             {data.map((item) => (
-                <TableRow key={getRowKey(item)} className="group">
+                <TableRow key={item[rowKeyField]} className="group">
                 {finalColumns.map((col) => (
                     <TableCell 
                         key={col.key} 

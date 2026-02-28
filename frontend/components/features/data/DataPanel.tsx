@@ -1,30 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { DataTable, DataTableColumn } from "./DataTable";
+import { DataTable } from "./DataTable";
+import { DataPanelConfig } from "@/entities/agent/model";
 
-interface DataPanelProps<T> {
-  columns: DataTableColumn<T>[];
-  apiEndpoint: string;
-  getRowKey: (item: T) => string;
-  dataKey?: string;
-  emptyMessage?: string;
-  refreshEvent?: string;
-  onView?: (item: T) => void;
-  onRemove?: (item: T) => void;
+interface DataPanelProps extends DataPanelConfig {
+  onView?: (item: any) => void;
+  onRemove?: (item: any) => void;
 }
 
-export function DataPanel<T>({
-  columns,
+export function DataPanel({
   apiEndpoint,
-  getRowKey,
+  rowKeyField,
   dataKey = "records",
   emptyMessage = "暂无数据",
   refreshEvent = "data-panel-refresh",
+  columnLabels,
+  customRenderers,
+  columnWidths,
+  columnOrder,
   onView,
   onRemove,
-}: DataPanelProps<T>) {
-  const [data, setData] = useState<T[]>([]);
+}: DataPanelProps) {
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 封装数据获取函数
@@ -63,9 +61,12 @@ export function DataPanel<T>({
 
   return (
     <DataTable
-      columns={columns}
       data={data}
-      getRowKey={getRowKey}
+      rowKeyField={rowKeyField}
+      columnLabels={columnLabels}
+      customRenderers={customRenderers}
+      columnWidths={columnWidths}
+      columnOrder={columnOrder}
       loading={loading}
       emptyMessage={emptyMessage}
       onView={onView}
