@@ -10,7 +10,7 @@ interface DataPanelProps extends DataPanelConfig {
 }
 
 export function DataPanel({
-  apiEndpoint,
+  fetchData: fetchDataFn,
   rowKeyField,
   dataKey = "records",
   emptyMessage = "暂无数据",
@@ -25,11 +25,10 @@ export function DataPanel({
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 封装数据获取函数
-  const fetchData = useCallback(() => {
+  // 数据获取函数
+  const loadData = useCallback(() => {
     setLoading(true);
-    fetch(apiEndpoint)
-      .then((res) => res.json())
+    fetchDataFn()
       .then((responseData) => {
         setData(responseData[dataKey] || []);
         setLoading(false);
@@ -38,18 +37,18 @@ export function DataPanel({
         console.error("获取数据失败:", err);
         setLoading(false);
       });
-  }, [apiEndpoint, dataKey]);
+  }, [fetchDataFn, dataKey]);
 
   // 初始加载
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    loadData();
+  }, [loadData]);
 
   // 监听自定义刷新事件
   useEffect(() => {
     const handleRefresh = () => {
       console.log(`收到刷新事件: ${refreshEvent}`);
-      fetchData();
+      loadData();
     };
 
     window.addEventListener(refreshEvent, handleRefresh);
@@ -57,7 +56,7 @@ export function DataPanel({
     return () => {
       window.removeEventListener(refreshEvent, handleRefresh);
     };
-  }, [refreshEvent, fetchData]);
+  }, [refreshEvent, loadData]);
 
   return (
     <DataTable

@@ -5,7 +5,7 @@ import { ReactNode } from "react";
 export type AgentId = "nm" | "kb" | "c" | "w";
 
 export interface DataPanelConfig {
-    apiEndpoint: string;
+    fetchData: () => Promise<any>;
     rowKeyField: string;
     dataKey?: string;
     emptyMessage?: string;

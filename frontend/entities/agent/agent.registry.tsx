@@ -1,6 +1,7 @@
 import { Agent } from "./model";
 import Image from "next/image";
 import { PlatformIconMap, FileTypeIconMap } from "@/components/ui/icons";
+import { fetchNmRecords, fetchKbRecords } from "@/shared/api/knowledgebase";
 
 export const agentRegistry: Record<Agent['id'], Agent> = {
     nm: {
@@ -13,7 +14,7 @@ export const agentRegistry: Record<Agent['id'], Agent> = {
             defaultRight: "chat",
         },
         dataPanelConfig: {
-            apiEndpoint: "http://localhost:8000/api/nm/records",
+            fetchData: fetchNmRecords,
             rowKeyField: "record_id",
             dataKey: "records",
             emptyMessage: "暂无笔记数据",
@@ -83,7 +84,7 @@ export const agentRegistry: Record<Agent['id'], Agent> = {
             defaultRight: "chat",
         },
         dataPanelConfig: {
-            apiEndpoint: "http://localhost:8000/api/kb/records",
+            fetchData: fetchKbRecords,
             rowKeyField: "record_id",
             dataKey: "records",
             emptyMessage: "No knowledge base data available",
