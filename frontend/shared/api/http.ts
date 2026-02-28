@@ -2,6 +2,8 @@
  * HTTP client for API requests
  */
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 interface HttpResponse<T = any> {
   data: T;
   status: number;
@@ -10,7 +12,7 @@ interface HttpResponse<T = any> {
 class HttpClient {
   private baseURL: string;
 
-  constructor(baseURL: string = "") {
+  constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
   }
 
