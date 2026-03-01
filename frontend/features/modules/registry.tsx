@@ -8,7 +8,7 @@ import { DataHeader } from "../data/DataHeader";
 import { DataPanel } from "../data/DataPanel";
 
 import { AgentId } from "@/entities/agent/model";
-import { agentRegistry } from "@/entities/agent/agent.registry";
+import { dataPanelConfigRegistry } from "../data/dataPanelConfigRegistry";
 
 export type ModuleRenderResult = {
   header: React.ReactNode;
@@ -16,13 +16,13 @@ export type ModuleRenderResult = {
 };
 
 const getKnowledgePanel = (agentId: AgentId) => {
-  const agent = agentRegistry[agentId];
-  
-  if (!agent?.dataPanelConfig) {
+  const config = dataPanelConfigRegistry[agentId];
+
+  if (!config) {
     return <div className="p-4 text-muted-foreground">暂无数据面板</div>;
   }
 
-  return <DataPanel {...agent.dataPanelConfig} />;
+  return <DataPanel {...config} />;
 };
 
 export const uiModuleRegistry: Record<

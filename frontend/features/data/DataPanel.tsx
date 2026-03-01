@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { DataTable } from "./DataTable";
-import { DataPanelConfig } from "@/entities/agent/model";
+import type { DataPanelConfig } from "./type";
 
 interface DataPanelProps extends DataPanelConfig {
   onView?: (item: any) => void;

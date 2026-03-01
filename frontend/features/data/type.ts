@@ -1,0 +1,13 @@
+import { ReactNode } from "react";
+
+export interface DataPanelConfig {
+    fetchData: () => Promise<any>;
+    rowKeyField: string;
+    dataKey?: string;
+    emptyMessage?: string;
+    refreshEvent?: string;
+    columnLabels?: Record<string, string>;
+    customRenderers?: Record<string, (row: any) => ReactNode>;
+    columnWidths?: Record<string, string>;
+    columnOrder?: string[];
+}
