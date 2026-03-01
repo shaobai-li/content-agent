@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { ChatMessage } from "@/types/chat";
+import type { Message } from "@/entities/message/model";
 
 interface UseChatProps {
   agentId: string;
@@ -17,7 +17,7 @@ export type SendPayload = {
 export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   // 1. 定义状态：input 存储输入内容，messages 存储对话历史
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
 
   // 2. 定义统一的发送逻辑，支持文本、文件、或两者组合

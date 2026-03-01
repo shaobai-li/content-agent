@@ -1,7 +1,7 @@
-import type { ChatMessage as ChatMessageType } from "@/types/chat";
+import type { Message } from "@/entities/message/model";
 
 interface ChatMessageProps {
-  messages: ChatMessageType[];
+  messages: Message[];
 }
 
 export function ChatMessage({ messages }: ChatMessageProps) {

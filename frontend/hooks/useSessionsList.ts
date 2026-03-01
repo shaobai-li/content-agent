@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { fetchSessions } from "@/shared/api/sessions";
-import type { SessionListItem } from "@/types/chat";
+import type { Session } from "@/entities/session/model";
 
 export function useSessionsList(agentId: string | null) {
-  const [sessions, setSessions] = useState<SessionListItem[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

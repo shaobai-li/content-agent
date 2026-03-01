@@ -3,7 +3,7 @@
  */
 
 import { http } from "./http";
-import type { SessionListItem } from "@/types/chat";
+import type { Session } from "@/entities/session/model";
 
-export const fetchSessions = (agentId: string): Promise<SessionListItem[]> =>
+export const fetchSessions = (agentId: string): Promise<Session[]> =>
   http.get(`/api/${agentId}/sessions`);
