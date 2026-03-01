@@ -14,7 +14,7 @@ class FileInfo:
         content_type: str, 
         size: int, 
         cached_path: Path,
-        process_result: Optional[str] = None,
+        parsed_path: Optional[str] = None,
         record_id: Optional[str] = None,
         date_added: Optional[str] = None
     ):
@@ -22,7 +22,7 @@ class FileInfo:
         self.content_type = content_type
         self.size = size
         self.cached_path = cached_path
-        self.process_result = process_result
+        self.parsed_path = parsed_path
         self.record_id = record_id or self._generate_record_id()
         self.date_added = date_added or datetime.now().strftime("%Y-%m-%d")
     
@@ -75,7 +75,7 @@ class FileInfo:
             "content_type": self.content_type,
             "size": self.size,
             "cached_path": str(self.cached_path),
-            "process_result": self.process_result,
+            "parsed_path": self.parsed_path,
             "record_id": self.record_id,
             "date_added": self.date_added
         }
@@ -83,11 +83,14 @@ class FileInfo:
     def to_kb_format(self) -> Dict[str, str]:
         """返回知识库 JSONL 格式"""
         return {
+            "record_id": self.record_id,
             "name": self.filename,
             "type": self._get_file_extension(),
             "size": self._format_size(),
             "date_added": self.date_added,
-            "record_id": self.record_id
+            "cached_path": str(self.cached_path),
+            "parsed_path": self.parsed_path,
+            "content_type": self.content_type
         }
 
 
@@ -123,10 +126,10 @@ async def process_attachments(
     for file in attachments:
         cached_path, content = await save_uploaded_file(file, agent_id)
         
-        # 调用处理器（如果提供）
-        process_result = None
+        # 调用处理器（如果提供），返回解析后的文件路径
+        parsed_path = None
         if processor:
-            process_result = await processor(
+            parsed_path = await processor(
                 cached_path,
                 file.filename,
                 file.content_type
@@ -137,7 +140,7 @@ async def process_attachments(
             content_type=file.content_type,
             size=len(content),
             cached_path=cached_path,
-            process_result=process_result
+            parsed_path=parsed_path
         )
         file_info_list.append(file_info)
     

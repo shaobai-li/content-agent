@@ -12,18 +12,20 @@ async def process_and_parse(file_path: Path, filename: str, content_type: str) -
     处理附件：对支持的文档格式进行解析
     - PDF/DOCX/PPTX: 解析为Markdown
     - 其他格式: 仅保存
+    
+    返回解析后的 MD 文件路径（字符串），如果不支持解析则返回 None
     """
     parser = get_parser(content_type)
     
     if not parser:
-        return f"文件 {filename} 已保存（不支持解析该格式）"
+        return None
     
     try:
         output_dir = get_agent_base_dir("kb") / "parsed"
         md_path = await parser.parse(file_path, output_dir)
-        return f"文件 {filename} 已解析为 Markdown: {md_path.name}"
+        return str(md_path)
     except Exception as e:
-        return f"文件 {filename} 解析失败: {str(e)}"
+        return None
 
 
 def save_to_knowledge_base(file_info: FileInfo, agent_id: str = "kb"):
