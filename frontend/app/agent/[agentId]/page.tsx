@@ -1,6 +1,6 @@
 "use client";
 
-import { AgentPageLayout } from "@/components/layout/AgentPageLayout";
+import { AgentPageLayout } from "@/app-shell/AgentPageLayout";
 import { ChatPage } from "@/components/features/chat/ChatPage";
 import { useParams } from "next/navigation";
 import { agentRegistry } from "@/entities/agent/agent.registry";

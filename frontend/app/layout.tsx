@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Sidebar, RouteItem } from "@/components/layout/Sidebar";
+import { Sidebar, RouteItem } from "@/app-shell/Sidebar";
 import { agentRegistry } from "@/entities/agent/agent.registry";
 
 // 从 agent registry 生成路由配置
