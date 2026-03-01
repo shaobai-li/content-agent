@@ -77,11 +77,16 @@ export function DataTable({
                 <div className="flex justify-end">
                     <RowActions
                         actions={[
-                            { label: "View", icon: <Eye className="size-4" /> },
+                            { 
+                                label: "View", 
+                                icon: <Eye className="size-4" />,
+                                onClick: () => onView?.(record),
+                            },
                             {
                                 label: "Remove",
                                 icon: <Trash2 className="size-4 text-red-600" />,
                                 destructive: true,
+                                onClick: () => onRemove?.(record),
                             },
                         ]}
                     />

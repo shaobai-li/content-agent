@@ -9,3 +9,6 @@ export const fetchNmRecords = () =>
 
 export const fetchKbRecords = () =>
   http.get("/api/kb/records");
+
+export const deleteKbRecord = (recordId: string) =>
+  http.delete(`/api/kb/records/${recordId}`);

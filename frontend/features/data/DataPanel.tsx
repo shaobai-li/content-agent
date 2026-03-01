@@ -11,6 +11,7 @@ interface DataPanelProps extends DataPanelConfig {
 
 export function DataPanel({
   fetchData: fetchDataFn,
+  deleteData: deleteDataFn,
   rowKeyField,
   dataKey = "records",
   emptyMessage = "暂无数据",
@@ -38,6 +39,32 @@ export function DataPanel({
         setLoading(false);
       });
   }, [fetchDataFn, dataKey]);
+
+  // 删除处理函数
+  const handleRemove = useCallback(async (record: any) => {
+    if (onRemove) {
+      onRemove(record);
+      return;
+    }
+
+    if (!deleteDataFn) {
+      console.warn("未配置删除函数");
+      return;
+    }
+
+    if (!confirm(`确定要删除 "${record.name || record.record_id}" 吗？`)) {
+      return;
+    }
+
+    try {
+      await deleteDataFn(record.record_id);
+      console.log("删除成功");
+      loadData();
+    } catch (error) {
+      console.error("删除失败:", error);
+      alert("删除失败，请重试");
+    }
+  }, [deleteDataFn, onRemove, loadData]);
 
   // 初始加载
   useEffect(() => {
@@ -69,7 +96,7 @@ export function DataPanel({
       loading={loading}
       emptyMessage={emptyMessage}
       onView={onView}
-      onRemove={onRemove}
+      onRemove={handleRemove}
     />
   );
 }

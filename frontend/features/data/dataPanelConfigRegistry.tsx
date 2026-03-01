@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { AgentId } from "@/entities/agent/model";
 import { PlatformIconMap, FileTypeIconMap } from "@/shared/ui/icons";
-import { fetchNmRecords, fetchKbRecords } from "@/shared/api/records";
+import { fetchNmRecords, fetchKbRecords, deleteKbRecord } from "@/shared/api/records";
 import type { DataPanelConfig } from "./type";
 
 export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> = {
@@ -67,6 +67,7 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
     },
     kb: {
         fetchData: fetchKbRecords,
+        deleteData: deleteKbRecord,
         rowKeyField: "record_id",
         dataKey: "records",
         emptyMessage: "No knowledge base data available",
