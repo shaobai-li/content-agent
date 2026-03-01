@@ -1,11 +1,11 @@
 "use client";
 
 import { AgentPageLayout } from "@/app-shell/AgentPageLayout";
-import { ChatPage } from "@/components/features/chat/ChatPage";
+import { ChatPage } from "@/features/chat/ChatPage";
 import { useParams } from "next/navigation";
 import { agentRegistry } from "@/entities/agent/agent.registry";
 import { AgentId } from "@/entities/agent/model";
-import { uiModuleRegistry } from "@/components/features/modules/registry";
+import { uiModuleRegistry } from "@/features/modules/registry";
 
 export default function AgentPage() {
   const params = useParams();
