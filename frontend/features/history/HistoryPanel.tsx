@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import { useParams } from "next/navigation";
-import { useSessionsList } from "@/hooks/useSessionsList";
+import { useSessionList } from "@/entities/session/useSessionList";
 import { HistoryItem } from "./HistoryItem";
 import { HistoryFooter } from "./HistoryFooter";
 
@@ -13,7 +13,7 @@ interface HistoryPanelProps {
 export function HistoryPanel() {
   const params = useParams();
   const agentId = (params?.agentId as string) ?? null;
-  const { sessions, loading, error } = useSessionsList(agentId);
+  const { sessions, loading, error } = useSessionList(agentId);
 
   return (
     <div className="flex flex-col h-full overflow-auto">
