@@ -18,3 +18,7 @@ export const FileTypeIconMap = {
     "pptx": PptxIcon,
     "md": MdIcon,
 } as const;
+
+// import FolderPlusIcon from './new_folder.svg';
+
+// export { FolderPlusIcon };

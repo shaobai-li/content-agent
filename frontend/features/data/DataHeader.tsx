@@ -1,5 +1,6 @@
 import { Button } from "@/shared/ui/button";
-import Image from "next/image";
+import { Plus, FolderPlus } from "lucide-react";
+// import { FolderPlusIcon } from "@/shared/ui/icons";
 
 export function DataHeader() {
   return (
@@ -8,12 +9,12 @@ export function DataHeader() {
 
       <div className="ml-auto flex items-center gap-2">
         <Button variant="outline" size="sm" className="text-xs gap-2.5">
-          <Image src="/new_folder.svg" alt="" width={16} height={16} />
-          New Folder
+          <FolderPlus className="size-4" strokeWidth={3} />
+          <span>New Folder</span>
         </Button>
-        <Button size="sm" className="text-xs gap-2.5">
-          <Image src="/add.svg" alt="" width={12} height={12} />
-          Add File
+        <Button size="sm" className="text-xs gap-2.5 items-center justify-center">
+          <Plus className="size-4" strokeWidth={3} />
+          <span>Add File</span>
         </Button>
       </div> 
     </div>

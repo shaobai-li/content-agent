@@ -1,5 +1,5 @@
 import { Button } from "@/shared/ui/button";
-import Image from "next/image";
+import { Plus, FolderPlus } from "lucide-react";
 
 export function DocumentHeader() {
   return (
@@ -8,14 +8,14 @@ export function DocumentHeader() {
 
       <div className="ml-auto flex items-center gap-2">
         <Button variant="outline" size="sm" className="text-xs gap-2.5">
-          <Image src="/new_folder.svg" alt="" width={16} height={16} />
-          New Folder
+          <FolderPlus className="size-4" strokeWidth={3} />
+          <span>New Folder</span>
         </Button>
         <Button size="sm" className="text-xs gap-2.5">
-          <Image src="/add.svg" alt="" width={12} height={12} />
-          Add Document
+          <Plus className="size-4" strokeWidth={3} />
+          <span>Add Document</span>
         </Button>
-      </div> 
+      </div>
     </div>
   );
 }
