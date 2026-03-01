@@ -7,7 +7,7 @@ from app.service.file_service import FileInfo
 from .parsers import get_parser
 
 
-async def process_and_parse(file_path: Path, filename: str, content_type: str) -> str:
+async def process_and_parse(file_path: Path, filename: str, content_type: str, agent_id: str) -> str:
     """
     处理附件：对支持的文档格式进行解析
     - PDF/DOCX/PPTX: 解析为Markdown
@@ -21,7 +21,7 @@ async def process_and_parse(file_path: Path, filename: str, content_type: str) -
         return None
     
     try:
-        output_dir = get_agent_base_dir("kb") / "parsed"
+        output_dir = get_agent_base_dir(agent_id) / "parsed"
         md_path = await parser.parse(file_path, output_dir)
         return str(md_path)
     except Exception as e:

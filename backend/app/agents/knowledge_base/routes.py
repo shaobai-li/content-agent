@@ -39,7 +39,7 @@ async def chat(
         file_info_list = await process_attachments(
             attachments=attachments,
             agent_id=agent_id,
-            processor=process_and_parse
+            processor=lambda path, fn, ct: process_and_parse(path, fn, ct, agent_id)
         )
         
         # 保存到知识库
