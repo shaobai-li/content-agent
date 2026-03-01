@@ -18,7 +18,8 @@ import {
 // 菜单项接口
 export interface MenuItem {
   label: string;
-  href?: string;  // 可选的跳转链接
+  href?: string;
+  icon?: "history" | "knowledgebase" | "document";
 }
 
 // 路由项接口
@@ -78,25 +79,29 @@ export function Sidebar({ routes }: SidebarProps) {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {route.menuItems!.map((item, index) => (
-                      <DropdownMenuItem key={index} asChild={!!item.href}>
-                        {item.href ? (
-                          <Link href={item.href}>
-                            {item.label === "Chat History" && <History className="size-4" />}
-                            {item.label === "Knowledge Base" && <BookOpen className="size-4" />}
-                            {item.label === "Document View" && <FileText className="size-4" />}
-                            {item.label}
-                          </Link>
-                        ) : (
-                          <span>
-                            {item.label === "Chat History" && <History className="size-4" />}
-                            {item.label === "Knowledge Base" && <BookOpen className="size-4" />}
-                            {item.label === "Document View" && <FileText className="size-4" />}
-                            {item.label}
-                          </span>
-                        )}
-                      </DropdownMenuItem>
-                    ))}
+                    {route.menuItems!.map((item, index) => {
+                      const IconMap = {
+                        history: History,
+                        knowledgebase: BookOpen,
+                        document: FileText,
+                      };
+                      const Icon = item.icon ? IconMap[item.icon] : null;
+                      return (
+                        <DropdownMenuItem key={index} asChild={!!item.href}>
+                          {item.href ? (
+                            <Link href={item.href} className="flex items-center gap-2">
+                              {Icon && <Icon className="size-4" />}
+                              {item.label}
+                            </Link>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              {Icon && <Icon className="size-4" />}
+                              {item.label}
+                            </span>
+                          )}
+                        </DropdownMenuItem>
+                      );
+                    })}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}

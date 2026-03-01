@@ -1,12 +1,8 @@
 import "./globals.css";
-import { Sidebar, RouteItem } from "@/app-shell/Sidebar";
-import { agentRegistry } from "@/entities/agent/agent.registry";
+import { Sidebar } from "@/app-shell/Sidebar";
+import { getSidebarRoutes } from "@/app-shell/navigation";
 
-// 从 agent registry 生成路由配置
-const routes: RouteItem[] = Object.values(agentRegistry).map((agent) => ({
-  href: `/agent/${agent.id}`,
-  label: `${agent.name}`,
-}));
+const routes = getSidebarRoutes();
 
 export default function RootLayout({
   children,
