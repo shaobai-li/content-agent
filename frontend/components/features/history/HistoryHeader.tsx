@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Search, Filter } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Button } from "@/shared/ui/button";
 
 export function HistoryHeader() {
   return (

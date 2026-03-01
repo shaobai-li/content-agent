@@ -1,6 +1,6 @@
 import { Agent } from "./model";
 import Image from "next/image";
-import { PlatformIconMap, FileTypeIconMap } from "@/components/ui/icons";
+import { PlatformIconMap, FileTypeIconMap } from "@/shared/ui/icons";
 import { fetchNmRecords, fetchKbRecords } from "@/shared/api/records";
 
 export const agentRegistry: Record<Agent['id'], Agent> = {

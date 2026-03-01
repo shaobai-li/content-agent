@@ -5,8 +5,8 @@ import { useChat } from "@/hooks/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput, type FileItem } from "./ChatInput";
-import { FileTypeIconMap } from "@/components/ui/icons";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { FileTypeIconMap } from "@/shared/ui/icons";
+import { ScrollArea } from "@/shared/ui/scroll-area";
 
 interface ChatPageProps {
   agentId: string; // 简短的agent标识，用于构建API端点

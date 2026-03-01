@@ -1,4 +1,4 @@
-import { FileTypeIconMap } from "@/components/ui/icons";
+import { FileTypeIconMap } from "@/shared/ui/icons";
 import Image from "next/image";
 import { X } from "lucide-react";
 

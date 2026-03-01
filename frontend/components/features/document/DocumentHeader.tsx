@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import Image from "next/image";
 
 export function DocumentHeader() {
