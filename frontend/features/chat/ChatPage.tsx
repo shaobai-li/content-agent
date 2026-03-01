@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useChat } from "@/hooks/useChat";
+import { useChat } from "@/features/chat/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput, type FileItem } from "./ChatInput";
