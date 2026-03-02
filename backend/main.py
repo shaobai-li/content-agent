@@ -10,6 +10,7 @@ from app.agents.note_manager.routes import router as nm_router
 from app.agents.knowledge_base.routes import router as kb_router
 from app.agents.content_detection.routes import router as c_router
 from app.agents.write_agent.routes import router as w_router
+from app.api.agents import router as agents_router
 
 app = FastAPI(
     title="OmniAge System",
@@ -25,6 +26,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 统一会话路由（所有 agent 共用）
+app.include_router(agents_router)
 
 # 注册各个 agent 的路由
 # 路由模式: /api/{agentId}/{endpoint}

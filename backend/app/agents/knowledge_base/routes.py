@@ -1,7 +1,6 @@
 from fastapi import APIRouter, File, UploadFile, Form
 from typing import Optional, List
 
-from app.service.sessions_service import load_sessions_list
 from app.service.chat_service import build_chat_response
 from app.service.file_service import process_attachments
 from .knowledge_base_service import (
@@ -52,11 +51,6 @@ async def chat(
     return build_chat_response(
         reply=reply
     )
-
-@router.get("/sessions")
-async def get_sessions():
-    """获取知识库会话列表（历史聊天）"""
-    return load_sessions_list("kb")
 
 @router.get("/records")
 async def get_records():
