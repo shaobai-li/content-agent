@@ -1,5 +1,8 @@
-from .note_manager.agent_note_manager import NoteManager
+"""
+Agents 模块
+包含所有 Agent 的定义和基类
+"""
+from .base_agent import BaseAgent
+from .simple_chat_agent import SimpleChatAgent
 
-__all__ = [
-    "NoteManager"
-]
+__all__ = ["BaseAgent", "SimpleChatAgent"]

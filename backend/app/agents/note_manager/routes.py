@@ -1,20 +1,13 @@
-from fastapi import APIRouter, Form
-from typing import Optional
-from app.agents import NoteManager
+"""
+笔记管理 Agent 的额外路由
+提供笔记记录的查询功能
+"""
+from fastapi import APIRouter
 from app.core.config import DATA_DIR
 import json
 
 router = APIRouter()
-note_manager = NoteManager()
 
-@router.post("/chat")
-async def chat(
-    text: Optional[str] = Form(None),
-    agent_id: str = Form("nm")
-):
-
-    result = await note_manager.handle_user_message(text)
-    return result
 
 @router.get("/records")
 async def get_records():
@@ -28,4 +21,3 @@ async def get_records():
                 if line:
                     records.append(json.loads(line))
     return {"records": records}
-
