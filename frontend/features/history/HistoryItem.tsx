@@ -14,9 +14,10 @@ export interface HistoryItemProps {
   preview: string;
   id?: string;
   onClick?: () => void;
+  onDelete?: () => void;
 }
 
-export function HistoryItem({ title, preview, id, onClick }: HistoryItemProps) {
+export function HistoryItem({ title, preview, id, onClick, onDelete }: HistoryItemProps) {
   return (
     <Card
       role={onClick ? "button" : undefined}
@@ -42,7 +43,7 @@ export function HistoryItem({ title, preview, id, onClick }: HistoryItemProps) {
           {preview}
         </CardDescription>
         <CardAction>
-          <HistoryItemMenu />
+          <HistoryItemMenu onDelete={onDelete} />
         </CardAction>
       </CardHeader>
     </Card>

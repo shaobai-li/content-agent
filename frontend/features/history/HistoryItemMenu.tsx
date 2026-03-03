@@ -8,7 +8,11 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 
-export function HistoryItemMenu() {
+interface HistoryItemMenuProps {
+  onDelete?: () => void;
+}
+
+export function HistoryItemMenu({ onDelete }: HistoryItemMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -20,11 +24,17 @@ export function HistoryItemMenu() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem className="gap-2">
+        <DropdownMenuItem className="gap-2" disabled>
           <Pencil className="size-4" />
           Rename
         </DropdownMenuItem>
-        <DropdownMenuItem className="gap-2 text-red-600 focus:bg-red-50 focus:text-red-600">
+        <DropdownMenuItem
+          className="gap-2 text-red-600 focus:bg-red-50 focus:text-red-600"
+          onClick={(e) => {
+            e.preventDefault();
+            onDelete?.();
+          }}
+        >
           <Trash2 className="size-4 text-red-600" />
           Delete
         </DropdownMenuItem>

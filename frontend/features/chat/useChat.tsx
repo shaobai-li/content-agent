@@ -82,6 +82,9 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
         console.log("触发知识库数据刷新事件");
         window.dispatchEvent(new CustomEvent("kb-data-refresh"));
       }
+      
+      // 7. 对话已保存，触发历史列表刷新
+      window.dispatchEvent(new CustomEvent("session-refresh"));
     } catch (error) {
       console.error("发送失败:", error);
       setMessages((prev) => [
