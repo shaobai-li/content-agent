@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 
 from app.core.config import get_agent_messages_path
 from app.core.ids import new_uuid
@@ -24,10 +25,15 @@ def save_message(agent_id: str, session_id: str, role: str, content: str):
     else:
         all_messages = {}
 
-    if session_id not in all_messages:
-        all_messages[session_id] = []
-
-    all_messages[session_id].append({"id": new_uuid(), "role": role, "content": content})
+    message = {
+        "message_id": new_uuid(),
+        "session_id": session_id,
+        "role": role,
+        "content": content,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    all_messages.append(message)
 
     messages_path.parent.mkdir(parents=True, exist_ok=True)
     with open(messages_path, "w", encoding="utf-8") as f:

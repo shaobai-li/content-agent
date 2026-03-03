@@ -47,6 +47,6 @@ class KnowledgeBaseAgent(BaseAgent):
                 save_to_knowledge_base(file_info, self.agent_id)
         
         reply = "\n".join(reply_parts)
-        save_chat_session(self.agent_id, session_id, text, reply)
+        session_id = save_chat_session(self.agent_id, session_id, text, reply)
         
-        return build_chat_response(reply=reply)
+        return build_chat_response(reply=reply, session_id=session_id)
