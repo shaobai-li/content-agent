@@ -9,5 +9,3 @@ from .agent import NoteManagerAgent
 note_manager_agent = NoteManagerAgent()
 register_agent(note_manager_agent)
 
-# 导出路由供主应用使用
-__all__ = ["note_manager_agent"]

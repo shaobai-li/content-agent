@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 # 导入各个 agent 模块（导入即注册）
 import app.agents.content_detection
 import app.agents.write_agent
-
+import app.agents.knowledge_base
+import app.agents.note_manager
 # 导入统一 API 路由
 from app.api.agents import router as agents_router
 

@@ -28,6 +28,7 @@ def register_agent(agent_instance):
     Args:
         agent_instance: BaseAgent 的实例
     """
+    print("register_agent", agent_instance.agent_id)
     config = AgentConfig(
         agent_id=agent_instance.agent_id,
         system_prompt=agent_instance.system_prompt,

@@ -9,5 +9,3 @@ from .agent import KnowledgeBaseAgent
 knowledge_base_agent = KnowledgeBaseAgent()
 register_agent(knowledge_base_agent)
 
-# 导出路由供主应用使用
-__all__ = ["knowledge_base_agent"]

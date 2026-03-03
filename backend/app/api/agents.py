@@ -44,6 +44,7 @@ async def chat(
 ):
     
     agent_config = get_agent_config(agent_id)
+    print("agent_config", agent_config)
     if not agent_config:
         return build_chat_response(reply=f"Unknown agent: {agent_id}")
     
