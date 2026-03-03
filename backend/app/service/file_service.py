@@ -1,10 +1,10 @@
 from typing import List, Dict, Any, Optional, Callable, Awaitable
 from fastapi import UploadFile
 from pathlib import Path
-import uuid
 from datetime import datetime
 
 from app.core.config import get_agent_base_dir
+from app.core.ids import new_uuid
 
 
 class FileInfo:
@@ -28,7 +28,7 @@ class FileInfo:
     
     def _generate_record_id(self) -> str:
         """生成唯一的记录ID"""
-        return f"kb-{uuid.uuid4().hex[:8]}"
+        return f"kb-{new_uuid()[:8]}"
     
     def _get_file_extension(self) -> str:
         """从文件名或content_type获取扩展名"""
@@ -105,7 +105,7 @@ async def save_uploaded_file(
     agent_cache_dir.mkdir(parents=True, exist_ok=True)
 
     file_ext = Path(file.filename).suffix if file.filename else ""
-    cached_filename = f"{uuid.uuid4()}{file_ext}"
+    cached_filename = f"{new_uuid()}{file_ext}"
     cached_path = agent_cache_dir / cached_filename
     
     content = await file.read()

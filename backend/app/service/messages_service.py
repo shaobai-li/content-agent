@@ -1,7 +1,7 @@
 import json
-import uuid
 
 from app.core.config import get_agent_messages_path
+from app.core.ids import new_uuid
 
 
 def load_messages(agent_id: str, session_id: str) -> list:
@@ -27,7 +27,7 @@ def save_message(agent_id: str, session_id: str, role: str, content: str):
     if session_id not in all_messages:
         all_messages[session_id] = []
 
-    all_messages[session_id].append({"id": str(uuid.uuid4()), "role": role, "content": content})
+    all_messages[session_id].append({"id": new_uuid(), "role": role, "content": content})
 
     messages_path.parent.mkdir(parents=True, exist_ok=True)
     with open(messages_path, "w", encoding="utf-8") as f:
