@@ -6,20 +6,20 @@ from app.service.messages_service import load_messages
 from app.service.chat_service import build_chat_response
 from app.runtime.agent_registry import get_agent_config
 
-router = APIRouter(prefix="/api", tags=["agents"])
+router = APIRouter(prefix="/api/agents/{agent_id}", tags=["agents"])
 
 
-@router.get("/{agent_id}/sessions")
+@router.get("/sessions")
 async def get_sessions(agent_id: str):
     return load_sessions(agent_id)
 
 
-@router.get("/{agent_id}/sessions/{session_id}/messages")
+@router.get("/sessions/{session_id}/messages")
 async def get_session_messages(agent_id: str, session_id: str):
     return load_messages(agent_id, session_id)
 
 
-@router.post("/{agent_id}/chat")
+@router.post("/chat")
 async def chat(
     agent_id: str,
     text: Optional[str] = Form(None),

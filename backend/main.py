@@ -33,8 +33,8 @@ app.add_middleware(
 app.include_router(agents_router)
 
 # 注册各个 agent 的特殊路由（如知识库的 records 管理）
-app.include_router(nm_router, prefix="/api/nm", tags=["Note Manager"])
-app.include_router(kb_router, prefix="/api/kb", tags=["Knowledge Base"])
+app.include_router(nm_router, prefix="/api/agents/nm", tags=["Note Manager"])
+app.include_router(kb_router, prefix="/api/agents/kb", tags=["Knowledge Base"])
 
 @app.get("/")
 async def root():

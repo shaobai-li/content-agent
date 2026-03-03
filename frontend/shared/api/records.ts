@@ -5,10 +5,10 @@
 import { http } from "./http";
 
 export const fetchNmRecords = () =>
-  http.get("/api/nm/records");
+  http.get("/api/agents/nm/records");
 
 export const fetchKbRecords = () =>
-  http.get("/api/kb/records");
+  http.get("/api/agents/kb/records");
 
 export const deleteKbRecord = (recordId: string) =>
-  http.delete(`/api/kb/records/${recordId}`);
+  http.delete(`/api/agents/kb/records/${recordId}`);
