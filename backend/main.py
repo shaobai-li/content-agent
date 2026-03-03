@@ -8,8 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 # 导入各个 agent 模块（导入即注册）
 import app.agents.content_detection
 import app.agents.write_agent
-from app.agents.knowledge_base import router as kb_router
-from app.agents.note_manager import router as nm_router
 
 # 导入统一 API 路由
 from app.api.agents import router as agents_router
@@ -32,9 +30,6 @@ app.add_middleware(
 # 统一 API 路由（包含 chat、sessions、messages）
 app.include_router(agents_router)
 
-# 注册各个 agent 的特殊路由（如知识库的 records 管理）
-app.include_router(nm_router, prefix="/api/agents/nm", tags=["Note Manager"])
-app.include_router(kb_router, prefix="/api/agents/kb", tags=["Knowledge Base"])
 
 @app.get("/")
 async def root():

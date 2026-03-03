@@ -18,6 +18,22 @@ async def get_sessions(agent_id: str):
 async def get_session_messages(agent_id: str, session_id: str):
     return load_messages(agent_id, session_id)
 
+@router.get("/res/{res_name}")
+async def get_resources(agent_id: str, res_name: str):
+    """获取指定 Agent 的资源列表"""
+    if res_name == "records":
+        from app.service.records_service import get_all_records
+        records = get_all_records(agent_id)
+        return {"records": records}
+    return {"error": f"Unknown resource type: {res_name}"}
+
+@router.delete("/res/{res_name}/{record_id}")
+async def delete_resource(agent_id: str, res_name: str, record_id: str):
+    """删除指定 Agent 的资源记录"""
+    if res_name == "records":
+        from app.service.records_service import delete_record
+        return delete_record(record_id, agent_id)
+    return {"error": f"Unknown resource type: {res_name}"}
 
 @router.post("/chat")
 async def chat(
