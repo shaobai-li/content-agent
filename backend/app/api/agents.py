@@ -1,7 +1,7 @@
 from typing import Optional, List
 from fastapi import APIRouter, Form, File, UploadFile
 
-from app.service.sessions_service import load_sessions
+from app.service.sessions_service import load_sessions, delete_session
 from app.service.messages_service import load_messages
 from app.service.chat_service import build_chat_response
 from app.runtime.agent_registry import get_agent_config
@@ -18,6 +18,9 @@ async def get_sessions(agent_id: str):
 async def get_session_messages(agent_id: str, session_id: str):
     return load_messages(agent_id, session_id)
 
+@router.delete("/sessions/{session_id}")
+async def delete_session_endpoint(agent_id: str, session_id: str):
+    return delete_session(agent_id, session_id)
 @router.get("/res/{res_name}")
 async def get_resources(agent_id: str, res_name: str):
     """获取指定 Agent 的资源列表"""

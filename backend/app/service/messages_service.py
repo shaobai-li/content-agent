@@ -38,3 +38,18 @@ def save_message(agent_id: str, session_id: str, role: str, content: str):
     messages_path.parent.mkdir(parents=True, exist_ok=True)
     with open(messages_path, "w", encoding="utf-8") as f:
         json.dump(all_messages, f, ensure_ascii=False, indent=2)
+
+
+
+def delete_session_messages(agent_id: str, session_id: str) -> bool:
+    messages_path = get_agent_messages_path(agent_id)
+    if not messages_path.exists():
+        return True
+
+    with open(messages_path, "r", encoding="utf-8") as f:
+        all_messages = json.load(f)
+
+    all_messages = [m for m in all_messages if m.get("session_id") != session_id]
+    with open(messages_path, "w", encoding="utf-8") as f:
+        json.dump(all_messages, f, ensure_ascii=False, indent=2)
+    return True

@@ -1,6 +1,7 @@
 import json
 
 from app.core.config import get_agent_sessions_path
+from app.service.messages_service import delete_session_messages
 
 TITLE_MAX_LENGTH = 30
 
@@ -47,3 +48,17 @@ def save_session_if_new(agent_id: str, session_id: str, first_message: str):
     sessions_path.parent.mkdir(parents=True, exist_ok=True)
     with open(sessions_path, "w", encoding="utf-8") as f:
         json.dump(sessions, f, ensure_ascii=False, indent=2)
+
+def delete_session(agent_id: str, session_id: str) -> None:
+    """
+    删除指定会话及其消息记录（sessions.json + messages.json）。
+    """
+    sessions_path = get_agent_sessions_path(agent_id)
+    if sessions_path.exists():
+        with open(sessions_path, "r", encoding="utf-8") as f:
+            sessions = json.load(f)
+        sessions = [s for s in sessions if s.get("session_id") != session_id]
+        with open(sessions_path, "w", encoding="utf-8") as f:
+            json.dump(sessions, f, ensure_ascii=False, indent=2)
+
+    delete_session_messages(agent_id, session_id)
