@@ -3,14 +3,14 @@ import os
 from openai import OpenAI
 
 
-_client = OpenAI(
+_deepseek_client = OpenAI(
     api_key=os.getenv("DEEPSEEK_API_KEY"),
     base_url="https://api.deepseek.com"
 )
 
 
-def chat(messages: List[Dict[str, str]], model: str = "deepseek-chat") -> str:
-    response = _client.chat.completions.create(
+def deepseek_chat(messages: List[Dict[str, str]], model: str = "deepseek-chat") -> str:
+    response = _deepseek_client.chat.completions.create(
         model=model,
         messages=messages,
     )

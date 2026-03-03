@@ -2,7 +2,8 @@ from typing import Optional, Dict, Any
 
 from app.service.messages_service import load_messages, save_message
 from app.service.sessions_service import save_session_if_new
-from app.service.chat_service import deepseek_chat, build_chat_response
+from app.utils.llm_client import deepseek_chat
+from app.service.chat_service import build_chat_response
 from app.core.ids import new_uuid
 
 
