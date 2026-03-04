@@ -20,25 +20,40 @@ export function DocumentPanel({ agentId, children }: DocumentPanelProps) {
   useEffect(() => {
     if (!textareaRef.current || !isClient) return;
 
+    const handleArticleUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { agentId: eventAgentId, article } = customEvent.detail;
+      
+      if (eventAgentId === agentId && easymdeRef.current) {
+        easymdeRef.current.value(article);
+      }
+    };
+
     // 动态导入 EasyMDE，确保只在客户端加载
     import("easymde").then((EasyMDE) => {
       if (!textareaRef.current) return;
       
+      const storedArticle = localStorage.getItem(`agent-${agentId}-article`);
+      const initialValue = storedArticle || "";
+      
       easymdeRef.current = new EasyMDE.default({
         element: textareaRef.current,
-        initialValue: "",
+        initialValue,
         placeholder: "Edit your Markdown here...",
         spellChecker: false,
       });
+
+      window.addEventListener("article-update", handleArticleUpdate);
     });
 
     return () => {
+      window.removeEventListener("article-update", handleArticleUpdate);
       if (easymdeRef.current) {
         easymdeRef.current.toTextArea();
         easymdeRef.current = null;
       }
     };
-  }, [isClient]);
+  }, [isClient, agentId]);
 
   return (
     <div className="flex flex-col h-full">

@@ -39,7 +39,11 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     }
 
     // 先把用户的消息加到界面上
-    setMessages((prev) => [...prev, { role: "user", content: userMessageContent }]);
+    setMessages((prev) => [...prev, { 
+      id: `${Date.now()}-user`,
+      role: "user", 
+      content: userMessageContent 
+    }]);
     
     // 设置发送状态
     setIsSending(true);
@@ -74,22 +78,38 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
       // 5. 将后端返回的 AI 回复加入界面
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data?.reply ?? "" },
+        { 
+          id: `${Date.now()}-assistant`,
+          role: "assistant", 
+          content: data?.reply ?? "" 
+        },
       ]);
 
-      // 6. 如果有附件上传且是知识库 agent，触发刷新事件
+      // 6. 如果返回了 article 内容，存储并触发 document 刷新事件
+      if (data?.article) {
+        localStorage.setItem(`agent-${agentId}-article`, data.article);
+        window.dispatchEvent(new CustomEvent("article-update", { 
+          detail: { agentId, article: data.article } 
+        }));
+      }
+
+      // 7. 如果有附件上传且是知识库 agent，触发刷新事件
       if (attachments && attachments.length > 0 && agentId === "kb") {
         console.log("触发知识库数据刷新事件");
         window.dispatchEvent(new CustomEvent("kb-data-refresh"));
       }
       
-      // 7. 对话已保存，触发历史列表刷新
+      // 8. 对话已保存，触发历史列表刷新
       window.dispatchEvent(new CustomEvent("session-refresh"));
     } catch (error) {
       console.error("发送失败:", error);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "出错了，请检查后端服务是否启动。" },
+        { 
+          id: `${Date.now()}-error`,
+          role: "assistant", 
+          content: "出错了，请检查后端服务是否启动。" 
+        },
       ]);
     } finally {
       // 无论成功或失败，都要重置发送状态

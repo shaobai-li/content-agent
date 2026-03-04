@@ -7,6 +7,7 @@ from app.service.agent_chat_service import standard_chat
 from app.utils.skill_loader import load_skill
 from app.utils.llm_client import deepseek_chat
 from app.service.agent_chat_service import save_chat_session
+from app.utils.article_parser import extract_article_content
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
 _SKILL_PATH = Path(__file__).parent / "skills"
@@ -57,15 +58,20 @@ class WriteAgent(BaseAgent):
 
         reply = self.plan_and_execute(messages)
 
-        refine_skill = load_skill(_SKILL_PATH,  "article-critic-refiner")
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "assistant", "content": refine_skill},
-            {"role": "user", "content": reply}
-        ]
+        # refine_skill = load_skill(_SKILL_PATH,  "article-critic-refiner")
+        # messages = [
+        #     {"role": "system", "content": system_prompt},
+        #     {"role": "assistant", "content": refine_skill},
+        #     {"role": "user", "content": reply}
+        # ]
         
-        reply = self.plan_and_execute(messages) 
+        # reply = self.plan_and_execute(messages) 
 
         session_id = save_chat_session(AGENT_ID, session_id, text, reply)
+        
+        article_content = extract_article_content(reply)
+        response = {"reply": reply, "session_id": session_id}
+        if article_content:
+            response["article"] = article_content
 
-        return {"reply": reply, "session_id": session_id}
+        return response
