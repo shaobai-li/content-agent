@@ -19,6 +19,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   // 2. 定义统一的发送逻辑，支持文本、文件、或两者组合
   const handleSend = useCallback(async (payload: SendPayload) => {
@@ -66,6 +67,12 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
       
       // 添加 agent_id
       formData.append("agent_id", agentId);
+      if (currentSessionId) {
+        formData.append("session_id", currentSessionId);
+      }
+
+      // [调试] 发送前打印当前 session_id
+      console.log("[session_id 验证] 发送前 currentSessionId:", currentSessionId);
 
       // 4. 调用后端 API（使用 multipart/form-data）
       const response = await fetch(apiEndpoint, {
@@ -84,6 +91,13 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
           content: data?.reply ?? "" 
         },
       ]);
+
+      // 6. 从响应中更新 session_id，供后续消息复用
+      const newSessionId = data?.session_id;
+      console.log("[session_id 验证] 响应 session_id:", newSessionId);
+      if (newSessionId) {
+        setCurrentSessionId(newSessionId);
+      }
 
       // 6. 如果返回了 article 内容，存储并触发 document 刷新事件
       if (data?.article) {
@@ -115,7 +129,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
       // 无论成功或失败，都要重置发送状态
       setIsSending(false);
     }
-  }, [agentId, apiEndpoint]);
+  }, [agentId, apiEndpoint, currentSessionId]);
 
   return { input, setInput, messages, handleSend, isSending };
 }
