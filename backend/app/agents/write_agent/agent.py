@@ -4,8 +4,12 @@ from fastapi import UploadFile
 
 from app.agents.base_agent import BaseAgent
 from app.service.agent_chat_service import standard_chat
+from app.utils.skill_loader import load_skill
+from app.utils.llm_client import deepseek_chat
+from app.service.agent_chat_service import save_chat_session
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
+_SKILL_PATH = Path(__file__).parent / "skills"
 AGENT_ID = "w"
 
 
@@ -33,3 +37,17 @@ class WriteAgent(BaseAgent):
             session_id=session_id,
             extra_response={"received": {"text": text}}
         )
+
+        # system_prompt = self.system_prompt
+        # draft_skill = load_skill(_SKILL_PATH,  "article-draft-generator")
+        
+        # messages = [
+        #     {"role": "system", "content": system_prompt},
+        #     {"role": "assistant", "content": draft_skill},
+        #     {"role": "user", "content": text}
+        # ]
+
+        # reply = deepseek_chat(messages=messages)
+        # session_id = save_chat_session(AGENT_ID, session_id, text, reply)
+
+        return {"reply": reply, "session_id": session_id}
