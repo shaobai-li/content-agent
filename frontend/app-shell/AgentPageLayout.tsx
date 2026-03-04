@@ -13,10 +13,10 @@ export function AgentPageLayout({ leftHeader, leftBody, rightBody }: AgentPageLa
         <div className="h-full flex flex-grow flex-row">
             {/* 左侧面板 */}
             <div className="flex-1 flex flex-col">
-                <div className="flex h-16 px-8 border bg-card">
+                <div className="flex h-16 px-8 border bg-card shrink-0">
                     {leftHeader}
                 </div>
-                <div className="flex-1 flex flex-col p-8 border bg-neutral-50">
+                <div className="flex-1 flex flex-col p-6 border bg-neutral-50">
                     {leftBody}
                 </div>
             </div>

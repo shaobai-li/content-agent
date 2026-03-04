@@ -41,6 +41,8 @@ export function DocumentPanel({ agentId, children }: DocumentPanelProps) {
         initialValue,
         placeholder: "Edit your Markdown here...",
         spellChecker: false,
+        minHeight: "200px",
+        maxHeight: "calc(100vh - 14rem)",
       });
 
       window.addEventListener("article-update", handleArticleUpdate);
