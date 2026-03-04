@@ -12,7 +12,7 @@ def load_messages(agent_id: str, session_id: str) -> list:
         return []
     with open(messages_path, "r", encoding="utf-8") as f:
         all_messages = json.load(f)
-    return all_messages.get(session_id, [])
+    return [m for m in all_messages if m.get("session_id") == session_id]
 
 
 def save_message(agent_id: str, session_id: str, role: str, content: str):
@@ -23,7 +23,7 @@ def save_message(agent_id: str, session_id: str, role: str, content: str):
         with open(messages_path, "r", encoding="utf-8") as f:
             all_messages = json.load(f)
     else:
-        all_messages = {}
+        all_messages = []
 
     message = {
         "message_id": new_uuid(),
