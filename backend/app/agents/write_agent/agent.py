@@ -23,31 +23,49 @@ class WriteAgent(BaseAgent):
             system_prompt=system_prompt
         )
     
+    def plan_and_execute(self, messages: List[Dict[str, str]]) -> str:
+        """Plan and execute workflow: generate plan then execute"""
+        import uuid
+
+        # Generate a unique id for filenames to distinguish for each run
+        run_id = uuid.uuid4().hex
+
+        plan_reply = deepseek_chat(messages=messages)
+        plan_path = Path(f"plan_{run_id}.md")
+        plan_path.write_text(plan_reply, encoding="utf-8")
+        
+        messages.append({"role": "assistant", "content": plan_reply})
+        execution_reply = deepseek_chat(messages=messages)
+        execute_path = Path(f"excute_{run_id}.md")
+        execute_path.write_text(execution_reply, encoding="utf-8")
+        
+        return execution_reply
+    
     async def handle_chat(
         self,
         text: Optional[str] = None,
         session_id: Optional[str] = None,
         attachments: Optional[List[UploadFile]] = None
     ) -> Dict[str, Any]:
-        """处理写作请求"""
-        return await standard_chat(
-            agent_id=self.agent_id,
-            system_prompt=self.system_prompt,
-            text=text,
-            session_id=session_id,
-            extra_response={"received": {"text": text}}
-        )
+        system_prompt = self.system_prompt
+        draft_skill = load_skill(_SKILL_PATH,  "article-draft-generator")        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "assistant", "content": draft_skill},
+            {"role": "user", "content": text}
+        ]
 
-        # system_prompt = self.system_prompt
-        # draft_skill = load_skill(_SKILL_PATH,  "article-draft-generator")
+        reply = self.plan_and_execute(messages)
+
+        refine_skill = load_skill(_SKILL_PATH,  "article-critic-refiner")
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "assistant", "content": refine_skill},
+            {"role": "user", "content": reply}
+        ]
         
-        # messages = [
-        #     {"role": "system", "content": system_prompt},
-        #     {"role": "assistant", "content": draft_skill},
-        #     {"role": "user", "content": text}
-        # ]
+        reply = self.plan_and_execute(messages) 
 
-        # reply = deepseek_chat(messages=messages)
-        # session_id = save_chat_session(AGENT_ID, session_id, text, reply)
+        session_id = save_chat_session(AGENT_ID, session_id, text, reply)
 
         return {"reply": reply, "session_id": session_id}
