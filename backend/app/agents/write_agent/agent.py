@@ -31,13 +31,17 @@ class WriteAgent(BaseAgent):
         # Generate a unique id for filenames to distinguish for each run
         run_id = uuid.uuid4().hex
 
+        # 确保 test/cache 目录存在
+        cache_dir = Path("test/cache")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
         plan_reply = deepseek_chat(messages=messages)
-        plan_path = Path(f"plan_{run_id}.md")
+        plan_path = cache_dir / f"plan_{run_id}.md"
         plan_path.write_text(plan_reply, encoding="utf-8")
         
         messages.append({"role": "assistant", "content": plan_reply})
         execution_reply = deepseek_chat(messages=messages)
-        execute_path = Path(f"excute_{run_id}.md")
+        execute_path = cache_dir / f"excute_{run_id}.md"
         execute_path.write_text(execution_reply, encoding="utf-8")
         
         return execution_reply
