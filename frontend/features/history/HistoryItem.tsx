@@ -13,11 +13,12 @@ export interface HistoryItemProps {
   title: string;
   preview: string;
   id?: string;
+  active?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
 }
 
-export function HistoryItem({ title, preview, id, onClick, onDelete }: HistoryItemProps) {
+export function HistoryItem({ title, preview, id, active, onClick, onDelete }: HistoryItemProps) {
   return (
     <Card
       role={onClick ? "button" : undefined}
@@ -33,7 +34,7 @@ export function HistoryItem({ title, preview, id, onClick, onDelete }: HistoryIt
             }
           : undefined
       }
-      className="group relative min-h-20 rounded-none border-0 border-b border-neutral-200 px-3 py-4 shadow-none transition-colors hover:bg-muted bg-neutral-50 gap-0 cursor-default"
+      className={`group relative min-h-20 rounded-none border-0 border-b border-neutral-200 px-3 py-4 shadow-none transition-colors hover:bg-muted gap-0 cursor-pointer ${active ? "bg-muted" : "bg-neutral-50"}`}
     >
       <CardHeader className="px-0 py-0 gap-1 has-data-[slot=card-action]:grid-cols-[1fr_auto]">
         <CardTitle className="text-sm font-semibold text-foreground min-w-0">

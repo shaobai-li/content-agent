@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useChat } from "@/features/chat/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
@@ -16,10 +16,27 @@ export function ChatPage({ agentId }: ChatPageProps) {
   // 根据 agentId 自动构建 API 端点
   const apiEndpoint = `http://localhost:8000/api/agents/${agentId}/chat`;
   
-  const { input, setInput, messages, handleSend, isSending } = useChat({ 
+  const { input, setInput, messages, handleSend, isSending, loadSession, startNewSession } = useChat({ 
     agentId, 
     apiEndpoint 
   });
+
+  // 监听历史面板派发的 session-select 事件，加载对应会话消息
+  useEffect(() => {
+    const handleSessionSelect = (e: Event) => {
+      const { sessionId } = (e as CustomEvent).detail;
+      loadSession(sessionId);
+    };
+    const handleSessionNew = () => {
+      startNewSession();
+    };
+    window.addEventListener("session-select", handleSessionSelect);
+    window.addEventListener("session-new", handleSessionNew);
+    return () => {
+      window.removeEventListener("session-select", handleSessionSelect);
+      window.removeEventListener("session-new", handleSessionNew);
+    };
+  }, [loadSession, startNewSession]);
 
   // 管理待上传的文件列表
   const [pendingFiles, setPendingFiles] = useState<FileItem[]>([]);
