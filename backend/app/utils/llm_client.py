@@ -1,9 +1,14 @@
-from typing import List, Dict
+from typing import AsyncGenerator, List, Dict
 import os
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 
 _deepseek_client = OpenAI(
+    api_key=os.getenv("DEEPSEEK_API_KEY"),
+    base_url="https://api.deepseek.com"
+)
+
+_deepseek_async_client = AsyncOpenAI(
     api_key=os.getenv("DEEPSEEK_API_KEY"),
     base_url="https://api.deepseek.com"
 )
@@ -15,3 +20,18 @@ def deepseek_chat(messages: List[Dict[str, str]], model: str = "deepseek-chat") 
         messages=messages,
     )
     return response.choices[0].message.content or ""
+
+
+async def deepseek_chat_stream(
+    messages: List[Dict[str, str]], model: str = "deepseek-chat"
+) -> AsyncGenerator[str, None]:
+    """流式调用 DeepSeek，逐 token yield 文本内容"""
+    stream = await _deepseek_async_client.chat.completions.create(
+        model=model,
+        messages=messages,
+        stream=True,
+    )
+    async for chunk in stream:
+        delta = chunk.choices[0].delta
+        if delta and delta.content:
+            yield delta.content

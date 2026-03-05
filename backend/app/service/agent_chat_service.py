@@ -1,9 +1,10 @@
-from typing import Optional, Dict, Any
+from typing import AsyncGenerator, Optional, Dict, Any
 
 from app.service.messages_service import load_messages, save_message
 from app.service.sessions_service import save_session_if_new
-from app.utils.llm_client import deepseek_chat
+from app.utils.llm_client import deepseek_chat, deepseek_chat_stream
 from app.service.chat_service import build_chat_response
+from app.service.stream_service import build_stream_chunk, build_stream_done
 from app.core.ids import new_uuid
 
 
@@ -42,3 +43,29 @@ async def standard_chat(
         response.update(extra_response)
     
     return build_chat_response(**response)
+
+
+async def standard_chat_stream(
+    agent_id: str,
+    system_prompt: str,
+    text: Optional[str] = None,
+    session_id: Optional[str] = None,
+    extra_done: Optional[Dict[str, Any]] = None
+) -> AsyncGenerator[str, None]:
+    """流式聊天：逐 token yield chunk，结束后保存会话并 yield done"""
+    history = load_messages(agent_id, session_id) if session_id else []
+
+    messages = [{"role": "system", "content": system_prompt}]
+    messages.extend(history)
+    if text:
+        messages.append({"role": "user", "content": text})
+
+    full_reply: list[str] = []
+    async for token in deepseek_chat_stream(messages=messages):
+        full_reply.append(token)
+        yield build_stream_chunk(token)
+
+    reply = "".join(full_reply)
+    session_id = save_chat_session(agent_id, session_id, text, reply)
+
+    yield build_stream_done(session_id=session_id, extra=extra_done)

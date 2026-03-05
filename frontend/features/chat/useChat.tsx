@@ -4,17 +4,17 @@ import { useCallback, useState } from "react";
 import axios from "axios";
 import type { Message, FileMessage } from "@/entities/message/model";
 import { fetchMessages } from "@/entities/session/api";
+import { readStreamLines } from "./fetchStream";
 
 
 interface UseChatProps {
   agentId: string;
-  apiEndpoint: string; // 每个agent使用自己的API端点
+  apiEndpoint: string;
 }
 
-// 发送负载类型
 export type SendPayload = {
-  text?: string;        // 可选：消息文本
-  attachments?: File[]; // 可选：文件附件
+  text?: string;
+  attachments?: File[];
 };
 
 export function useChat({ agentId, apiEndpoint }: UseChatProps) {
@@ -22,6 +22,9 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+
+  const streamEndpoint = `${apiEndpoint}/stream`;
+  
 
   const handleSend = useCallback(async (payload: SendPayload) => {
     const { text, attachments } = payload;
@@ -31,7 +34,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     }
 
     const hasFiles = attachments && attachments.length > 0;
-
+    
     const fileMessageIds: string[] = hasFiles
       ? attachments!.map(() => crypto.randomUUID())
       : [];
@@ -93,9 +96,8 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     console.log("[session_id 验证] 发送前 currentSessionId:", currentSessionId);
 
     try {
-      let data;
-      
-      if (fileMessageIds.length > 0) {
+      if (hasFiles) {
+        // 文件上传路径：axios 提供上传进度，后端返回 JSON
         const response = await axios.post(apiEndpoint, formData, {
           onUploadProgress: (e) => {
             if (e.total) {
@@ -104,65 +106,79 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
             }
           },
         });
-        data = response.data;
+        const data = response.data;
 
         updateFileMsg({ status: "processing", progress: 80 });
         updateFileMsg({ status: "done", progress: 100 });
+
+        const newSessionId = data?.session_id;
+        console.log("[session_id 验证] 响应 session_id:", newSessionId);
+        if (newSessionId) setCurrentSessionId(newSessionId);
+
+        if (agentId === "kb") {
+          console.log("触发知识库数据刷新事件");
+          window.dispatchEvent(new CustomEvent("kb-data-refresh"));
+        }
+
+        window.dispatchEvent(new CustomEvent("session-refresh"));
       } else {
-        const response = await fetch(apiEndpoint, {
+        // 文本对话路径：流式输出，逐 token 追加
+        const assistantMsgId = crypto.randomUUID();
+        setMessages((prev) => [...prev, {
+          id: assistantMsgId,
+          role: "assistant",
+          content: "",
+        }]);
+
+        const response = await fetch(streamEndpoint, {
           method: "POST",
           body: formData,
         });
-        data = await response.json();
-      }
 
-      const newSessionId = data?.session_id;
-      console.log("[session_id 验证] 响应 session_id:", newSessionId);
-      if (newSessionId) {
-        setCurrentSessionId(newSessionId);
-      }
+        for await (const event of readStreamLines(response)) {
+          if (event.event === "chunk") {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsgId
+                  ? { ...m, content: m.content + event.data.content }
+                  : m
+              )
+            );
+          } else if (event.event === "done") {
+            const { session_id: newSessionId, article } = event.data;
 
-      if (data?.reply) {
+            console.log("[session_id 验证] 响应 session_id:", newSessionId);
+            if (newSessionId) setCurrentSessionId(newSessionId as string);
+
+            if (article) {
+              localStorage.setItem(`agent-${agentId}-article`, article as string);
+              window.dispatchEvent(new CustomEvent("article-update", {
+                detail: { agentId, article },
+              }));
+            }
+
+            window.dispatchEvent(new CustomEvent("session-refresh"));
+          }
+        }
+      }
+    } catch (error) {
+      console.error("发送失败:", error);
+      if (fileMessageIds.length > 0) {
+        updateFileMsg({ status: "error", progress: 0 });
+      } else {
         setMessages((prev) => [
           ...prev,
           {
             id: crypto.randomUUID(),
             role: "assistant",
-            content: data.reply,
+            content: "出错了，请检查后端服务是否启动。",
           },
         ]);
       }
-
-      if (data?.article) {
-        localStorage.setItem(`agent-${agentId}-article`, data.article);
-        window.dispatchEvent(new CustomEvent("article-update", {
-          detail: { agentId, article: data.article },
-        }));
-      }
-
-      if (attachments && attachments.length > 0 && agentId === "kb") {
-        console.log("触发知识库数据刷新事件");
-        window.dispatchEvent(new CustomEvent("kb-data-refresh"));
-      }
-
-      window.dispatchEvent(new CustomEvent("session-refresh"));
-    } catch (error) {
-      console.error("发送失败:", error);
-      if (fileMessageIds.length > 0) {
-        updateFileMsg({ status: "error", progress: 0 });
-      }
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: "出错了，请检查后端服务是否启动。",
-        },
-      ]);
     } finally {
       setIsSending(false);
     }
-  }, [agentId, apiEndpoint, currentSessionId]);
+  }, [agentId, apiEndpoint, streamEndpoint, currentSessionId]);
 
   const loadSession = useCallback(async (sessionId: string) => {
     try {
@@ -183,5 +199,6 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     setMessages([]);
     setCurrentSessionId(null);
   }, []);
+
   return { input, setInput, messages, handleSend, isSending, loadSession, startNewSession, currentSessionId };
 }

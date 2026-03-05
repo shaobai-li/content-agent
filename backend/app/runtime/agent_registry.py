@@ -14,6 +14,7 @@ class AgentConfig:
     system_prompt: str
     handle_chat: Callable
     agent_instance: Optional[Any] = None
+    handle_chat_stream: Optional[Callable] = None
 
 
 # Agent 配置注册表
@@ -33,7 +34,8 @@ def register_agent(agent_instance):
         agent_id=agent_instance.agent_id,
         system_prompt=agent_instance.system_prompt,
         handle_chat=agent_instance.handle_chat,
-        agent_instance=agent_instance
+        agent_instance=agent_instance,
+        handle_chat_stream=agent_instance.handle_chat_stream,
     )
     AGENT_CONFIG_REGISTRY[config.agent_id] = config
 
