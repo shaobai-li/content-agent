@@ -43,7 +43,6 @@ class KnowledgeBaseAgent(BaseAgent):
                 )
             )
             for file_info in file_info_list:
-                reply_parts.append(f"文件 {file_info.filename} 已保存到知识库")
                 save_to_knowledge_base(file_info, self.agent_id)
         
         reply = "\n".join(reply_parts)
