@@ -21,7 +21,8 @@ class NoteManagerAgent(BaseAgent):
         self,
         text: Optional[str] = None,
         session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None
+        attachments: Optional[List[UploadFile]] = None,
+        mentions: Optional[str] = None
     ) -> Dict[str, Any]:
         """处理笔记管理请求"""
         if not text:

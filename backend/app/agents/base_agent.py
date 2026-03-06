@@ -18,7 +18,8 @@ class BaseAgent(ABC):
         self,
         text: Optional[str] = None,
         session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None
+        attachments: Optional[List[UploadFile]] = None,
+        mentions: Optional[str] = None
     ) -> Dict[str, Any]:
         pass
 
@@ -26,12 +27,13 @@ class BaseAgent(ABC):
         self,
         text: Optional[str] = None,
         session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None
+        attachments: Optional[List[UploadFile]] = None,
+        mentions: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """默认回退实现：调用 handle_chat，将整体结果包装成单块流返回。
         支持 LLM 流式的子类应覆盖此方法以获得逐 token 效果。"""
         from app.service.stream_service import build_stream_chunk, build_stream_done
-        result = await self.handle_chat(text=text, session_id=session_id, attachments=attachments)
+        result = await self.handle_chat(text=text, session_id=session_id, attachments=attachments, mentions=mentions)
         reply = result.get("reply", "")
         sid = result.get("session_id", "")
         extra = {k: v for k, v in result.items() if k not in ("reply", "session_id")}

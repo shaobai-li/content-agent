@@ -54,11 +54,10 @@ async def chat(
     if not agent_config:
         return build_chat_response(reply=f"Unknown agent: {agent_id}")
     
-    if mentions:
-        print("[mentions 验证] 收到 mentions 数据:", mentions)
     return await agent_config.handle_chat(
         text=text,
         session_id=session_id,
+        mentions=mentions,
         attachments=attachments
     )
 
@@ -79,13 +78,12 @@ async def chat_stream(
             yield build_stream_done(session_id="")
         return StreamingResponse(_unknown(), media_type="application/json")
 
-    if mentions:
-        print("[mentions 验证] 收到 mentions 数据:", mentions)
     return StreamingResponse(
         agent_config.handle_chat_stream(
             text=text,
             session_id=session_id,
-            attachments=attachments,
+            mentions=mentions,
+            attachments=attachments
         ),
         media_type="application/json",
     )

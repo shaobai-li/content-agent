@@ -18,25 +18,29 @@ class ContentDetectionAgent(BaseAgent):
         self,
         text: Optional[str] = None,
         session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None
+        attachments: Optional[List[UploadFile]] = None,
+        mentions: Optional[str] = None
     ) -> Dict[str, Any]:
         return await standard_chat(
             agent_id=self.agent_id,
             system_prompt=self.system_prompt,
             text=text,
-            session_id=session_id
+            session_id=session_id,
+            mentions=mentions
         )
 
     async def handle_chat_stream(
         self,
         text: Optional[str] = None,
         session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None
+        attachments: Optional[List[UploadFile]] = None,
+        mentions: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         async for chunk in standard_chat_stream(
             agent_id=self.agent_id,
             system_prompt=self.system_prompt,
             text=text,
-            session_id=session_id
+            session_id=session_id,
+            mentions=mentions
         ):
             yield chunk

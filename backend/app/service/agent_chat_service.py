@@ -6,6 +6,7 @@ from app.utils.llm_client import deepseek_chat, deepseek_chat_stream
 from app.service.chat_service import build_chat_response
 from app.service.stream_service import build_stream_chunk, build_stream_done
 from app.core.ids import new_uuid
+from app.utils.context_utils import wrap_article_as_message
 
 
 def save_chat_session(agent_id: str, session_id: Optional[str], user_text: str, assistant_reply: str) -> str:
@@ -26,12 +27,19 @@ async def standard_chat(
     system_prompt: str,
     text: Optional[str] = None,
     session_id: Optional[str] = None,
+    mentions: Optional[str] = None,
     extra_response: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     history = load_messages(agent_id, session_id) if session_id else []
     
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(history)
+    
+    if mentions:
+        article_msg = wrap_article_as_message(mentions)
+        if article_msg:
+            messages.append(article_msg)
+    
     if text:
         messages.append({"role": "user", "content": text})
     
@@ -50,6 +58,7 @@ async def standard_chat_stream(
     system_prompt: str,
     text: Optional[str] = None,
     session_id: Optional[str] = None,
+    mentions: Optional[str] = None,
     extra_done: Optional[Dict[str, Any]] = None
 ) -> AsyncGenerator[str, None]:
     """流式聊天：逐 token yield chunk，结束后保存会话并 yield done"""
@@ -57,6 +66,12 @@ async def standard_chat_stream(
 
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(history)
+    
+    if mentions:
+        article_msg = wrap_article_as_message(mentions)
+        if article_msg:
+            messages.append(article_msg)
+    
     if text:
         messages.append({"role": "user", "content": text})
 

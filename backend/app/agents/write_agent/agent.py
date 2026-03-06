@@ -50,15 +50,24 @@ class WriteAgent(BaseAgent):
         self,
         text: Optional[str] = None,
         session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None
+        attachments: Optional[List[UploadFile]] = None,
+        mentions: Optional[str] = None
     ) -> Dict[str, Any]:
+        from app.utils.context_utils import wrap_article_as_message
+        
         system_prompt = self.system_prompt
         draft_skill = load_skill(_SKILL_PATH,  "article-draft-generator")        
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "assistant", "content": draft_skill},
-            {"role": "user", "content": text}
         ]
+        
+        if mentions:
+            article_msg = wrap_article_as_message(mentions)
+            if article_msg:
+                messages.append(article_msg)
+        
+        messages.append({"role": "user", "content": text})
 
         reply = self.plan_and_execute(messages)
 
@@ -84,10 +93,12 @@ class WriteAgent(BaseAgent):
         self,
         text: Optional[str] = None,
         session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None
+        attachments: Optional[List[UploadFile]] = None,
+        mentions: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         """写作 Agent 的流式输出：保留"先规划再执行"的两阶段结构。"""
         import uuid
+        from app.utils.context_utils import wrap_article_as_message
 
         system_prompt = self.system_prompt
         draft_skill = load_skill(_SKILL_PATH, "article-draft-generator")
@@ -100,8 +111,14 @@ class WriteAgent(BaseAgent):
         messages: List[Dict[str, str]] = [
             {"role": "system", "content": system_prompt},
             {"role": "assistant", "content": draft_skill},
-            {"role": "user", "content": user_text},
         ]
+        
+        if mentions:
+            article_msg = wrap_article_as_message(mentions)
+            if article_msg:
+                messages.append(article_msg)
+        
+        messages.append({"role": "user", "content": user_text})
 
         # 第一阶段：生成大纲(plan)，边生成边输出
         plan_parts: List[str] = []

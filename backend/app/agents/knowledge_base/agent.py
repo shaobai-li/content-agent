@@ -26,7 +26,8 @@ class KnowledgeBaseAgent(BaseAgent):
         self,
         text: Optional[str] = None,
         session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None
+        attachments: Optional[List[UploadFile]] = None,
+        mentions: Optional[str] = None
     ) -> Dict[str, Any]:
         """处理知识库相关请求"""
         reply_parts = []

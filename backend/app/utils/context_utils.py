@@ -2,13 +2,13 @@ from typing import Optional
 from pathlib import Path
 
 
-def wrap_article_as_message(article_path: str, role: str = "system") -> Optional[dict]:
+def wrap_article_as_message(article_path: str, role: str = "user") -> Optional[dict]:
     """
     将给定的文章路径包装成message格式
     
     Args:
         article_path: 文章文件路径
-        role: message角色，默认为"system"
+        role: message角色，默认为"user"
     
     Returns:
         包含文章内容的message字典，如果文件不存在或读取失败则返回None
