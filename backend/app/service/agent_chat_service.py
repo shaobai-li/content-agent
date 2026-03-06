@@ -6,7 +6,7 @@ from app.utils.llm_client import deepseek_chat, deepseek_chat_stream
 from app.service.chat_service import build_chat_response
 from app.service.stream_service import build_stream_chunk, build_stream_done
 from app.core.ids import new_uuid
-from app.utils.context_utils import wrap_article_as_message
+from app.utils.context_utils import wrap_article_as_message, parse_mentions, build_user_message_with_mentions, get_article_context_messages
 
 
 def save_chat_session(agent_id: str, session_id: Optional[str], user_text: str, assistant_reply: str) -> str:
@@ -31,20 +31,20 @@ async def standard_chat(
     extra_response: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     history = load_messages(agent_id, session_id) if session_id else []
+    mentions_list = parse_mentions(mentions)
+    user_text = build_user_message_with_mentions(text or "", mentions_list)
     
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(history)
     
-    if mentions:
-        article_msg = wrap_article_as_message(mentions)
-        if article_msg:
-            messages.append(article_msg)
+    article_messages = get_article_context_messages(mentions_list)
+    messages.extend(article_messages)
     
-    if text:
-        messages.append({"role": "user", "content": text})
+    if user_text:
+        messages.append({"role": "user", "content": user_text})
     
     reply = deepseek_chat(messages=messages)
-    session_id = save_chat_session(agent_id, session_id, text, reply)
+    session_id = save_chat_session(agent_id, session_id, user_text, reply)
     
     response = {"reply": reply, "session_id": session_id}
     if extra_response:
@@ -63,17 +63,17 @@ async def standard_chat_stream(
 ) -> AsyncGenerator[str, None]:
     """流式聊天：逐 token yield chunk，结束后保存会话并 yield done"""
     history = load_messages(agent_id, session_id) if session_id else []
+    mentions_list = parse_mentions(mentions)
+    user_text = build_user_message_with_mentions(text or "", mentions_list)
 
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(history)
     
-    if mentions:
-        article_msg = wrap_article_as_message(mentions)
-        if article_msg:
-            messages.append(article_msg)
+    article_messages = get_article_context_messages(mentions_list)
+    messages.extend(article_messages)
     
-    if text:
-        messages.append({"role": "user", "content": text})
+    if user_text:
+        messages.append({"role": "user", "content": user_text})
 
     full_reply: list[str] = []
     async for token in deepseek_chat_stream(messages=messages):
@@ -81,6 +81,6 @@ async def standard_chat_stream(
         yield build_stream_chunk(token)
 
     reply = "".join(full_reply)
-    session_id = save_chat_session(agent_id, session_id, text, reply)
+    session_id = save_chat_session(agent_id, session_id, user_text, reply)
 
     yield build_stream_done(session_id=session_id, extra=extra_done)

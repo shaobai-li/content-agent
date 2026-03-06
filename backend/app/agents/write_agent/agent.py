@@ -8,6 +8,7 @@ from app.utils.llm_client import deepseek_chat, deepseek_chat_stream
 from app.service.agent_chat_service import save_chat_session
 from app.utils.article_parser import extract_article_content
 from app.service.stream_service import build_stream_chunk, build_stream_done
+from app.utils.context_utils import parse_mentions, build_user_message_with_mentions, get_article_context_messages
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
 _SKILL_PATH = Path(__file__).parent / "skills"
@@ -53,8 +54,6 @@ class WriteAgent(BaseAgent):
         attachments: Optional[List[UploadFile]] = None,
         mentions: Optional[str] = None
     ) -> Dict[str, Any]:
-        from app.utils.context_utils import wrap_article_as_message
-        
         system_prompt = self.system_prompt
         draft_skill = load_skill(_SKILL_PATH,  "article-draft-generator")        
         messages = [
@@ -62,12 +61,12 @@ class WriteAgent(BaseAgent):
             {"role": "assistant", "content": draft_skill},
         ]
         
-        if mentions:
-            article_msg = wrap_article_as_message(mentions)
-            if article_msg:
-                messages.append(article_msg)
+        mentions_list = parse_mentions(mentions)
+        article_messages = get_article_context_messages(mentions_list)
+        messages.extend(article_messages)
         
-        messages.append({"role": "user", "content": text})
+        user_text = build_user_message_with_mentions(text, mentions_list)
+        messages.append({"role": "user", "content": user_text})
 
         reply = self.plan_and_execute(messages)
 
@@ -80,7 +79,7 @@ class WriteAgent(BaseAgent):
         
         # reply = self.plan_and_execute(messages) 
 
-        session_id = save_chat_session(AGENT_ID, session_id, text, reply)
+        session_id = save_chat_session(AGENT_ID, session_id, user_text, reply)
         
         article_content = extract_article_content(reply)
         response = {"reply": reply, "session_id": session_id}
@@ -98,7 +97,6 @@ class WriteAgent(BaseAgent):
     ) -> AsyncGenerator[str, None]:
         """写作 Agent 的流式输出：保留"先规划再执行"的两阶段结构。"""
         import uuid
-        from app.utils.context_utils import wrap_article_as_message
 
         system_prompt = self.system_prompt
         draft_skill = load_skill(_SKILL_PATH, "article-draft-generator")
@@ -107,17 +105,16 @@ class WriteAgent(BaseAgent):
         cache_dir = Path("test/cache")
         cache_dir.mkdir(parents=True, exist_ok=True)
 
-        user_text = text or ""
         messages: List[Dict[str, str]] = [
             {"role": "system", "content": system_prompt},
             {"role": "assistant", "content": draft_skill},
         ]
         
-        if mentions:
-            article_msg = wrap_article_as_message(mentions)
-            if article_msg:
-                messages.append(article_msg)
+        mentions_list = parse_mentions(mentions)
+        article_messages = get_article_context_messages(mentions_list)
+        messages.extend(article_messages)
         
+        user_text = build_user_message_with_mentions(text or "", mentions_list)
         messages.append({"role": "user", "content": user_text})
 
         # 第一阶段：生成大纲(plan)，边生成边输出
