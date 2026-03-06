@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { FileChip } from "./FileChip";
+import { MentionChip, type MentionItem } from "./MentionChip";
+import { ChatMentionPopover } from "./ChatMentionPopover";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { Upload } from "lucide-react";
 
@@ -19,6 +21,9 @@ interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
+  // 提及标签（方式 A：标签在左，输入在右）
+  mentions?: MentionItem[];
+  onMentionsChange?: (mentions: MentionItem[]) => void;
   // 文件管理（可选）
   files?: FileItem[];
   onFilesDropped?: (files: FileList) => void; // 拖拽文件回调
@@ -83,12 +88,53 @@ function DragOverlay({ hasFiles }: { hasFiles: boolean }) {
   );
 }
 
-export function ChatInput({ value, onChange, onSend, files, onFilesDropped, onFileRemove, isSending }: ChatInputProps) {
+export function ChatInput({
+  value,
+  onChange,
+  onSend,
+  mentions = [],
+  onMentionsChange,
+  files,
+  onFilesDropped,
+  onFileRemove,
+  isSending,
+}: ChatInputProps) {
   const { isDragging, dragHandlers } = useDragAndDrop(onFilesDropped);
+  const [mentionOpen, setMentionOpen] = useState(false);
 
   const hasFiles: boolean = (files && files.length > 0) || false;
   const hasText: boolean = value.trim().length > 0;
-  const isSendDisabled: boolean = isSending || (!hasFiles && !hasText);
+  const hasMentions: boolean = mentions.length > 0;
+  const hasContent: boolean = hasText || hasMentions;
+  const isSendDisabled: boolean = isSending || (!hasFiles && !hasContent);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    onChange(val);
+
+    const cursorPos = e.target.selectionStart ?? val.length;
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/@(\S*)$/);
+
+    if (match) {
+      setMentionOpen(true);
+    } else {
+      setMentionOpen(false);
+    }
+  };
+
+  const handleMentionSelect = (item: MentionItem) => {
+    onMentionsChange?.([...mentions, item]);
+    const match = value.match(/@\S*$/);
+    if (match) {
+      onChange(value.slice(0, value.length - match[0].length));
+    }
+  };
+
+  const handleMentionRemove = (id: string) => {
+    onMentionsChange?.(mentions.filter((m) => m.id !== id));
+  };
+
   return (
     <div
       className="relative rounded-lg border shadow-sm overflow-hidden"
@@ -109,19 +155,36 @@ export function ChatInput({ value, onChange, onSend, files, onFilesDropped, onFi
           ))}
         </div>
       )}
-     
-      <div className="flex items-center p-2">
-        <Input
-          className="flex-1 border-none focus-visible:ring-0 shadow-none"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onSend()}
-          placeholder="Type messages ..."
-        />
-        <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
-          Send
-        </Button>
-      </div>
+
+      <ChatMentionPopover
+        open={mentionOpen}
+        onOpenChange={setMentionOpen}
+        onSelect={handleMentionSelect}
+      >
+        <div className="flex flex-wrap items-center gap-1 p-2">
+          {mentions.map((m) => (
+            <MentionChip
+              key={m.id}
+              id={m.id}
+              label={m.label}
+              onRemove={() => handleMentionRemove(m.id)}
+            />
+          ))}
+          <Input
+            className="flex-1 min-w-[120px] border-none focus-visible:ring-0 shadow-none"
+            value={value}
+            onChange={handleInputChange}
+            onKeyDown={(e) => {
+              if (mentionOpen) return;
+              if (e.key === "Enter") onSend();
+            }}
+            placeholder={hasMentions ? "" : "Type messages ..."}
+          />
+          <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
+            Send
+          </Button>
+        </div>
+      </ChatMentionPopover>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useChat } from "@/features/chat/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput, type FileItem } from "./ChatInput";
+import type { MentionItem } from "./MentionChip";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 
@@ -40,6 +41,8 @@ export function ChatPage({ agentId }: ChatPageProps) {
 
   // 管理待上传的文件列表
   const [pendingFiles, setPendingFiles] = useState<FileItem[]>([]);
+  // 管理提及标签（如知识库）
+  const [mentions, setMentions] = useState<MentionItem[]>([]);
 
   // 根据文件名获取文件类型
   const getFileType = (fileName: string): keyof typeof FileTypeIconMap => {
@@ -88,6 +91,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
     // 构建发送负载
     const payload = {
       text: input.trim() || undefined,
+      mentions: mentions.length > 0 ? mentions : undefined,
       attachments: pendingFiles.length > 0 
         ? pendingFiles.map(item => item.file) 
         : undefined,
@@ -96,8 +100,9 @@ export function ChatPage({ agentId }: ChatPageProps) {
       },
     };
 
-    // 立即清空输入和文件列表（用户体验更好）
+    // 立即清空输入、提及和文件列表（用户体验更好）
     setInput("");
+    setMentions([]);
     setPendingFiles([]);
 
     // 调用 useChat 的 handleSend
@@ -116,6 +121,8 @@ export function ChatPage({ agentId }: ChatPageProps) {
             value={input} 
             onChange={setInput} 
             onSend={handleSendWithFiles}
+            mentions={mentions}
+            onMentionsChange={setMentions}
             files={pendingFiles}
             onFilesDropped={handleFilesDropped}
             onFileRemove={handleFileRemove}

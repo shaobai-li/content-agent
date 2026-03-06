@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import axios from "axios";
 import type { Message, FileMessage } from "@/entities/message/model";
+import type { MentionItem } from "./MentionChip";
 import { fetchMessages } from "@/entities/session/api";
 import { readStreamLines } from "./fetchStream";
 
@@ -14,6 +15,7 @@ interface UseChatProps {
 
 export type SendPayload = {
   text?: string;
+  mentions?: MentionItem[];
   attachments?: File[];
 };
 
@@ -27,9 +29,10 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   
 
   const handleSend = useCallback(async (payload: SendPayload) => {
-    const { text, attachments } = payload;
+    const { text, mentions, attachments } = payload;
 
-    if (!text?.trim() && (!attachments || attachments.length === 0)) {
+    const hasContent = text?.trim() || (mentions && mentions.length > 0) || (attachments && attachments.length > 0);
+    if (!hasContent) {
       return;
     }
 
@@ -85,6 +88,9 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
 
     const formData = new FormData();
     if (text?.trim()) formData.append("text", text);
+    if (mentions && mentions.length > 0) {
+      formData.append("mentions", JSON.stringify(mentions));
+    }
     if (attachments) {
       attachments.forEach((file) => formData.append("attachments", file));
     }
