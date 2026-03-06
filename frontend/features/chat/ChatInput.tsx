@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
+import { AutoExpandTextarea } from "./AutoExpandTextarea";
 import { FileChip } from "./FileChip";
 import { MentionChip, type MentionItem } from "./MentionChip";
 import { ChatMentionPopover } from "./ChatMentionPopover";
@@ -101,6 +101,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const { isDragging, dragHandlers } = useDragAndDrop(onFilesDropped);
   const [mentionOpen, setMentionOpen] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasFiles: boolean = (files && files.length > 0) || false;
   const hasText: boolean = value.trim().length > 0;
@@ -108,7 +109,25 @@ export function ChatInput({
   const hasContent: boolean = hasText || hasMentions;
   const isSendDisabled: boolean = isSending || (!hasFiles && !hasContent);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      const lineHeight = 24;
+      const maxLines = 5;
+      const maxHeight = lineHeight * maxLines;
+      const scrollHeight = textareaRef.current.scrollHeight;
+      
+      if (scrollHeight <= maxHeight) {
+        textareaRef.current.style.height = `${scrollHeight}px`;
+        textareaRef.current.style.overflowY = "hidden";
+      } else {
+        textareaRef.current.style.height = `${maxHeight}px`;
+        textareaRef.current.style.overflowY = "auto";
+      }
+    }
+  }, [value]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     onChange(val);
 
@@ -170,15 +189,20 @@ export function ChatInput({
               onRemove={() => handleMentionRemove(m.id)}
             />
           ))}
-          <Input
-            className="flex-1 min-w-[120px] border-none focus-visible:ring-0 shadow-none"
+          <AutoExpandTextarea
+            ref={textareaRef}
+            className="flex-1 min-w-[120px] border-none focus-visible:ring-0 shadow-none min-h-[24px]"
             value={value}
             onChange={handleInputChange}
             onKeyDown={(e) => {
               if (mentionOpen) return;
-              if (e.key === "Enter") onSend();
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                onSend();
+              }
             }}
             placeholder={hasMentions ? "" : "Type messages ..."}
+            rows={1}
           />
           <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
             Send
