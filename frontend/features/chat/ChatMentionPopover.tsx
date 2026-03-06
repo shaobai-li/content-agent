@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Popover,
   PopoverAnchor,
@@ -12,6 +13,7 @@ import {
   CommandList,
 } from "@/shared/ui/command";
 import { BookOpen } from "lucide-react";
+import { fetchKbRecords } from "@/shared/api/records";
 import type { MentionItem } from "./MentionChip";
 
 interface ChatMentionPopoverProps {
@@ -21,16 +23,32 @@ interface ChatMentionPopoverProps {
   children: React.ReactNode;
 }
 
-const MENTION_OPTIONS: MentionItem[] = [
-  { id: "kb-1", label: "知识库" },
-];
-
 export function ChatMentionPopover({
   open,
   onOpenChange,
   onSelect,
   children,
 }: ChatMentionPopoverProps) {
+  const [mentionOptions, setMentionOptions] = useState<MentionItem[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      fetchKbRecords()
+        .then((response) => {
+          const records = response.records || [];
+          const options = records.map((record: any) => ({
+            id: record.record_id,
+            label: record.name,
+          }));
+          setMentionOptions(options);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch knowledge base records:", err);
+          setMentionOptions([]);
+        });
+    }
+  }, [open]);
+
   const handleSelect = (item: MentionItem) => {
     onSelect(item);
     onOpenChange(false);
@@ -43,22 +61,30 @@ export function ChatMentionPopover({
         side="top"
         align="start"
         sideOffset={8}
-        className="w-[calc(var(--radix-popover-trigger-width)/3)] p-0"
+        className="w-[calc(var(--radix-popover-trigger-width)/1.5)] p-0"
       >
         <Command shouldFilter={false}>
           <CommandList>
             <CommandGroup>
-              {MENTION_OPTIONS.map((item) => (
-                <CommandItem
-                  key={item.id}
-                  value={item.label}
-                  onSelect={() => handleSelect(item)}
-                  className="gap-2"
-                >
-                  <BookOpen className="size-4 text-muted-foreground" />
-                  {item.label}
-                </CommandItem>
-              ))}
+              {mentionOptions.length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  No articles available
+                </div>
+              ) : (
+                mentionOptions.map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    value={item.label}
+                    onSelect={() => handleSelect(item)}
+                    className="gap-2"
+                  >
+                    <BookOpen className="size-4 text-muted-foreground flex-shrink-0" />
+                    <span className="truncate" title={item.label}>
+                      {item.label}
+                    </span>
+                  </CommandItem>
+                ))
+              )}
             </CommandGroup>
           </CommandList>
         </Command>
