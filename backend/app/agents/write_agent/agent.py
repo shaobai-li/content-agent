@@ -100,6 +100,7 @@ class WriteAgent(BaseAgent):
 
         system_prompt = self.system_prompt
         draft_skill = load_skill(_SKILL_PATH, "article-draft-generator")
+        refine_skill = load_skill(_SKILL_PATH,  "article-critic-refiner")  
 
         run_id = uuid.uuid4().hex
         cache_dir = Path("test/cache")
@@ -143,6 +144,42 @@ class WriteAgent(BaseAgent):
         session_id = save_chat_session(AGENT_ID, session_id, user_text, reply)
 
         article_content = extract_article_content(reply)
+
+
+
+        # 第三阶段：Refine文章(plan)，边生成边输出
+
+        messages: List[Dict[str, str]] = [
+            {"role": "system", "content": system_prompt},
+            {"role": "assistant", "content": refine_skill},
+        ]
+
+        messages.extend(article_messages)
+        messages.append({"role": "user", "content": execution_reply})
+        
+        refine_plan_parts: List[str] = []
+        async for token in deepseek_chat_stream(messages=messages):
+            refine_plan_parts.append(token)
+            yield build_stream_chunk(token)
+
+        refine_plan_reply = "".join(refine_plan_parts)
+        refine_plan_path = cache_dir / f"refine_plan_{run_id}.md"
+        refine_plan_path.write_text(refine_plan_reply, encoding="utf-8")
+        
+        messages.append({"role": "assistant", "content": refine_plan_reply})
+
+        # 第四阶段：Refine文章(execution)，边生成边输出 
+        refine_execution_parts: List[str] = []
+        async for token in deepseek_chat_stream(messages=messages):
+            refine_execution_parts.append(token)
+            yield build_stream_chunk(token)
+
+        refine_execution_reply = "".join(refine_execution_parts)
+        refine_execution_path = cache_dir / f"refine_execution_{run_id}.md"
+        refine_execution_path.write_text(refine_execution_reply, encoding="utf-8")
+
+        article_content = extract_article_content(refine_execution_reply)
+
         extra: Dict[str, Any] = {}
         if article_content:
             extra["article"] = article_content
