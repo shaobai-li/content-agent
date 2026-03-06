@@ -39,6 +39,7 @@ export function ChatMentionPopover({
           const options = records.map((record: any) => ({
             id: record.record_id,
             label: record.name,
+            parsed_path: record.parsed_path,
           }));
           setMentionOptions(options);
         })

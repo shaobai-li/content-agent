@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 export type MentionItem = {
   id: string;
   label: string;
+  parsed_path?: string;
 };
 
 interface MentionChipProps {

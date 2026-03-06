@@ -45,6 +45,7 @@ async def chat(
     agent_id: str,
     text: Optional[str] = Form(None),
     session_id: Optional[str] = Form(None),
+    mentions: Optional[str] = Form(None),
     attachments: Optional[List[UploadFile]] = File(None)
 ):
     
@@ -53,7 +54,8 @@ async def chat(
     if not agent_config:
         return build_chat_response(reply=f"Unknown agent: {agent_id}")
     
-    print("in chat", agent_id, text, session_id, attachments)
+    if mentions:
+        print("[mentions 验证] 收到 mentions 数据:", mentions)
     return await agent_config.handle_chat(
         text=text,
         session_id=session_id,
@@ -66,6 +68,7 @@ async def chat_stream(
     agent_id: str,
     text: Optional[str] = Form(None),
     session_id: Optional[str] = Form(None),
+    mentions: Optional[str] = Form(None),
     attachments: Optional[List[UploadFile]] = File(None)
 ):
     agent_config = get_agent_config(agent_id)
@@ -76,6 +79,8 @@ async def chat_stream(
             yield build_stream_done(session_id="")
         return StreamingResponse(_unknown(), media_type="application/json")
 
+    if mentions:
+        print("[mentions 验证] 收到 mentions 数据:", mentions)
     return StreamingResponse(
         agent_config.handle_chat_stream(
             text=text,
