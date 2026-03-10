@@ -142,8 +142,9 @@ const LexicalEditor = forwardRef<LexicalEditorHandle | null, LexicalEditorProps>
     };
 
     return (
-      <LexicalComposer initialConfig={initialConfig}>
-        <ExposeInsertMentionHandle forwardedRef={ref} />
+      <div className="relative flex-1 min-w-0">
+        <LexicalComposer initialConfig={initialConfig}>
+          <ExposeInsertMentionHandle forwardedRef={ref} />
         {onMentionTriggerChange && (
           <MentionTriggerPlugin onTriggerChange={onMentionTriggerChange} />
         )}
@@ -151,12 +152,12 @@ const LexicalEditor = forwardRef<LexicalEditorHandle | null, LexicalEditorProps>
           contentEditable={
             <ContentEditable
               className={cn(
-                "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[24px] w-full min-w-0 outline-none",
+                "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[24px] w-full min-w-0 outline-none px-2 py-1.5",
                 className
               )}
               aria-placeholder={placeholder}
               placeholder={
-                <div className="pointer-events-none absolute left-0 top-0 text-muted-foreground">
+                <div className="pointer-events-none absolute left-2 top-1.5 text-muted-foreground text-sm">
                   {placeholder}
                 </div>
               }
@@ -164,7 +165,7 @@ const LexicalEditor = forwardRef<LexicalEditorHandle | null, LexicalEditorProps>
             />
           }
           placeholder={
-            <div className="pointer-events-none absolute left-0 top-0 text-muted-foreground">
+            <div className="pointer-events-none absolute left-2 top-1.5 text-muted-foreground text-sm">
               {placeholder}
             </div>
           }
@@ -174,6 +175,7 @@ const LexicalEditor = forwardRef<LexicalEditorHandle | null, LexicalEditorProps>
         <OnChangeWrapper onChange={onChange} />
         <HistoryPlugin />
       </LexicalComposer>
+      </div>
     );
   }
 );
