@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, forwardRef } from "react";
-import { $getRoot, $getSelection, $isRangeSelection, $isTextNode } from "lexical";
+import {
+  $getRoot,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+  $nodesOfType,
+} from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -28,11 +34,12 @@ function SyncValuePlugin({ value }: { value: string }) {
     if (value !== "") return;
     editor.getEditorState().read(() => {
       const root = $getRoot();
-      if (root.getChildrenSize() > 0) {
-        editor.update(() => {
-          $getRoot().clear();
-        });
-      }
+      if (root.getChildrenSize() === 0) return;
+      const mentions = $nodesOfType(MentionNode);
+      if (mentions.length > 0) return;
+      editor.update(() => {
+        $getRoot().clear();
+      });
     });
   }, [editor, value]);
 
@@ -81,6 +88,7 @@ function OnChangeWrapper({ onChange }: { onChange: (value: string) => void }) {
 
 export interface LexicalEditorHandle {
   insertMention: (item: MentionItem) => void;
+  clear: () => void;
 }
 
 function ExposeInsertMentionHandle({
@@ -93,6 +101,11 @@ function ExposeInsertMentionHandle({
     const handle: LexicalEditorHandle = {
       insertMention(item: MentionItem) {
         $insertMentionFromTrigger(editor, item);
+      },
+      clear() {
+        editor.update(() => {
+          $getRoot().clear();
+        });
       },
     };
     if (typeof forwardedRef === "function") {
