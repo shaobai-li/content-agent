@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/shared/ui/button";
-import { LexicalEditor } from "./LexicalEditor";
+import { LexicalEditor, type LexicalEditorHandle } from "./LexicalEditor";
 import { FileChip } from "./FileChip";
 import { MentionChip, type MentionItem } from "./MentionChip";
 import { ChatMentionPopover } from "./ChatMentionPopover";
@@ -101,6 +101,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const { isDragging, dragHandlers } = useDragAndDrop(onFilesDropped);
   const [mentionOpen, setMentionOpen] = useState(false);
+  const lexicalRef = useRef<LexicalEditorHandle | null>(null);
 
   const hasFiles: boolean = (files && files.length > 0) || false;
   const hasText: boolean = value.trim().length > 0;
@@ -111,16 +112,12 @@ export function ChatInput({
 
   const handleInputChange = (val: string) => {
     onChange(val);
-    const match = val.match(/@(\S*)$/);
-    setMentionOpen(!!match);
   };
 
   const handleMentionSelect = (item: MentionItem) => {
     onMentionsChange?.([...mentions, item]);
-    const match = value.match(/@\S*$/);
-    if (match) {
-      onChange(value.slice(0, value.length - match[0].length));
-    }
+    lexicalRef.current?.insertMention(item);
+    setMentionOpen(false);
   };
 
   const handleMentionRemove = (id: string) => {
@@ -164,9 +161,11 @@ export function ChatInput({
               />
             ))}
             <LexicalEditor
+              ref={lexicalRef}
               className="flex-1 min-w-[120px] border-none focus-visible:ring-0 shadow-none"
               value={value}
               onChange={handleInputChange}
+              onMentionTriggerChange={setMentionOpen}
               placeholder={hasMentions ? "" : "Type messages ..."}
               onKeyDown={(e) => {
                 if (mentionOpen) return;

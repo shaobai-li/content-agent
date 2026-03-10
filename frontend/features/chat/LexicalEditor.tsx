@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { $getRoot, $createParagraphNode, $createTextNode } from "lexical";
+import { useEffect, useRef, forwardRef } from "react";
+import { $getRoot, $getSelection, $isRangeSelection, $isTextNode } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -12,6 +12,8 @@ import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import type { EditorState } from "lexical";
 import { cn } from "@/shared/lib/cn";
 import { MentionNode } from "./MentionNode";
+import type { MentionItem } from "./MentionChip";
+import { $insertMentionFromTrigger } from "./mentionInsert";
 
 const theme = {};
 
@@ -23,21 +25,47 @@ function SyncValuePlugin({ value }: { value: string }) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
+    if (value !== "") return;
     editor.getEditorState().read(() => {
-      const current = $getRoot().getTextContent();
-      if (current !== value) {
+      const root = $getRoot();
+      if (root.getChildrenSize() > 0) {
         editor.update(() => {
-          const root = $getRoot();
-          root.clear();
-          if (value) {
-            const p = $createParagraphNode();
-            p.append($createTextNode(value));
-            root.append(p);
-          }
+          $getRoot().clear();
         });
       }
     });
   }, [editor, value]);
+
+  return null;
+}
+
+function MentionTriggerPlugin({
+  onTriggerChange,
+}: {
+  onTriggerChange: (open: boolean) => void;
+}) {
+  const [editor] = useLexicalComposerContext();
+  const lastOpen = useRef(false);
+
+  useEffect(() => {
+    return editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        let open = false;
+        const sel = $getSelection();
+        if ($isRangeSelection(sel) && sel.isCollapsed()) {
+          const node = sel.anchor.getNode();
+          if ($isTextNode(node)) {
+            const before = node.getTextContent().slice(0, sel.anchor.offset);
+            open = /@\S*$/.test(before);
+          }
+        }
+        if (open !== lastOpen.current) {
+          lastOpen.current = open;
+          onTriggerChange(open);
+        }
+      });
+    });
+  }, [editor, onTriggerChange]);
 
   return null;
 }
@@ -51,33 +79,77 @@ function OnChangeWrapper({ onChange }: { onChange: (value: string) => void }) {
   return <OnChangePlugin onChange={handleChange} />;
 }
 
+export interface LexicalEditorHandle {
+  insertMention: (item: MentionItem) => void;
+}
+
+function ExposeInsertMentionHandle({
+  forwardedRef,
+}: {
+  forwardedRef: React.Ref<LexicalEditorHandle | null>;
+}) {
+  const [editor] = useLexicalComposerContext();
+  useEffect(() => {
+    const handle: LexicalEditorHandle = {
+      insertMention(item: MentionItem) {
+        $insertMentionFromTrigger(editor, item);
+      },
+    };
+    if (typeof forwardedRef === "function") {
+      (forwardedRef as (h: LexicalEditorHandle | null) => void)(handle);
+      return () => {
+        (forwardedRef as (h: LexicalEditorHandle | null) => void)(null);
+      };
+    }
+    if (forwardedRef && typeof forwardedRef === "object" && "current" in forwardedRef) {
+      (forwardedRef as React.MutableRefObject<LexicalEditorHandle | null>).current =
+        handle;
+      return () => {
+        (forwardedRef as React.MutableRefObject<LexicalEditorHandle | null>).current =
+          null;
+      };
+    }
+  }, [editor, forwardedRef]);
+  return null;
+}
+
 interface LexicalEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
   onKeyDown?: (e: React.KeyboardEvent) => void;
+  onMentionTriggerChange?: (open: boolean) => void;
 }
 
-function LexicalEditor({
-  value,
-  onChange,
-  placeholder = "Type messages ...",
-  className,
-  onKeyDown,
-}: LexicalEditorProps) {
-  const initialConfig = {
-    namespace: "ChatInput",
-    theme,
-    onError,
-    nodes: [MentionNode],
-  };
+const LexicalEditor = forwardRef<LexicalEditorHandle | null, LexicalEditorProps>(
+  function LexicalEditor(
+    {
+      value,
+      onChange,
+      placeholder = "Type messages ...",
+      className,
+      onKeyDown,
+      onMentionTriggerChange,
+    },
+    ref
+  ) {
+    const initialConfig = {
+      namespace: "ChatInput",
+      theme,
+      onError,
+      nodes: [MentionNode],
+    };
 
-  return (
-    <LexicalComposer initialConfig={initialConfig}>
-      <PlainTextPlugin
-        contentEditable={
-          <ContentEditable
+    return (
+      <LexicalComposer initialConfig={initialConfig}>
+        <ExposeInsertMentionHandle forwardedRef={ref} />
+        {onMentionTriggerChange && (
+          <MentionTriggerPlugin onTriggerChange={onMentionTriggerChange} />
+        )}
+        <PlainTextPlugin
+          contentEditable={
+            <ContentEditable
               className={cn(
                 "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[24px] w-full min-w-0 outline-none",
                 className
@@ -102,7 +174,8 @@ function LexicalEditor({
         <OnChangeWrapper onChange={onChange} />
         <HistoryPlugin />
       </LexicalComposer>
-  );
-}
+    );
+  }
+);
 
 export { LexicalEditor };
