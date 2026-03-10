@@ -56,7 +56,7 @@ export class MentionNode extends DecoratorNode<ReactNode> {
   decorate(_editor: LexicalEditor, _config: EditorConfig): ReactNode {
     return (
       <span
-        className="inline-flex items-center px-2 py-0.5 bg-primary/10 text-primary rounded text-[11px] font-medium max-w-[120px] truncate align-baseline"
+        className="inline-block max-w-[120px] min-w-0 px-2 py-0.5 bg-primary/10 text-primary rounded text-[11px] font-medium truncate align-baseline"
         title={this.__label}
         contentEditable={false}
       >
