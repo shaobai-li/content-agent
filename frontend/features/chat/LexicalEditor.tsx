@@ -1,102 +1,108 @@
 "use client";
 
+import { useEffect } from "react";
+import { $getRoot, $createParagraphNode, $createTextNode } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
-import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import type { EditorState } from "lexical";
-import {
-  BeautifulMentionNode,
-  BeautifulMentionsPlugin,
-  type BeautifulMentionsTheme,
-} from "lexical-beautiful-mentions";
-import { fetchKbRecords } from "@/shared/api/records";
 import { cn } from "@/shared/lib/cn";
+import { MentionNode } from "./MentionNode";
 
-const beautifulMentionsTheme: BeautifulMentionsTheme = {
-  "@": "px-1.5 py-0.5 mx-px rounded bg-primary/10 text-primary text-[11px] font-medium",
-  "@Focused": "outline-none ring-1 ring-primary/30",
-};
-
-const editorTheme = {
-  paragraph: "m-0",
-  text: "text-sm",
-  beautifulMentions: beautifulMentionsTheme,
-};
+const theme = {};
 
 function onError(error: Error) {
-  console.error("Lexical editor error:", error);
+  console.error(error);
 }
 
-export interface LexicalEditorProps {
-  className?: string;
+function SyncValuePlugin({ value }: { value: string }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    editor.getEditorState().read(() => {
+      const current = $getRoot().getTextContent();
+      if (current !== value) {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          if (value) {
+            const p = $createParagraphNode();
+            p.append($createTextNode(value));
+            root.append(p);
+          }
+        });
+      }
+    });
+  }, [editor, value]);
+
+  return null;
+}
+
+function OnChangeWrapper({ onChange }: { onChange: (value: string) => void }) {
+  const handleChange = (editorState: EditorState) => {
+    editorState.read(() => {
+      onChange($getRoot().getTextContent());
+    });
+  };
+  return <OnChangePlugin onChange={handleChange} />;
+}
+
+interface LexicalEditorProps {
+  value: string;
+  onChange: (value: string) => void;
   placeholder?: string;
-  onChange?: (editorState: EditorState) => void;
-  editable?: boolean;
+  className?: string;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
-export function LexicalEditor({
-  className,
-  placeholder = "Type messages ...",
+function LexicalEditor({
+  value,
   onChange,
-  editable = true,
+  placeholder = "Type messages ...",
+  className,
+  onKeyDown,
 }: LexicalEditorProps) {
   const initialConfig = {
-    namespace: "ChatLexicalEditor",
-    theme: editorTheme,
+    namespace: "ChatInput",
+    theme,
     onError,
-    editable,
-    nodes: [BeautifulMentionNode],
-  };
-
-  const handleSearch = async (_trigger: string, query: string | null) => {
-    try {
-      const response = await fetchKbRecords();
-      const records = (response as { records?: Array<{ record_id: string; name: string; parsed_path?: string }> })
-        .records || [];
-      const q = (query || "").toLowerCase().trim();
-      const filtered = q
-        ? records.filter((r) => r.name?.toLowerCase().includes(q))
-        : records;
-      return filtered.map((record) => ({
-        value: record.name,
-        id: record.record_id,
-        parsed_path: record.parsed_path,
-      }));
-    } catch (err) {
-      console.error("Failed to fetch mention options:", err);
-      return [];
-    }
+    nodes: [MentionNode],
   };
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className={cn("relative min-h-[24px] flex-1 min-w-[120px]", className)}>
-        <RichTextPlugin
-          contentEditable={
-            <ContentEditable
-              className="outline-none min-h-[24px] py-2 px-3 text-sm"
+      <PlainTextPlugin
+        contentEditable={
+          <ContentEditable
+              className={cn(
+                "placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground min-h-[24px] w-full min-w-0 outline-none",
+                className
+              )}
               aria-placeholder={placeholder}
               placeholder={
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none text-sm">
+                <div className="pointer-events-none absolute left-0 top-0 text-muted-foreground">
                   {placeholder}
                 </div>
               }
+              onKeyDown={onKeyDown}
             />
+          }
+          placeholder={
+            <div className="pointer-events-none absolute left-0 top-0 text-muted-foreground">
+              {placeholder}
+            </div>
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
+        <SyncValuePlugin value={value} />
+        <OnChangeWrapper onChange={onChange} />
         <HistoryPlugin />
-        {onChange && <OnChangePlugin onChange={onChange} />}
-        <BeautifulMentionsPlugin
-          triggers={["@"]}
-          onSearch={handleSearch}
-          creatable={false}
-          allowSpaces={false}
-        />
-      </div>
-    </LexicalComposer>
+      </LexicalComposer>
   );
 }
+
+export { LexicalEditor };
