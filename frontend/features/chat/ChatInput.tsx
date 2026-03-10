@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/shared/ui/button";
 import { LexicalEditor, type LexicalEditorHandle } from "./LexicalEditor";
 import { FileChip } from "./FileChip";
-import { MentionChip, type MentionItem } from "./MentionChip";
+import type { MentionItem } from "./MentionChip";
 import { ChatMentionPopover } from "./ChatMentionPopover";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { Upload } from "lucide-react";
@@ -21,9 +21,6 @@ interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
-  // 提及标签（方式 A：标签在左，输入在右）
-  mentions?: MentionItem[];
-  onMentionsChange?: (mentions: MentionItem[]) => void;
   // 文件管理（可选）
   files?: FileItem[];
   onFilesDropped?: (files: FileList) => void; // 拖拽文件回调
@@ -92,8 +89,6 @@ export function ChatInput({
   value,
   onChange,
   onSend,
-  mentions = [],
-  onMentionsChange,
   files,
   onFilesDropped,
   onFileRemove,
@@ -105,8 +100,7 @@ export function ChatInput({
 
   const hasFiles: boolean = (files && files.length > 0) || false;
   const hasText: boolean = value.trim().length > 0;
-  const hasMentions: boolean = mentions.length > 0;
-  const hasContent: boolean = hasText || hasMentions;
+  const hasContent: boolean = hasText;
   const isSendDisabled: boolean = isSending || (!hasFiles && !hasContent);
 
 
@@ -115,13 +109,8 @@ export function ChatInput({
   };
 
   const handleMentionSelect = (item: MentionItem) => {
-    onMentionsChange?.([...mentions, item]);
     lexicalRef.current?.insertMention(item);
     setMentionOpen(false);
-  };
-
-  const handleMentionRemove = (id: string) => {
-    onMentionsChange?.(mentions.filter((m) => m.id !== id));
   };
 
   return (
@@ -151,22 +140,14 @@ export function ChatInput({
         onSelect={handleMentionSelect}
       >
         <div className="flex flex-nowrap items-stretch gap-2 p-2">
-          <div className="flex flex-wrap flex-1 min-w-0 items-center gap-1">
-            {mentions.map((m) => (
-              <MentionChip
-                key={m.id}
-                id={m.id}
-                label={m.label}
-                onRemove={() => handleMentionRemove(m.id)}
-              />
-            ))}
+          <div className="flex flex-1 min-w-0">
             <LexicalEditor
               ref={lexicalRef}
               className="flex-1 min-w-[120px] border-none focus-visible:ring-0 shadow-none"
               value={value}
               onChange={handleInputChange}
               onMentionTriggerChange={setMentionOpen}
-              placeholder={hasMentions ? "" : "Type messages ..."}
+              placeholder="Type messages ..."
               onKeyDown={(e) => {
                 if (mentionOpen) return;
                 if (e.key === "Enter" && !e.shiftKey) {
