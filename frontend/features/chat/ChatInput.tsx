@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/shared/ui/button";
-import { AutoExpandTextarea } from "./AutoExpandTextarea";
+import { LexicalEditor } from "./LexicalEditor";
 import { FileChip } from "./FileChip";
 import { MentionChip, type MentionItem } from "./MentionChip";
 import { ChatMentionPopover } from "./ChatMentionPopover";
@@ -101,7 +101,6 @@ export function ChatInput({
 }: ChatInputProps) {
   const { isDragging, dragHandlers } = useDragAndDrop(onFilesDropped);
   const [mentionOpen, setMentionOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasFiles: boolean = (files && files.length > 0) || false;
   const hasText: boolean = value.trim().length > 0;
@@ -109,37 +108,11 @@ export function ChatInput({
   const hasContent: boolean = hasText || hasMentions;
   const isSendDisabled: boolean = isSending || (!hasFiles && !hasContent);
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      const lineHeight = 24;
-      const maxLines = 5;
-      const maxHeight = lineHeight * maxLines;
-      const scrollHeight = textareaRef.current.scrollHeight;
-      
-      if (scrollHeight <= maxHeight) {
-        textareaRef.current.style.height = `${scrollHeight}px`;
-        textareaRef.current.style.overflowY = "hidden";
-      } else {
-        textareaRef.current.style.height = `${maxHeight}px`;
-        textareaRef.current.style.overflowY = "auto";
-      }
-    }
-  }, [value]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
+  const handleInputChange = (val: string) => {
     onChange(val);
-
-    const cursorPos = e.target.selectionStart ?? val.length;
-    const textBeforeCursor = val.slice(0, cursorPos);
-    const match = textBeforeCursor.match(/@(\S*)$/);
-
-    if (match) {
-      setMentionOpen(true);
-    } else {
-      setMentionOpen(false);
-    }
+    const match = val.match(/@(\S*)$/);
+    setMentionOpen(!!match);
   };
 
   const handleMentionSelect = (item: MentionItem) => {
@@ -180,31 +153,31 @@ export function ChatInput({
         onOpenChange={setMentionOpen}
         onSelect={handleMentionSelect}
       >
-        <div className="flex flex-wrap items-center gap-1 p-2">
-          {mentions.map((m) => (
-            <MentionChip
-              key={m.id}
-              id={m.id}
-              label={m.label}
-              onRemove={() => handleMentionRemove(m.id)}
+        <div className="flex flex-nowrap items-stretch gap-2 p-2">
+          <div className="flex flex-wrap flex-1 min-w-0 items-center gap-1">
+            {mentions.map((m) => (
+              <MentionChip
+                key={m.id}
+                id={m.id}
+                label={m.label}
+                onRemove={() => handleMentionRemove(m.id)}
+              />
+            ))}
+            <LexicalEditor
+              className="flex-1 min-w-[120px] border-none focus-visible:ring-0 shadow-none"
+              value={value}
+              onChange={handleInputChange}
+              placeholder={hasMentions ? "" : "Type messages ..."}
+              onKeyDown={(e) => {
+                if (mentionOpen) return;
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  onSend();
+                }
+              }}
             />
-          ))}
-          <AutoExpandTextarea
-            ref={textareaRef}
-            className="flex-1 min-w-[120px] border-none focus-visible:ring-0 shadow-none min-h-[24px]"
-            value={value}
-            onChange={handleInputChange}
-            onKeyDown={(e) => {
-              if (mentionOpen) return;
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                onSend();
-              }
-            }}
-            placeholder={hasMentions ? "" : "Type messages ..."}
-            rows={1}
-          />
-          <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
+          </div>
+          <Button size="sm" className="shrink-0 self-end text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
             Send
           </Button>
         </div>
