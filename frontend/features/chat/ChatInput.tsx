@@ -157,7 +157,15 @@ export function ChatInput({
               }}
             />
           </div>
-          <Button size="sm" className="shrink-0 self-end text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
+          <Button
+            size="sm"
+            className="shrink-0 self-end text-xs gap-2.5"
+            onClick={() => {
+              onSend();
+              lexicalRef.current?.clear();
+            }}
+            disabled={isSendDisabled}
+          >
             Send
           </Button>
         </div>
