@@ -5,6 +5,7 @@
 协议约定：
   chunk: {"event": "chunk", "data": {"content": "..."}}
   done:  {"event": "done",  "data": {"session_id": "...", ...extra}}
+  thinking_start: {"event": "thinking_start", "data": {}}
 """
 import json
 from typing import Any, Dict, Optional
@@ -19,3 +20,7 @@ def build_stream_done(session_id: str, extra: Optional[Dict[str, Any]] = None) -
     if extra:
         data.update(extra)
     return json.dumps({"event": "done", "data": data}) + "\n"
+
+
+def build_thinking_start() -> str:
+    return json.dumps({"event": "thinking_start", "data": {}}) + "\n"
