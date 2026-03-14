@@ -6,6 +6,7 @@
   chunk: {"event": "chunk", "data": {"content": "..."}}
   done:  {"event": "done",  "data": {"session_id": "...", ...extra}}
   thinking_start: {"event": "thinking_start", "data": {}}
+  thinking_chunk: {"event": "thinking_chunk", "data": {"content": "..."}}
 """
 import json
 from typing import Any, Dict, Optional
@@ -24,3 +25,7 @@ def build_stream_done(session_id: str, extra: Optional[Dict[str, Any]] = None) -
 
 def build_thinking_start() -> str:
     return json.dumps({"event": "thinking_start", "data": {}}) + "\n"
+
+
+def build_thinking_chunk(content: str) -> str:
+    return json.dumps({"event": "thinking_chunk", "data": {"content": content}}) + "\n"
