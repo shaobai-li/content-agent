@@ -7,6 +7,7 @@
   done:  {"event": "done",  "data": {"session_id": "...", ...extra}}
   thinking_start: {"event": "thinking_start", "data": {}}
   thinking_chunk: {"event": "thinking_chunk", "data": {"content": "..."}}
+  thinking_end: {"event": "thinking_end", "data": {}}
 """
 import json
 from typing import Any, Dict, Optional
@@ -29,3 +30,7 @@ def build_thinking_start() -> str:
 
 def build_thinking_chunk(content: str) -> str:
     return json.dumps({"event": "thinking_chunk", "data": {"content": content}}) + "\n"
+
+
+def build_thinking_end() -> str:
+    return json.dumps({"event": "thinking_end", "data": {}}) + "\n"
