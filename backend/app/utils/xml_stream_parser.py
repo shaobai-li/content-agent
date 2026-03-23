@@ -72,12 +72,13 @@ class XmlStreamParser:
     TAG_RESPONSE_START = "<response>"
     TAG_RESPONSE_END = "</response>"
 
-    def __init__(self):
+    def __init__(self, emit_plain_text: bool = True):
         self.state = self.STATE_IDLE
         self.buffer = ""               # 未处理的缓冲区
         self.events: List[StreamEvent] = []  # 解析出的事件
         self.plan_step_index = 0       # 当前 plan step 的序号
         self.incomplete_tag_buffer = ""  # 可能不完整的标签缓冲区
+        self.emit_plain_text = emit_plain_text  # 无标签时是否输出普通 chunk
 
     def feed(self, chunk: str) -> None:
         """
@@ -148,16 +149,33 @@ class XmlStreamParser:
             positions.append((response_pos, self.TAG_RESPONSE_START, self.STATE_RESPONSE))
 
         if not positions:
-            # 没有完整的开始标签，保留最后几个字符（可能是不完整标签）
-            self._preserve_incomplete_tag()
+            # 没有完整的开始标签
+            if self.emit_plain_text and self.buffer:
+                # 输出普通 chunk（保留可能的不完整标签）
+                content = self._extract_content_preserving_tags()
+                if content:
+                    self.events.append(StreamEvent(
+                        event="chunk",
+                        data={"content": content}
+                    ))
+            else:
+                # 保留最后几个字符（可能是不完整标签）
+                self._preserve_incomplete_tag()
             return False
 
         # 按位置排序，取第一个
         positions.sort(key=lambda x: x[0])
         pos, tag, new_state = positions[0]
 
-        # 如果标签前有内容，丢弃（或作为普通文本）
+        # 如果标签前有内容，作为普通文本输出（如果启用了 emit_plain_text）
         if pos > 0:
+            if self.emit_plain_text:
+                plain_content = self.buffer[:pos]
+                if plain_content:
+                    self.events.append(StreamEvent(
+                        event="chunk",
+                        data={"content": plain_content}
+                    ))
             self.buffer = self.buffer[pos:]
 
         # 切换到新状态
@@ -464,9 +482,9 @@ class XmlStreamParser:
 
 # 便利函数，用于直接转换事件为 stream_service 格式
 
-def create_xml_parser() -> XmlStreamParser:
+def create_xml_parser(emit_plain_text: bool = True) -> XmlStreamParser:
     """创建新的 XML 流式解析器实例"""
-    return XmlStreamParser()
+    return XmlStreamParser(emit_plain_text=emit_plain_text)
 
 
 async def parse_xml_stream(llm_stream) -> str:

@@ -9,6 +9,7 @@ from app.service.agent_chat_service import save_chat_session
 from app.utils.article_parser import extract_article_content
 from app.service.stream_service import build_stream_chunk, build_stream_done
 from app.utils.context_utils import parse_mentions, build_user_message_with_mentions, get_article_context_messages
+from app.utils.xml_stream_parser import XmlStreamParser
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
 _SKILL_PATH = Path(__file__).parent / "skills"
@@ -95,12 +96,12 @@ class WriteAgent(BaseAgent):
         attachments: Optional[List[UploadFile]] = None,
         mentions: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
-        """写作 Agent 的流式输出：保留"先规划再执行"的两阶段结构。"""
+        """写作 Agent 的流式输出：使用 XML 解析器的四阶段结构。"""
         import uuid
 
         system_prompt = self.system_prompt
         draft_skill = load_skill(_SKILL_PATH, "article-draft-generator")
-        refine_skill = load_skill(_SKILL_PATH,  "article-critic-refiner")  
+        refine_skill = load_skill(_SKILL_PATH, "article-critic-refiner")
 
         run_id = uuid.uuid4().hex
         cache_dir = Path("test/cache")
@@ -110,19 +111,26 @@ class WriteAgent(BaseAgent):
             {"role": "system", "content": system_prompt},
             {"role": "assistant", "content": draft_skill},
         ]
-        
+
         mentions_list = parse_mentions(mentions)
         article_messages = get_article_context_messages(mentions_list)
         messages.extend(article_messages)
-        
+
         user_text = build_user_message_with_mentions(text or "", mentions_list)
         messages.append({"role": "user", "content": user_text})
 
-        # 第一阶段：生成大纲(plan)，边生成边输出
+        # 第一阶段：生成大纲(plan)，使用 XML 解析器
         plan_parts: List[str] = []
+        plan_parser = XmlStreamParser(emit_plain_text=True)
         async for token in deepseek_chat_stream(messages=messages):
             plan_parts.append(token)
-            yield build_stream_chunk(token)
+            plan_parser.feed(token)
+            for event in plan_parser.get_events():
+                yield event.to_stream_line()
+
+        # 流结束，处理剩余内容
+        for event in plan_parser.finalize():
+            yield event.to_stream_line()
 
         plan_reply = "".join(plan_parts)
         plan_path = cache_dir / f"plan_{run_id}.md"
@@ -130,11 +138,17 @@ class WriteAgent(BaseAgent):
 
         messages.append({"role": "assistant", "content": plan_reply})
 
-        # 第二阶段：根据大纲生成执行稿(execution)，同样流式输出
+        # 第二阶段：根据大纲生成执行稿(execution)，使用 XML 解析器
         execution_parts: List[str] = []
+        execution_parser = XmlStreamParser(emit_plain_text=True)
         async for token in deepseek_chat_stream(messages=messages):
             execution_parts.append(token)
-            yield build_stream_chunk(token)
+            execution_parser.feed(token)
+            for event in execution_parser.get_events():
+                yield event.to_stream_line()
+
+        for event in execution_parser.finalize():
+            yield event.to_stream_line()
 
         execution_reply = "".join(execution_parts)
         execute_path = cache_dir / f"excute_{run_id}.md"
@@ -145,34 +159,43 @@ class WriteAgent(BaseAgent):
 
         article_content = extract_article_content(reply)
 
-
-
-        # 第三阶段：Refine文章(plan)，边生成边输出
-
-        messages: List[Dict[str, str]] = [
+        # 第三阶段：Refine文章(plan)，使用 XML 解析器
+        messages = [
             {"role": "system", "content": system_prompt},
             {"role": "assistant", "content": refine_skill},
         ]
 
         messages.extend(article_messages)
         messages.append({"role": "user", "content": execution_reply})
-        
+
         refine_plan_parts: List[str] = []
+        refine_plan_parser = XmlStreamParser(emit_plain_text=True)
         async for token in deepseek_chat_stream(messages=messages):
             refine_plan_parts.append(token)
-            yield build_stream_chunk(token)
+            refine_plan_parser.feed(token)
+            for event in refine_plan_parser.get_events():
+                yield event.to_stream_line()
+
+        for event in refine_plan_parser.finalize():
+            yield event.to_stream_line()
 
         refine_plan_reply = "".join(refine_plan_parts)
         refine_plan_path = cache_dir / f"refine_plan_{run_id}.md"
         refine_plan_path.write_text(refine_plan_reply, encoding="utf-8")
-        
+
         messages.append({"role": "assistant", "content": refine_plan_reply})
 
-        # 第四阶段：Refine文章(execution)，边生成边输出 
+        # 第四阶段：Refine文章(execution)，使用 XML 解析器
         refine_execution_parts: List[str] = []
+        refine_execution_parser = XmlStreamParser(emit_plain_text=True)
         async for token in deepseek_chat_stream(messages=messages):
             refine_execution_parts.append(token)
-            yield build_stream_chunk(token)
+            refine_execution_parser.feed(token)
+            for event in refine_execution_parser.get_events():
+                yield event.to_stream_line()
+
+        for event in refine_execution_parser.finalize():
+            yield event.to_stream_line()
 
         refine_execution_reply = "".join(refine_execution_parts)
         refine_execution_path = cache_dir / f"refine_execution_{run_id}.md"
