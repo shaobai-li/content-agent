@@ -142,28 +142,87 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
         });
 
         for await (const event of readStreamLines(response)) {
-          if (event.event === "chunk") {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMsgId
-                  ? { ...m, content: m.content + event.data.content }
-                  : m
-              )
-            );
-          } else if (event.event === "done") {
-            const { session_id: newSessionId, article } = event.data;
+          switch (event.event) {
+            case "chunk":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, content: m.content + event.data.content }
+                    : m
+                )
+              );
+              break;
+            case "thinking_start":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, thinking: "", metadata: { ...m.metadata, thinkingComplete: false } }
+                    : m
+                )
+              );
+              break;
+            case "thinking_chunk":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, thinking: (m.thinking || "") + event.data.content }
+                    : m
+                )
+              );
+              break;
+            case "thinking_end":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, metadata: { ...m.metadata, thinkingComplete: true } }
+                    : m
+                )
+              );
+              break;
+            case "plan_start":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, plan: [], metadata: { ...m.metadata, planComplete: false } }
+                    : m
+                )
+              );
+              break;
+            case "plan_item":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, plan: [...(m.plan || []), event.data.step] }
+                    : m
+                )
+              );
+              break;
+            case "plan_end":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, metadata: { ...m.metadata, planComplete: true } }
+                    : m
+                )
+              );
+              break;
+            case "done":
+              {
+                const { session_id: newSessionId, article } = event.data;
 
-            console.log("[session_id 验证] 响应 session_id:", newSessionId);
-            if (newSessionId) setCurrentSessionId(newSessionId as string);
+                console.log("[session_id 验证] 响应 session_id:", newSessionId);
+                if (newSessionId) setCurrentSessionId(newSessionId as string);
 
-            if (article) {
-              localStorage.setItem(`agent-${agentId}-article`, article as string);
-              window.dispatchEvent(new CustomEvent("article-update", {
-                detail: { agentId, article },
-              }));
-            }
+                if (article) {
+                  localStorage.setItem(`agent-${agentId}-article`, article as string);
+                  window.dispatchEvent(new CustomEvent("article-update", {
+                    detail: { agentId, article },
+                  }));
+                }
 
-            window.dispatchEvent(new CustomEvent("session-refresh"));
+                window.dispatchEvent(new CustomEvent("session-refresh"));
+              }
+              break;
           }
         }
       }
