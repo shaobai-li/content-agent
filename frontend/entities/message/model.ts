@@ -5,6 +5,9 @@ export interface Message {
   role: MessageRole;
   content: string;
   type?: "text" | "file";
+  thinking?: string;
+  plan?: string[];
+  metadata?: { thinkingComplete?: boolean; planComplete?: boolean };
 }
 
 export type FileStatus = "uploading" | "processing" | "done" | "error";
