@@ -134,6 +134,10 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
           id: assistantMsgId,
           role: "assistant",
           content: "",
+          metadata: {
+            thinkingComplete: true,
+            planComplete: true,
+          },
         }]);
 
         const response = await fetch(streamEndpoint, {

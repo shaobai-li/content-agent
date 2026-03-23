@@ -270,22 +270,8 @@ class XmlStreamParser:
         end_pos = self.buffer.find(self.TAG_STEP_END)
 
         if end_pos == -1:
-            # 检查是否可能是不完整的结束标签
-            if self._is_potential_incomplete_tag(self.TAG_STEP_END):
-                self._preserve_incomplete_tag()
-                return False
-
-            # 输出当前内容为 plan_item
-            content = self.buffer.strip()
-            if content:
-                self.events.append(StreamEvent(
-                    event="plan_item",
-                    data={
-                        "step": content,
-                        "index": self.plan_step_index
-                    }
-                ))
-                self.buffer = ""
+            # 没有找到结束标签，等待更多内容
+            # 不输出部分内容，避免重复
             return False
 
         # 找到结束标签
@@ -355,16 +341,23 @@ class XmlStreamParser:
 
     def _extract_content_preserving_tags(self) -> str:
         """
-        提取内容，但保留可能的不完整结束标签
+        提取内容，但保留可能的不完整标签（包括开始标签和结束标签）
 
         Returns:
             可以安全输出的内容
         """
-        # 检查是否是潜在的不完整标签
-        for end_tag in [self.TAG_THINKING_END, self.TAG_STEP_END, self.TAG_RESPONSE_END]:
-            if self._is_potential_incomplete_tag(end_tag):
+        # 检查是否是潜在的不完整标签（包括开始标签和结束标签）
+        all_tags = [
+            self.TAG_THINKING_START, self.TAG_THINKING_END,
+            self.TAG_PLAN_START, self.TAG_PLAN_END,
+            self.TAG_STEP_START, self.TAG_STEP_END,
+            self.TAG_RESPONSE_START, self.TAG_RESPONSE_END,
+        ]
+        
+        for tag in all_tags:
+            if self._is_potential_incomplete_tag(tag):
                 # 保留可能包含不完整标签的内容
-                safe_length = len(self.buffer) - len(end_tag) + 1
+                safe_length = len(self.buffer) - len(tag) + 1
                 if safe_length > 0:
                     content = self.buffer[:safe_length]
                     self.buffer = self.buffer[safe_length:]
