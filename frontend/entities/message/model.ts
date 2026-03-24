@@ -1,13 +1,16 @@
 export type MessageRole = "user" | "assistant";
 
+export type MessagePart =
+  | { type: "text"; content: string }
+  | { type: "thinking"; content: string; complete: boolean }
+  | { type: "plan"; steps: string[]; complete: boolean };
+
 export interface Message {
   id: string;
   role: MessageRole;
   content: string;
   type?: "text" | "file";
-  thinking?: string;
-  plan?: string[];
-  metadata?: { thinkingComplete?: boolean; planComplete?: boolean };
+  parts?: MessagePart[];
 }
 
 export type FileStatus = "uploading" | "processing" | "done" | "error";
