@@ -134,6 +134,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
           id: assistantMsgId,
           role: "assistant",
           content: "",
+          parts: [],
         }]);
 
         const response = await fetch(streamEndpoint, {
@@ -142,28 +143,111 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
         });
 
         for await (const event of readStreamLines(response)) {
-          if (event.event === "chunk") {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMsgId
-                  ? { ...m, content: m.content + event.data.content }
-                  : m
-              )
-            );
-          } else if (event.event === "done") {
-            const { session_id: newSessionId, article } = event.data;
+          switch (event.event) {
+            case "chunk":
+              setMessages((prev) =>
+                prev.map((m) => {
+                  if (m.id !== assistantMsgId) return m;
+                  const parts = [...(m.parts || [])];
+                  const last = parts[parts.length - 1];
+                  if (last && last.type === "text") {
+                    parts[parts.length - 1] = { ...last, content: last.content + event.data.content };
+                  } else {
+                    parts.push({ type: "text", content: event.data.content });
+                  }
+                  return { ...m, parts };
+                })
+              );
+              break;
+            case "thinking_start":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, parts: [...(m.parts || []), { type: "thinking", content: "", complete: false }] }
+                    : m
+                )
+              );
+              break;
+            case "thinking_chunk":
+              setMessages((prev) =>
+                prev.map((m) => {
+                  if (m.id !== assistantMsgId) return m;
+                  const parts = [...(m.parts || [])];
+                  const lastIdx = parts.length - 1;
+                  if (lastIdx >= 0 && parts[lastIdx].type === "thinking") {
+                    const p = parts[lastIdx] as { type: "thinking"; content: string; complete: boolean };
+                    parts[lastIdx] = { ...p, content: p.content + event.data.content };
+                  }
+                  return { ...m, parts };
+                })
+              );
+              break;
+            case "thinking_end":
+              setMessages((prev) =>
+                prev.map((m) => {
+                  if (m.id !== assistantMsgId) return m;
+                  const parts = [...(m.parts || [])];
+                  const lastIdx = parts.length - 1;
+                  if (lastIdx >= 0 && parts[lastIdx].type === "thinking") {
+                    parts[lastIdx] = { ...parts[lastIdx], complete: true };
+                  }
+                  return { ...m, parts };
+                })
+              );
+              break;
+            case "plan_start":
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, parts: [...(m.parts || []), { type: "plan", steps: [], complete: false }] }
+                    : m
+                )
+              );
+              break;
+            case "plan_item":
+              setMessages((prev) =>
+                prev.map((m) => {
+                  if (m.id !== assistantMsgId) return m;
+                  const parts = [...(m.parts || [])];
+                  const lastIdx = parts.length - 1;
+                  if (lastIdx >= 0 && parts[lastIdx].type === "plan") {
+                    const p = parts[lastIdx] as { type: "plan"; steps: string[]; complete: boolean };
+                    parts[lastIdx] = { ...p, steps: [...p.steps, event.data.step] };
+                  }
+                  return { ...m, parts };
+                })
+              );
+              break;
+            case "plan_end":
+              setMessages((prev) =>
+                prev.map((m) => {
+                  if (m.id !== assistantMsgId) return m;
+                  const parts = [...(m.parts || [])];
+                  const lastIdx = parts.length - 1;
+                  if (lastIdx >= 0 && parts[lastIdx].type === "plan") {
+                    parts[lastIdx] = { ...parts[lastIdx], complete: true };
+                  }
+                  return { ...m, parts };
+                })
+              );
+              break;
+            case "done":
+              {
+                const { session_id: newSessionId, article } = event.data;
 
-            console.log("[session_id 验证] 响应 session_id:", newSessionId);
-            if (newSessionId) setCurrentSessionId(newSessionId as string);
+                console.log("[session_id 验证] 响应 session_id:", newSessionId);
+                if (newSessionId) setCurrentSessionId(newSessionId as string);
 
-            if (article) {
-              localStorage.setItem(`agent-${agentId}-article`, article as string);
-              window.dispatchEvent(new CustomEvent("article-update", {
-                detail: { agentId, article },
-              }));
-            }
+                if (article) {
+                  localStorage.setItem(`agent-${agentId}-article`, article as string);
+                  window.dispatchEvent(new CustomEvent("article-update", {
+                    detail: { agentId, article },
+                  }));
+                }
 
-            window.dispatchEvent(new CustomEvent("session-refresh"));
+                window.dispatchEvent(new CustomEvent("session-refresh"));
+              }
+              break;
           }
         }
       }
