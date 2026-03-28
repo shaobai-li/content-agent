@@ -110,7 +110,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
   };
 
   return (
-    <div className="w-100 flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <ChatHeader />
       <div className="flex-1 min-h-0 flex flex-col">
         <ScrollArea className="flex-1 min-h-0 border p-4 bg-neutral-50">
