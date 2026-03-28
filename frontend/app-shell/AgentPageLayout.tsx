@@ -24,7 +24,7 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody }: AgentPageLayo
         <div
             className="h-full flex-grow grid transition-[grid-template-columns] duration-300 ease-in-out"
             style={{
-                gridTemplateColumns: isCollapsed ? "0fr auto" : "1fr auto",
+                gridTemplateColumns: isCollapsed ? "0fr 1fr" : "1fr 25rem",
             }}
         >
             {/* 左侧面板 */}
