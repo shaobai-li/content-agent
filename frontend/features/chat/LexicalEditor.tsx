@@ -41,8 +41,9 @@ function MentionMenu({ loading, ...props }: BeautifulMentionsMenuProps) {
   return (
     <ul
       {...props}
+      style={{ ...props.style, transform: "translateY(-100%) translateY(-28px)" }}
       className={cn(
-        "z-50 m-0 mt-2 max-h-72 min-w-[260px] overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+        "z-50 m-0 max-h-72 min-w-[260px] overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
         props.className
       )}
     >
