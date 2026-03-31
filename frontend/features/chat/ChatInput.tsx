@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
+import { $getRoot, type EditorState } from "lexical";
+import { LexicalEditor } from "./LexicalEditor";
 import { Button } from "@/shared/ui/button";
-import { AutoExpandTextarea } from "./AutoExpandTextarea";
 import { FileChip } from "./FileChip";
-import { MentionChip, type MentionItem } from "./MentionChip";
-import { ChatMentionPopover } from "./ChatMentionPopover";
+import type { MentionItem } from "./MentionChip";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { Upload } from "lucide-react";
 
@@ -100,8 +100,6 @@ export function ChatInput({
   isSending,
 }: ChatInputProps) {
   const { isDragging, dragHandlers } = useDragAndDrop(onFilesDropped);
-  const [mentionOpen, setMentionOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasFiles: boolean = (files && files.length > 0) || false;
   const hasText: boolean = value.trim().length > 0;
@@ -109,49 +107,55 @@ export function ChatInput({
   const hasContent: boolean = hasText || hasMentions;
   const isSendDisabled: boolean = isSending || (!hasFiles && !hasContent);
 
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      const lineHeight = 24;
-      const maxLines = 5;
-      const maxHeight = lineHeight * maxLines;
-      const scrollHeight = textareaRef.current.scrollHeight;
-      
-      if (scrollHeight <= maxHeight) {
-        textareaRef.current.style.height = `${scrollHeight}px`;
-        textareaRef.current.style.overflowY = "hidden";
-      } else {
-        textareaRef.current.style.height = `${maxHeight}px`;
-        textareaRef.current.style.overflowY = "auto";
+  const extractMentionsFromState = (state: EditorState): MentionItem[] => {
+    const json = state.toJSON() as {
+      root?: { children?: unknown[] };
+    };
+    const result: MentionItem[] = [];
+    const seen = new Set<string>();
+
+    const walk = (nodes: unknown[]) => {
+      for (const node of nodes) {
+        if (!node || typeof node !== "object") continue;
+        const typedNode = node as {
+          type?: string;
+          value?: string;
+          data?: { id?: string; parsed_path?: string };
+          children?: unknown[];
+        };
+
+        if (typedNode.type === "beautifulMention") {
+          const id = typedNode.data?.id || typedNode.value || "";
+          const label = typedNode.value || "";
+          if (!id || !label) continue;
+
+          const key = `${id}::${label}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+
+          result.push({
+            id,
+            label,
+            parsed_path: typedNode.data?.parsed_path,
+          });
+        }
+
+        if (Array.isArray(typedNode.children)) {
+          walk(typedNode.children);
+        }
       }
+    };
+
+    if (Array.isArray(json.root?.children)) {
+      walk(json.root.children);
     }
-  }, [value]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    onChange(val);
-
-    const cursorPos = e.target.selectionStart ?? val.length;
-    const textBeforeCursor = val.slice(0, cursorPos);
-    const match = textBeforeCursor.match(/@(\S*)$/);
-
-    if (match) {
-      setMentionOpen(true);
-    } else {
-      setMentionOpen(false);
-    }
+    return result;
   };
 
-  const handleMentionSelect = (item: MentionItem) => {
-    onMentionsChange?.([...mentions, item]);
-    const match = value.match(/@\S*$/);
-    if (match) {
-      onChange(value.slice(0, value.length - match[0].length));
-    }
-  };
-
-  const handleMentionRemove = (id: string) => {
-    onMentionsChange?.(mentions.filter((m) => m.id !== id));
+  const handleEditorChange = (editorState: EditorState) => {
+    const text = editorState.read(() => $getRoot().getTextContent());
+    onChange(text);
+    onMentionsChange?.(extractMentionsFromState(editorState));
   };
 
   return (
@@ -175,40 +179,18 @@ export function ChatInput({
         </div>
       )}
 
-      <ChatMentionPopover
-        open={mentionOpen}
-        onOpenChange={setMentionOpen}
-        onSelect={handleMentionSelect}
-      >
-        <div className="flex flex-wrap items-center gap-1 p-2">
-          {mentions.map((m) => (
-            <MentionChip
-              key={m.id}
-              id={m.id}
-              label={m.label}
-              onRemove={() => handleMentionRemove(m.id)}
-            />
-          ))}
-          <AutoExpandTextarea
-            ref={textareaRef}
-            className="flex-1 min-w-[120px] border-none focus-visible:ring-0 shadow-none min-h-[24px]"
-            value={value}
-            onChange={handleInputChange}
-            onKeyDown={(e) => {
-              if (mentionOpen) return;
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                onSend();
-              }
-            }}
-            placeholder={hasMentions ? "" : "Type messages ..."}
-            rows={1}
-          />
-          <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
-            Send
-          </Button>
-        </div>
-      </ChatMentionPopover>
+      <div className="flex flex-wrap items-center gap-1 p-2">
+        <LexicalEditor
+          className="flex-1 min-w-[120px]"
+          placeholder="Type messages ..."
+          value={value}
+          onChange={handleEditorChange}
+          onEnter={onSend}
+        />
+        <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
+          Send
+        </Button>
+      </div>
     </div>
   );
 }
