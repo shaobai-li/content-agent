@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { forwardRef, useEffect } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
@@ -19,10 +19,13 @@ import {
 import {
   BeautifulMentionNode,
   BeautifulMentionsPlugin,
+  type BeautifulMentionsMenuItemProps,
+  type BeautifulMentionsMenuProps,
   type BeautifulMentionsTheme,
 } from "lexical-beautiful-mentions";
 import { fetchKbRecords } from "@/shared/api/records";
 import { cn } from "@/shared/lib/cn";
+import { BookOpen } from "lucide-react";
 
 const beautifulMentionsTheme: BeautifulMentionsTheme = {
   "@": "px-1.5 py-0.5 mx-px rounded bg-primary/10 text-primary text-[11px] font-medium",
@@ -33,6 +36,46 @@ const editorTheme = {
   paragraph: "m-0",
   beautifulMentions: beautifulMentionsTheme,
 };
+
+function MentionMenu({ loading, ...props }: BeautifulMentionsMenuProps) {
+  return (
+    <ul
+      {...props}
+      className={cn(
+        "z-50 m-0 mt-2 max-h-72 min-w-[260px] overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
+        props.className
+      )}
+    >
+      {loading && <li className="px-2 py-1.5 text-sm text-muted-foreground">Loading...</li>}
+      {props.children}
+    </ul>
+  );
+}
+
+const MentionMenuItem = forwardRef<HTMLLIElement, BeautifulMentionsMenuItemProps>(
+  ({ selected, item, ...props }, ref) => (
+    <li
+      {...props}
+      ref={ref}
+      className={cn(
+        "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden",
+        selected && "bg-accent text-accent-foreground",
+        !selected && "text-foreground",
+        props.className
+      )}
+    >
+      <BookOpen className="size-4 shrink-0 text-muted-foreground" />
+      <span className="truncate" title={item.value}>
+        {item.value}
+      </span>
+    </li>
+  )
+);
+MentionMenuItem.displayName = "MentionMenuItem";
+
+function MentionEmpty() {
+  return <div className="px-2 py-6 text-center text-sm text-muted-foreground">No articles available</div>;
+}
 
 function onError(error: Error) {
   console.error("Lexical editor error:", error);
@@ -157,6 +200,9 @@ export function LexicalEditor({
           onSearch={handleSearch}
           creatable={false}
           allowSpaces={false}
+          menuComponent={MentionMenu}
+          menuItemComponent={MentionMenuItem}
+          emptyComponent={MentionEmpty}
         />
       </div>
     </LexicalComposer>
