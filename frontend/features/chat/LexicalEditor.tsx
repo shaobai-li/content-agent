@@ -1,12 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import type { EditorState } from "lexical";
+import {
+  $createParagraphNode,
+  $createTextNode,
+  $getRoot,
+  COMMAND_PRIORITY_LOW,
+  KEY_ENTER_COMMAND,
+  type EditorState,
+} from "lexical";
 import {
   BeautifulMentionNode,
   BeautifulMentionsPlugin,
@@ -22,7 +31,6 @@ const beautifulMentionsTheme: BeautifulMentionsTheme = {
 
 const editorTheme = {
   paragraph: "m-0",
-  text: "text-sm",
   beautifulMentions: beautifulMentionsTheme,
 };
 
@@ -34,13 +42,65 @@ export interface LexicalEditorProps {
   className?: string;
   placeholder?: string;
   onChange?: (editorState: EditorState) => void;
+  value?: string;
+  onEnter?: () => void;
   editable?: boolean;
+}
+
+function SyncExternalValuePlugin({ value }: { value: string }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    const currentText = editor.getEditorState().read(() => $getRoot().getTextContent());
+    if (currentText === value) {
+      return;
+    }
+
+    editor.update(() => {
+      const root = $getRoot();
+      root.clear();
+      const paragraph = $createParagraphNode();
+      if (value) {
+        paragraph.append($createTextNode(value));
+      }
+      root.append(paragraph);
+    });
+  }, [editor, value]);
+
+  return null;
+}
+
+function EnterSendPlugin({ onEnter }: { onEnter?: () => void }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    if (!onEnter) {
+      return;
+    }
+
+    return editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event) => {
+        if (event?.shiftKey) {
+          return false;
+        }
+        event?.preventDefault();
+        onEnter();
+        return true;
+      },
+      COMMAND_PRIORITY_LOW
+    );
+  }, [editor, onEnter]);
+
+  return null;
 }
 
 export function LexicalEditor({
   className,
   placeholder = "Type messages ...",
   onChange,
+  value = "",
+  onEnter,
   editable = true,
 }: LexicalEditorProps) {
   const initialConfig = {
@@ -51,7 +111,7 @@ export function LexicalEditor({
     nodes: [BeautifulMentionNode],
   };
 
-  const handleSearch = async (_trigger: string, query: string | null) => {
+  const handleSearch = async (_trigger: string, query?: string | null) => {
     try {
       const response = await fetchKbRecords();
       const records = (response as { records?: Array<{ record_id: string; name: string; parsed_path?: string }> })
@@ -63,7 +123,7 @@ export function LexicalEditor({
       return filtered.map((record) => ({
         value: record.name,
         id: record.record_id,
-        parsed_path: record.parsed_path,
+        ...(record.parsed_path ? { parsed_path: record.parsed_path } : {}),
       }));
     } catch (err) {
       console.error("Failed to fetch mention options:", err);
@@ -90,6 +150,8 @@ export function LexicalEditor({
         />
         <HistoryPlugin />
         {onChange && <OnChangePlugin onChange={onChange} />}
+        <SyncExternalValuePlugin value={value} />
+        <EnterSendPlugin onEnter={onEnter} />
         <BeautifulMentionsPlugin
           triggers={["@"]}
           onSearch={handleSearch}
