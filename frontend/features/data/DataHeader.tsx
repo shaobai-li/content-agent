@@ -1,5 +1,5 @@
 import { Button } from "@/shared/ui/button";
-import { Plus, FolderPlus, Search, CirclePlus } from "lucide-react";
+import { Plus, FolderPlus, Search } from "lucide-react";
 import { Input } from "@/shared/ui/input";
 import {
   DropdownMenu,
@@ -29,9 +29,9 @@ export function DataHeader() {
               variant="ghost"
               size="icon-sm"
               aria-label="Create new item"
-              className="text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             >
-              <CirclePlus className="size-4" strokeWidth={3} />
+              <Plus className="size-4" strokeWidth={3} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-36">
