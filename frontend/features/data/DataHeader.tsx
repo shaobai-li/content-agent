@@ -1,6 +1,13 @@
 import { Button } from "@/shared/ui/button";
-import { Plus, FolderPlus, Search } from "lucide-react";
+import { Plus, FolderPlus, Search, BookOpen, CirclePlus } from "lucide-react";
 import { Input } from "@/shared/ui/input";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/shared/ui/breadcrumb";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,20 +18,40 @@ import {
 export function DataHeader() {
   return (
     <div className="flex flex-row items-center w-full">
-      <h2 className="text-sm font-semibold text-foreground">DATA</h2>
+      <div className="flex items-center gap-6">
+        <h2 className="text-sm font-semibold text-foreground">DATA</h2>
+        <Breadcrumb>
+          <BreadcrumbList className="text-xs">
+            <BreadcrumbItem>
+              <BreadcrumbPage>
+                <BookOpen className="size-4" />
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Current Folder</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
 
       <div className="ml-auto flex items-center gap-4">
         <div className="flex items-center bg-muted rounded-md focus-visible:ring-2 px-4 py-0 text-xs">
           <Search className="w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search data..."
+            placeholder="Search"
             className="h-8 text-xs w-full border-none focus-visible:ring-0 placeholder:text-muted-foreground shadow-none"
           />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="icon-sm" aria-label="Create new item">
-              <Plus className="size-4" strokeWidth={3} />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Create new item"
+              className="text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <CirclePlus className="size-4" strokeWidth={3} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-36">
