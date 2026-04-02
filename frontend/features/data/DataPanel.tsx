@@ -1,6 +1,24 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { BookOpen } from "lucide-react";
+import { Button } from "@/shared/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/shared/ui/breadcrumb";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 import { DataTable } from "./DataTable";
 import type { DataPanelConfig } from "./type";
 
@@ -86,17 +104,59 @@ export function DataPanel({
   }, [refreshEvent, loadData]);
 
   return (
-    <DataTable
-      data={data}
-      rowKeyField={rowKeyField}
-      columnLabels={columnLabels}
-      customRenderers={customRenderers}
-      columnWidths={columnWidths}
-      columnOrder={columnOrder}
-      loading={loading}
-      emptyMessage={emptyMessage}
-      onView={onView}
-      onRemove={handleRemove}
-    />
+    <div className="flex h-full flex-col gap-4">
+      <Breadcrumb>
+        <BreadcrumbList className="text-xs">
+          <BreadcrumbItem>
+            <BreadcrumbPage>
+              <BookOpen className="size-4" />
+            </BreadcrumbPage>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon-sm" variant="ghost">
+                  <BreadcrumbEllipsis />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuGroup>
+                  <DropdownMenuItem>Documentation</DropdownMenuItem>
+                  <DropdownMenuItem>Themes</DropdownMenuItem>
+                  <DropdownMenuItem>GitHub</DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="#">DATA</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="#">Knowledge Base</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Current Folder</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <DataTable
+        data={data}
+        rowKeyField={rowKeyField}
+        columnLabels={columnLabels}
+        customRenderers={customRenderers}
+        columnWidths={columnWidths}
+        columnOrder={columnOrder}
+        loading={loading}
+        emptyMessage={emptyMessage}
+        onView={onView}
+        onRemove={handleRemove}
+      />
+    </div>
   );
 }

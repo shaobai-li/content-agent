@@ -1,13 +1,6 @@
 import { Button } from "@/shared/ui/button";
-import { Plus, FolderPlus, Search, BookOpen, CirclePlus } from "lucide-react";
+import { Plus, FolderPlus, Search, CirclePlus } from "lucide-react";
 import { Input } from "@/shared/ui/input";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/shared/ui/breadcrumb";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,21 +11,8 @@ import {
 export function DataHeader() {
   return (
     <div className="flex flex-row items-center w-full">
-      <div className="flex items-center gap-6">
+      <div className="flex items-center">
         <h2 className="text-sm font-semibold text-foreground">DATA</h2>
-        <Breadcrumb>
-          <BreadcrumbList className="text-xs">
-            <BreadcrumbItem>
-              <BreadcrumbPage>
-                <BookOpen className="size-4" />
-              </BreadcrumbPage>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Current Folder</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
       </div>
 
       <div className="ml-auto flex items-center gap-4">
