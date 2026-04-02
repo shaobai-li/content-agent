@@ -104,8 +104,8 @@ export function DataPanel({
   }, [refreshEvent, loadData]);
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <Breadcrumb>
+    <div className="-mt-2 flex h-full flex-col gap-2">
+      <Breadcrumb className="px-6">
         <BreadcrumbList className="text-xs">
           <BreadcrumbItem>
             <BreadcrumbPage>
