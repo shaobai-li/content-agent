@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
     Table,
     TableBody,
@@ -11,6 +11,15 @@ import {
 } from "@/shared/ui/table";
 import { RowActions } from "./RowActions";
 import { Eye, FolderInput, Trash2 } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/shared/ui/dialog";
+import { Button } from "@/shared/ui/button";
 
 interface InferredColumn {
     key: string;
@@ -45,6 +54,8 @@ export function DataTable({
     onView,
     onRemove,
 }: DataTableProps) {
+    const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+
     const columns = useMemo<InferredColumn[]>(() => {
         if (data.length === 0) return [];
 
@@ -85,6 +96,7 @@ export function DataTable({
                             {
                                 label: "Move",
                                 icon: <FolderInput className="size-4" />,
+                                onClick: () => setMoveDialogOpen(true),
                             },
                             {
                                 label: "Remove",
@@ -115,6 +127,7 @@ export function DataTable({
     }
 
     return (
+        <>
         <div className="overflow-auto border rounded-lg bg-white shadow-sm">
         <Table>
             <TableHeader>
@@ -147,6 +160,20 @@ export function DataTable({
             </TableBody>
         </Table>
         </div>
+
+        <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Move to Folder</DialogTitle>
+                    <DialogDescription>Select a folder to move the document to.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>取消</Button>
+                    <Button>移动</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }
 
