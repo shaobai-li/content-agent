@@ -10,7 +10,7 @@ import {
     TableRow,
 } from "@/shared/ui/table";
 import { RowActions } from "./RowActions";
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, FolderInput, Trash2 } from "lucide-react";
 
 interface InferredColumn {
     key: string;
@@ -81,6 +81,10 @@ export function DataTable({
                                 label: "View", 
                                 icon: <Eye className="size-4" />,
                                 onClick: () => onView?.(record),
+                            },
+                            {
+                                label: "Move",
+                                icon: <FolderInput className="size-4" />,
                             },
                             {
                                 label: "Remove",
