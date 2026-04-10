@@ -1,16 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronLeftIcon, FolderIcon } from "@heroicons/react/24/solid";
+import { Fragment, useEffect, useState } from "react";
+import { FolderIcon, FolderOpenIcon } from "@heroicons/react/24/solid";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/shared/ui/breadcrumb";
 
 interface MoveToFolderDialogProps {
     open: boolean;
@@ -60,32 +67,75 @@ export function MoveToFolderDialog({ open, onOpenChange }: MoveToFolderDialogPro
         setPathStack(prev => [...prev, folder.name]);
     };
 
-    const handleBack = () => {
-        setFolderStack(prev => (prev.length > 1 ? prev.slice(0, -1) : prev));
-        setPathStack(prev => (prev.length > 0 ? prev.slice(0, -1) : prev));
+    const handleBreadcrumbClick = (targetLevel: number) => {
+        if (targetLevel < 0) {
+            setFolderStack([mockFolders]);
+            setPathStack([]);
+            return;
+        }
+
+        setFolderStack(prev => prev.slice(0, targetLevel + 2));
+        setPathStack(prev => prev.slice(0, targetLevel + 1));
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent showCloseButton={false}>
+            <DialogContent showCloseButton={false} className="flex h-[560px] flex-col sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>Move to Folder</DialogTitle>
-                    <DialogDescription>Select a folder to move the document to.</DialogDescription>
                 </DialogHeader>
-                {pathStack.length > 0 && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <button
-                            type="button"
-                            onClick={handleBack}
-                            className="flex items-center gap-1 hover:text-foreground transition-colors"
-                        >
-                            <ChevronLeftIcon className="size-4" />
-                            返回上一级
-                        </button>
-                        <span>/ {pathStack.join(" / ")}</span>
-                    </div>
-                )}
-                <div className="max-h-[280px] overflow-y-auto divide-y divide-border">
+                <Breadcrumb>
+                    <BreadcrumbList className="text-xs">
+                        <BreadcrumbItem>
+                            {pathStack.length === 0 ? (
+                                <BreadcrumbPage>
+                                    <FolderOpenIcon className="size-4" />
+                                </BreadcrumbPage>
+                            ) : (
+                                <BreadcrumbLink
+                                    asChild
+                                    className="cursor-pointer"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBreadcrumbClick(-1)}
+                                        aria-label="返回根目录"
+                                    >
+                                        <FolderOpenIcon className="size-4" />
+                                    </button>
+                                </BreadcrumbLink>
+                            )}
+                        </BreadcrumbItem>
+
+                        {pathStack.map((folderName, index) => {
+                            const isCurrent = index === pathStack.length - 1;
+
+                            return (
+                                <Fragment key={`${folderName}-${index}`}>
+                                    <BreadcrumbSeparator />
+                                    <BreadcrumbItem>
+                                        {isCurrent ? (
+                                            <BreadcrumbPage>{folderName}</BreadcrumbPage>
+                                        ) : (
+                                            <BreadcrumbLink
+                                                asChild
+                                                className="cursor-pointer"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleBreadcrumbClick(index)}
+                                                >
+                                                    {folderName}
+                                                </button>
+                                            </BreadcrumbLink>
+                                        )}
+                                    </BreadcrumbItem>
+                                </Fragment>
+                            );
+                        })}
+                    </BreadcrumbList>
+                </Breadcrumb>
+                <div className="min-h-0 flex-1 overflow-y-auto divide-y divide-border">
                     {currentFolders.map(folder => (
                         <button
                             key={folder.name}
