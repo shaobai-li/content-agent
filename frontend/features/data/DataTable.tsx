@@ -11,15 +11,7 @@ import {
 } from "@/shared/ui/table";
 import { RowActions } from "./RowActions";
 import { Eye, FolderInput, Trash2 } from "lucide-react";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/shared/ui/dialog";
-import { Button } from "@/shared/ui/button";
+import { MoveToFolderDialog } from "./MoveToFolderDialog";
 
 interface InferredColumn {
     key: string;
@@ -161,18 +153,7 @@ export function DataTable({
         </Table>
         </div>
 
-        <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Move to Folder</DialogTitle>
-                    <DialogDescription>Select a folder to move the document to.</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setMoveDialogOpen(false)}>取消</Button>
-                    <Button>移动</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <MoveToFolderDialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen} />
         </>
     );
 }
