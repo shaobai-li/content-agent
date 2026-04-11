@@ -9,7 +9,7 @@ agents:
     base_dir: "agents/agent_kb"
     sessions_file: "sessions.json"
     messages_file: "messages.json"
-    knowledge_base_file: "records.jsonl"
+    knowledge_base_file: "local_data/kb_auto_generated/view/nodes.json"
 
   c:    
     base_dir: "agents/agent_c"
@@ -20,4 +20,4 @@ agents:
     base_dir: "agents/agent_nm"
     sessions_file: "sessions.json"
     messages_file: "messages.json"
-    knowledge_base_file: "records.jsonl"
+    knowledge_base_file: "nodes.json"
