@@ -10,7 +10,7 @@ import {
     TableRow,
 } from "@/shared/ui/table";
 import { RowActions } from "./RowActions";
-import { Eye, FolderInput, Trash2 } from "lucide-react";
+import { Eye, FolderInput, Pencil, Trash2 } from "lucide-react";
 import { MoveToFolderDialog } from "./MoveToFolderDialog";
 
 interface InferredColumn {
@@ -31,6 +31,7 @@ interface DataTableProps {
     loading?: boolean;
     emptyMessage?: string;
     onView?: (item: any) => void;
+    onRename?: (item: any) => void;
     onRemove?: (item: any) => void;
 }
 
@@ -44,6 +45,7 @@ export function DataTable({
     loading = false,
     emptyMessage = "暂无数据",
     onView,
+    onRename,
     onRemove,
 }: DataTableProps) {
     const [moveDialogOpen, setMoveDialogOpen] = useState(false);
@@ -89,6 +91,11 @@ export function DataTable({
                                 label: "Move",
                                 icon: <FolderInput className="size-4" />,
                                 onClick: () => setMoveDialogOpen(true),
+                            },
+                            {
+                                label: "Rename",
+                                icon: <Pencil className="size-4" />,
+                                onClick: () => onRename?.(record),
                             },
                             {
                                 label: "Remove",
