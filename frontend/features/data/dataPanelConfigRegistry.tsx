@@ -8,7 +8,7 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
     nm: {
         fetchData: fetchNmRecords,
         rowKeyField: "record_id",
-        dataKey: "records",
+        dataKey: "nodes",
         emptyMessage: "暂无笔记数据",
         columnOrder: ["source_platform", "author_name", "images", "videos"],
         columnLabels: {
@@ -69,30 +69,31 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
         fetchData: fetchKbRecords,
         deleteData: deleteKbRecord,
         rowKeyField: "record_id",
-        dataKey: "records",
+        dataKey: "nodes",
         emptyMessage: "No knowledge base data available",
         refreshEvent: "kb-data-refresh",
-        columnOrder: ["name", "type", "size", "date_added"],
+        columnOrder: ["name", "file_ext", "size_bytes", "created_at"],
         columnLabels: {
             name: "文件名",
-            type: "类型",
-            size: "大小",
-            date_added: "添加日期",
+            file_ext: "类型",
+            size_bytes: "大小",
+            created_at: "添加日期",
         },
         columnWidths: {
-            type: "100px",
-            size: "120px",
-            date_added: "140px",
+            file_ext: "100px",
+            size_bytes: "120px",
+            created_at: "140px",
         },
         customRenderers: {
             name: (row) => {
-                const icon = FileTypeIconMap[row.type as keyof typeof FileTypeIconMap];
+                const ext = (row.file_ext || row.type || "") as keyof typeof FileTypeIconMap;
+                const icon = FileTypeIconMap[ext];
                 return (
                     <div className="flex items-center gap-2">
                         {icon && (
                             <Image
                                 src={icon}
-                                alt={row.type}
+                                alt={String(ext)}
                                 width={16}
                                 height={16}
                                 className="flex-shrink-0"
@@ -104,7 +105,16 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
                     </div>
                 );
             },
-            type: (row) => row.type?.toUpperCase() || "",
+            file_ext: (row) => String(row.file_ext || row.type || "").toUpperCase() || "",
+            size_bytes: (row) => {
+                const n = row.size_bytes ?? row.size;
+                if (typeof n === "string") return n;
+                if (typeof n !== "number") return "";
+                if (n < 1024) return `${n} B`;
+                if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+                return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+            },
+            created_at: (row) => String(row.created_at || row.date_added || ""),
         },
     },
 };

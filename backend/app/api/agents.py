@@ -25,17 +25,17 @@ async def delete_session_endpoint(agent_id: str, session_id: str):
     return delete_session(agent_id, session_id)
 @router.get("/res/{res_name}")
 async def get_resources(agent_id: str, res_name: str):
-    """获取指定 Agent 的资源列表"""
-    if res_name == "records":
+    """获取指定 Agent 的资源列表（nodes.json 为 nodes）"""
+    if res_name == "nodes":
         from app.service.records_service import get_all_records
-        records = get_all_records(agent_id)
-        return {"records": records}
+        nodes = get_all_records(agent_id)
+        return {"nodes": nodes}
     return {"error": f"Unknown resource type: {res_name}"}
 
 @router.delete("/res/{res_name}/{record_id}")
 async def delete_resource(agent_id: str, res_name: str, record_id: str):
-    """删除指定 Agent 的资源记录"""
-    if res_name == "records":
+    """删除指定 Agent 的 record 节点"""
+    if res_name == "nodes":
         from app.service.records_service import delete_record
         return delete_record(record_id, agent_id)
     return {"error": f"Unknown resource type: {res_name}"}

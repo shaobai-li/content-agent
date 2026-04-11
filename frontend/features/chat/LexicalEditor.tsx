@@ -158,8 +158,8 @@ export function LexicalEditor({
   const handleSearch = async (_trigger: string, query?: string | null) => {
     try {
       const response = await fetchKbRecords();
-      const records = (response as { records?: Array<{ record_id: string; name: string; parsed_path?: string }> })
-        .records || [];
+      const records = (response as { nodes?: Array<{ record_id: string; name: string; parsed_path?: string }> })
+        .nodes || [];
       const q = (query || "").toLowerCase().trim();
       const filtered = q
         ? records.filter((r) => r.name?.toLowerCase().includes(q))
