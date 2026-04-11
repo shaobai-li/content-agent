@@ -12,6 +12,7 @@ import {
 import { RowActions } from "./RowActions";
 import { Eye, FolderInput, Pencil, Trash2 } from "lucide-react";
 import { MoveToFolderDialog } from "./MoveToFolderDialog";
+import { RenameModal } from "./RenameModal";
 
 interface InferredColumn {
     key: string;
@@ -49,6 +50,7 @@ export function DataTable({
     onRemove,
 }: DataTableProps) {
     const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+    const [renameModalOpen, setRenameModalOpen] = useState(false);
 
     const columns = useMemo<InferredColumn[]>(() => {
         if (data.length === 0) return [];
@@ -82,8 +84,8 @@ export function DataTable({
                 <div className="flex justify-end">
                     <RowActions
                         actions={[
-                            { 
-                                label: "View", 
+                            {
+                                label: "View",
                                 icon: <Eye className="size-4" />,
                                 onClick: () => onView?.(record),
                             },
@@ -95,7 +97,7 @@ export function DataTable({
                             {
                                 label: "Rename",
                                 icon: <Pencil className="size-4" />,
-                                onClick: () => onRename?.(record),
+                                onClick: () => setRenameModalOpen(true),
                             },
                             {
                                 label: "Remove",
@@ -109,59 +111,59 @@ export function DataTable({
             ),
         },
     ];
+
     if (loading) {
         return (
-        <div className="h-full flex items-center justify-center">
-            加载中...
-        </div>
+            <div className="h-full flex items-center justify-center">
+                加载中...
+            </div>
         );
     }
 
     if (data.length === 0) {
         return (
-        <div className="h-full flex items-center justify-center text-gray-400">
-            {emptyMessage}
-        </div>
+            <div className="h-full flex items-center justify-center text-gray-400">
+                {emptyMessage}
+            </div>
         );
     }
 
     return (
         <>
-        <div className="overflow-auto border rounded-lg bg-white shadow-sm">
-        <Table>
-            <TableHeader>
-            <TableRow>
-                {finalColumns.map((col) => (
-                <TableHead 
-                    key={col.key} 
-                    className="text-xs font-semibold text-muted-foreground px-6"
-                    style={col.width ? { width: col.width } : undefined}
-                >
-                    {col.label}
-                </TableHead>
-                ))}
-            </TableRow>
-            </TableHeader>
-            <TableBody>
-            {data.map((item) => (
-                <TableRow key={item[rowKeyField]} className="group">
-                {finalColumns.map((col) => (
-                    <TableCell 
-                        key={col.key} 
-                        className={`px-6 py-4 ${col.className || ''}`}
-                        style={col.width ? { width: col.width } : undefined}
-                    >
-                    {col.render(item)}
-                    </TableCell>
-                ))}
-                </TableRow>
-            ))}
-            </TableBody>
-        </Table>
-        </div>
-
-        <MoveToFolderDialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen} />
+            <div className="overflow-auto border rounded-lg bg-white shadow-sm">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            {finalColumns.map((col) => (
+                                <TableHead
+                                    key={col.key}
+                                    className="text-xs font-semibold text-muted-foreground px-6"
+                                    style={col.width ? { width: col.width } : undefined}
+                                >
+                                    {col.label}
+                                </TableHead>
+                            ))}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {data.map((item) => (
+                            <TableRow key={item[rowKeyField]} className="group">
+                                {finalColumns.map((col) => (
+                                    <TableCell
+                                        key={col.key}
+                                        className={`px-6 py-4 ${col.className || ''}`}
+                                        style={col.width ? { width: col.width } : undefined}
+                                    >
+                                        {col.render(item)}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+            <MoveToFolderDialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen} />
+            <RenameModal open={renameModalOpen} onOpenChange={setRenameModalOpen} />
         </>
     );
 }
-
