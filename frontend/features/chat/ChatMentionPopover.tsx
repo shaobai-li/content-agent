@@ -35,8 +35,8 @@ export function ChatMentionPopover({
     if (open) {
       fetchKbRecords()
         .then((response) => {
-          const records = response.records || [];
-          const options = records.map((record: any) => ({
+          const nodes = response.nodes || [];
+          const options = nodes.map((record: any) => ({
             id: record.record_id,
             label: record.name,
             parsed_path: record.parsed_path,

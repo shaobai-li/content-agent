@@ -31,7 +31,7 @@ export function DataPanel({
   fetchData: fetchDataFn,
   deleteData: deleteDataFn,
   rowKeyField,
-  dataKey = "records",
+  dataKey = "nodes",
   emptyMessage = "暂无数据",
   refreshEvent = "data-panel-refresh",
   columnLabels,
