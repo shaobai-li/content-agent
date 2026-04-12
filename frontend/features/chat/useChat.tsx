@@ -1,12 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import axios from "axios";
 import type { Message, FileMessage } from "@/entities/message/model";
 import type { MentionItem } from "./MentionChip";
 import { fetchMessages } from "@/entities/session/api";
 import { readStreamLines } from "./fetchStream";
-
 
 interface UseChatProps {
   agentId: string;
@@ -26,21 +24,25 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   const streamEndpoint = `${apiEndpoint}/stream`;
-  
 
   const handleSend = useCallback(async (payload: SendPayload) => {
     const { text, mentions, attachments } = payload;
 
-    const hasContent = text?.trim() || (mentions && mentions.length > 0) || (attachments && attachments.length > 0);
+    const hasContent =
+      text?.trim() ||
+      (mentions && mentions.length > 0) ||
+      (attachments && attachments.length > 0);
     if (!hasContent) {
       return;
     }
 
     const hasFiles = attachments && attachments.length > 0;
-    
+
     const fileMessageIds: string[] = hasFiles
       ? attachments!.map(() => crypto.randomUUID())
       : [];
+
+    const assistantMsgId = crypto.randomUUID();
 
     setMessages((prev) => {
       const newMessages: Message[] = [...prev];
@@ -73,6 +75,13 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
         });
       }
 
+      newMessages.push({
+        id: assistantMsgId,
+        role: "assistant",
+        content: "",
+        parts: [],
+      });
+
       return newMessages;
     });
     setIsSending(true);
@@ -102,152 +111,134 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     console.log("[session_id 验证] 发送前 currentSessionId:", currentSessionId);
 
     try {
-      if (hasFiles) {
-        // 文件上传路径：axios 提供上传进度，后端返回 JSON
-        const response = await axios.post(apiEndpoint, formData, {
-          onUploadProgress: (e) => {
-            if (e.total) {
-              const pct = Math.round((e.loaded / e.total) * 70);
-              updateFileMsg({ progress: pct });
-            }
-          },
-        });
-        const data = response.data;
+      const response = await fetch(streamEndpoint, {
+        method: "POST",
+        body: formData,
+      });
 
-        updateFileMsg({ status: "processing", progress: 80 });
-        updateFileMsg({ status: "done", progress: 100 });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
-        const newSessionId = data?.session_id;
-        console.log("[session_id 验证] 响应 session_id:", newSessionId);
-        if (newSessionId) setCurrentSessionId(newSessionId);
+      if (fileMessageIds.length > 0) {
+        updateFileMsg({ status: "processing", progress: 0 });
+      }
 
-        if (agentId === "kb") {
-          console.log("触发知识库数据刷新事件");
-          window.dispatchEvent(new CustomEvent("kb-data-refresh"));
-        }
-
-        window.dispatchEvent(new CustomEvent("session-refresh"));
-      } else {
-        // 文本对话路径：流式输出，逐 token 追加
-        const assistantMsgId = crypto.randomUUID();
-        setMessages((prev) => [...prev, {
-          id: assistantMsgId,
-          role: "assistant",
-          content: "",
-          parts: [],
-        }]);
-
-        const response = await fetch(streamEndpoint, {
-          method: "POST",
-          body: formData,
-        });
-
-        for await (const event of readStreamLines(response)) {
-          switch (event.event) {
-            case "chunk":
-              setMessages((prev) =>
-                prev.map((m) => {
-                  if (m.id !== assistantMsgId) return m;
-                  const parts = [...(m.parts || [])];
-                  const last = parts[parts.length - 1];
-                  if (last && last.type === "text") {
-                    parts[parts.length - 1] = { ...last, content: last.content + event.data.content };
-                  } else {
-                    parts.push({ type: "text", content: event.data.content });
-                  }
-                  return { ...m, parts };
-                })
-              );
-              break;
-            case "thinking_start":
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantMsgId
-                    ? { ...m, parts: [...(m.parts || []), { type: "thinking", content: "", complete: false }] }
-                    : m
-                )
-              );
-              break;
-            case "thinking_chunk":
-              setMessages((prev) =>
-                prev.map((m) => {
-                  if (m.id !== assistantMsgId) return m;
-                  const parts = [...(m.parts || [])];
-                  const lastIdx = parts.length - 1;
-                  if (lastIdx >= 0 && parts[lastIdx].type === "thinking") {
-                    const p = parts[lastIdx] as { type: "thinking"; content: string; complete: boolean };
-                    parts[lastIdx] = { ...p, content: p.content + event.data.content };
-                  }
-                  return { ...m, parts };
-                })
-              );
-              break;
-            case "thinking_end":
-              setMessages((prev) =>
-                prev.map((m) => {
-                  if (m.id !== assistantMsgId) return m;
-                  const parts = [...(m.parts || [])];
-                  const lastIdx = parts.length - 1;
-                  if (lastIdx >= 0 && parts[lastIdx].type === "thinking") {
-                    parts[lastIdx] = { ...parts[lastIdx], complete: true };
-                  }
-                  return { ...m, parts };
-                })
-              );
-              break;
-            case "plan_start":
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantMsgId
-                    ? { ...m, parts: [...(m.parts || []), { type: "plan", steps: [], complete: false }] }
-                    : m
-                )
-              );
-              break;
-            case "plan_item":
-              setMessages((prev) =>
-                prev.map((m) => {
-                  if (m.id !== assistantMsgId) return m;
-                  const parts = [...(m.parts || [])];
-                  const lastIdx = parts.length - 1;
-                  if (lastIdx >= 0 && parts[lastIdx].type === "plan") {
-                    const p = parts[lastIdx] as { type: "plan"; steps: string[]; complete: boolean };
-                    parts[lastIdx] = { ...p, steps: [...p.steps, event.data.step] };
-                  }
-                  return { ...m, parts };
-                })
-              );
-              break;
-            case "plan_end":
-              setMessages((prev) =>
-                prev.map((m) => {
-                  if (m.id !== assistantMsgId) return m;
-                  const parts = [...(m.parts || [])];
-                  const lastIdx = parts.length - 1;
-                  if (lastIdx >= 0 && parts[lastIdx].type === "plan") {
-                    parts[lastIdx] = { ...parts[lastIdx], complete: true };
-                  }
-                  return { ...m, parts };
-                })
-              );
-              break;
-            case "done":
-              {
-                const { session_id: newSessionId, article } = event.data;
-
-                console.log("[session_id 验证] 响应 session_id:", newSessionId);
-                if (newSessionId) setCurrentSessionId(newSessionId as string);
-
-                if (article) {
-                  localStorage.setItem(`agent-${agentId}-article`, article as string);
-                  window.dispatchEvent(new CustomEvent("article-update", {
-                    detail: { agentId, article },
-                  }));
+      for await (const event of readStreamLines(response)) {
+        switch (event.event) {
+          case "chunk":
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantMsgId) return m;
+                const parts = [...(m.parts || [])];
+                const last = parts[parts.length - 1];
+                if (last && last.type === "text") {
+                  parts[parts.length - 1] = { ...last, content: last.content + event.data.content };
+                } else {
+                  parts.push({ type: "text", content: event.data.content });
                 }
+                return { ...m, parts };
+              })
+            );
+            break;
+          case "thinking_start":
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsgId
+                  ? { ...m, parts: [...(m.parts || []), { type: "thinking", content: "", complete: false }] }
+                  : m
+              )
+            );
+            break;
+          case "thinking_chunk":
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantMsgId) return m;
+                const parts = [...(m.parts || [])];
+                const lastIdx = parts.length - 1;
+                if (lastIdx >= 0 && parts[lastIdx].type === "thinking") {
+                  const p = parts[lastIdx] as { type: "thinking"; content: string; complete: boolean };
+                  parts[lastIdx] = { ...p, content: p.content + event.data.content };
+                }
+                return { ...m, parts };
+              })
+            );
+            break;
+          case "thinking_end":
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantMsgId) return m;
+                const parts = [...(m.parts || [])];
+                const lastIdx = parts.length - 1;
+                if (lastIdx >= 0 && parts[lastIdx].type === "thinking") {
+                  parts[lastIdx] = { ...parts[lastIdx], complete: true };
+                }
+                return { ...m, parts };
+              })
+            );
+            break;
+          case "plan_start":
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsgId
+                  ? { ...m, parts: [...(m.parts || []), { type: "plan", steps: [], complete: false }] }
+                  : m
+              )
+            );
+            break;
+          case "plan_item":
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantMsgId) return m;
+                const parts = [...(m.parts || [])];
+                const lastIdx = parts.length - 1;
+                if (lastIdx >= 0 && parts[lastIdx].type === "plan") {
+                  const p = parts[lastIdx] as { type: "plan"; steps: string[]; complete: boolean };
+                  parts[lastIdx] = { ...p, steps: [...p.steps, event.data.step] };
+                }
+                return { ...m, parts };
+              })
+            );
+            break;
+          case "plan_end":
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantMsgId) return m;
+                const parts = [...(m.parts || [])];
+                const lastIdx = parts.length - 1;
+                if (lastIdx >= 0 && parts[lastIdx].type === "plan") {
+                  parts[lastIdx] = { ...parts[lastIdx], complete: true };
+                }
+                return { ...m, parts };
+              })
+            );
+            break;
+          case "done": {
+            const { session_id: newSessionId, article } = event.data;
 
-                window.dispatchEvent(new CustomEvent("session-refresh"));
-              }
-              break;
+            console.log("[session_id 验证] 响应 session_id:", newSessionId);
+            if (newSessionId) setCurrentSessionId(newSessionId as string);
+
+            if (article) {
+              localStorage.setItem(`agent-${agentId}-article`, article as string);
+              window.dispatchEvent(
+                new CustomEvent("article-update", {
+                  detail: { agentId, article },
+                })
+              );
+            }
+
+            if (hasFiles && agentId === "kb") {
+              console.log("触发知识库数据刷新事件");
+              window.dispatchEvent(new CustomEvent("kb-data-refresh"));
+            }
+
+            if (fileMessageIds.length > 0) {
+              updateFileMsg({ status: "done", progress: 100 });
+            }
+
+            window.dispatchEvent(new CustomEvent("session-refresh"));
+            break;
           }
         }
       }
@@ -255,20 +246,22 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
       console.error("发送失败:", error);
       if (fileMessageIds.length > 0) {
         updateFileMsg({ status: "error", progress: 0 });
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            content: "出错了，请检查后端服务是否启动。",
-          },
-        ]);
       }
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsgId
+            ? {
+                ...m,
+                content: "出错了，请检查后端服务是否启动。",
+                parts: [],
+              }
+            : m
+        )
+      );
     } finally {
       setIsSending(false);
     }
-  }, [agentId, apiEndpoint, streamEndpoint, currentSessionId]);
+  }, [agentId, streamEndpoint, currentSessionId]);
 
   const loadSession = useCallback(async (sessionId: string) => {
     try {
@@ -290,5 +283,14 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     setCurrentSessionId(null);
   }, []);
 
-  return { input, setInput, messages, handleSend, isSending, loadSession, startNewSession, currentSessionId };
+  return {
+    input,
+    setInput,
+    messages,
+    handleSend,
+    isSending,
+    loadSession,
+    startNewSession,
+    currentSessionId,
+  };
 }
