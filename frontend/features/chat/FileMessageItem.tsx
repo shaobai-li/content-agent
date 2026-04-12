@@ -7,9 +7,9 @@ interface FileMessageItemProps {
 }
 
 const STEPS = [
-  { id: "uploading",  label: "上传中..."          },
-  { id: "processing", label: "正在转换文档内容..." },
-  { id: "done",       label: "已导入知识库"        },
+  { id: "uploading", label: "上传中…" },
+  { id: "processing", label: "处理中…" },
+  { id: "done", label: "已完成" },
 ] as const;
 
 type StepId = typeof STEPS[number]["id"];
@@ -56,6 +56,15 @@ export function FileMessageItem({ message }: FileMessageItemProps) {
             {message.fileName}
           </span>
         </div>
+
+        {message.status === "uploading" && (
+          <div
+            className="h-1 w-full overflow-hidden rounded-full bg-muted-foreground/15"
+            aria-hidden
+          >
+            <div className="h-full w-[35%] rounded-full bg-primary/85 animate-file-upload-indeterminate" />
+          </div>
+        )}
 
         {/* 步骤列表 */}
         <div className="flex flex-col gap-1.5 pl-0.5">
