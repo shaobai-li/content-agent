@@ -45,12 +45,12 @@ async def create_resource(agent_id: str, res_name: str, payload: dict = Body(...
         return create_folder(payload.get("name", ""), agent_id)
     return {"error": f"Unknown resource type: {res_name}"}
 
-@router.delete("/res/{res_name}/{record_id}")
-async def delete_resource(agent_id: str, res_name: str, record_id: str):
-    """删除指定 Agent 的 record 节点"""
+@router.delete("/res/{res_name}/{node_id}")
+async def delete_resource(agent_id: str, res_name: str, node_id: str):
+    """删除指定 Agent 的资源节点"""
     if res_name == "nodes":
-        from app.service.records_service import delete_record
-        return delete_record(record_id, agent_id)
+        from app.service.records_service import delete_node
+        return delete_node(node_id, agent_id)
     return {"error": f"Unknown resource type: {res_name}"}
 
 @router.post("/chat")
