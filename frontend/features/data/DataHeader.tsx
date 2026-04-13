@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Plus, FolderPlus, Search } from "lucide-react";
 import { Input } from "@/shared/ui/input";
+import { createKbFolder } from "@/shared/api/records";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,15 @@ import { NewFolderModal } from "./NewFolderModal";
 
 export function DataHeader() {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
+
+  const handleCreateFolder = async (folderName: string) => {
+    const response = await createKbFolder(folderName);
+    if (!response.success) {
+      throw new Error(response.message || "创建文件夹失败");
+    }
+
+    window.dispatchEvent(new Event("kb-data-refresh"));
+  };
 
   return (
     <>
@@ -60,6 +70,7 @@ export function DataHeader() {
       <NewFolderModal
         open={isNewFolderModalOpen}
         onOpenChange={setIsNewFolderModalOpen}
+        onCreateFolder={handleCreateFolder}
       />
     </>
   );

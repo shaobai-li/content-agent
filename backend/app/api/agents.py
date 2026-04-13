@@ -1,5 +1,5 @@
 from typing import Optional, List
-from fastapi import APIRouter, Form, File, UploadFile
+from fastapi import APIRouter, Body, Form, File, UploadFile
 from fastapi.responses import StreamingResponse
 
 from app.service.sessions_service import load_sessions, delete_session
@@ -34,6 +34,15 @@ async def get_resources(agent_id: str, res_name: str):
         from app.service.records_service import get_all_records
         nodes = get_all_records(agent_id)
         return {"nodes": nodes}
+    return {"error": f"Unknown resource type: {res_name}"}
+
+
+@router.post("/res/{res_name}")
+async def create_resource(agent_id: str, res_name: str, payload: dict = Body(...)):
+    """创建指定 Agent 的资源节点"""
+    if res_name == "nodes":
+        from app.service.records_service import create_folder
+        return create_folder(payload.get("name", ""), agent_id)
     return {"error": f"Unknown resource type: {res_name}"}
 
 @router.delete("/res/{res_name}/{record_id}")
