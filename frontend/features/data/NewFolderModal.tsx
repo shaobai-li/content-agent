@@ -14,10 +14,16 @@ import { Input } from "@/shared/ui/input";
 interface NewFolderModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreateFolder: (folderName: string) => Promise<void>;
 }
 
-export function NewFolderModal({ open, onOpenChange }: NewFolderModalProps) {
+export function NewFolderModal({
+  open,
+  onOpenChange,
+  onCreateFolder,
+}: NewFolderModalProps) {
   const [folderName, setFolderName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -26,7 +32,24 @@ export function NewFolderModal({ open, onOpenChange }: NewFolderModalProps) {
   }, [open]);
 
   const handleClose = () => {
+    if (isSubmitting) return;
     onOpenChange(false);
+  };
+
+  const handleCreate = async () => {
+    const trimmedFolderName = folderName.trim();
+    if (!trimmedFolderName || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      await onCreateFolder(trimmedFolderName);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("创建文件夹失败:", error);
+      alert("创建文件夹失败，请重试");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -44,12 +67,15 @@ export function NewFolderModal({ open, onOpenChange }: NewFolderModalProps) {
           placeholder="Folder name"
           className="mt-3 h-10"
           autoFocus
+          disabled={isSubmitting}
         />
         <DialogFooter className="mt-auto flex-row justify-end">
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             取消
           </Button>
-          <Button onClick={handleClose}>新建</Button>
+          <Button onClick={handleCreate} disabled={!folderName.trim() || isSubmitting}>
+            {isSubmitting ? "新建中..." : "新建"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
