@@ -2,6 +2,7 @@ import Image from "next/image";
 import { AgentId } from "@/entities/agent/model";
 import { PlatformIconMap, FileTypeIconMap } from "@/shared/ui/icons";
 import { fetchNmRecords, fetchKbRecords, deleteKbRecord } from "@/shared/api/records";
+import { Folder } from "lucide-react";
 import type { DataPanelConfig } from "./type";
 
 export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> = {
@@ -68,7 +69,7 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
     kb: {
         fetchData: fetchKbRecords,
         deleteData: deleteKbRecord,
-        rowKeyField: "record_id",
+        rowKeyField: "id",
         dataKey: "nodes",
         emptyMessage: "No knowledge base data available",
         refreshEvent: "kb-data-refresh",
@@ -88,16 +89,23 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
             name: (row) => {
                 const ext = (row.file_ext || row.type || "") as keyof typeof FileTypeIconMap;
                 const icon = FileTypeIconMap[ext];
+                const depth = Number(row._depth || 0);
+                const indent = `${Math.max(depth, 0) * 16}px`;
+                const isFolder = row.node_type === "folder";
                 return (
-                    <div className="flex items-center gap-2">
-                        {icon && (
-                            <Image
-                                src={icon}
-                                alt={String(ext)}
-                                width={16}
-                                height={16}
-                                className="flex-shrink-0"
-                            />
+                    <div className="flex items-center gap-2 min-w-0" style={{ paddingLeft: indent }}>
+                        {isFolder ? (
+                            <Folder className="size-4 text-muted-foreground flex-shrink-0" />
+                        ) : (
+                            icon && (
+                                <Image
+                                    src={icon}
+                                    alt={String(ext)}
+                                    width={16}
+                                    height={16}
+                                    className="flex-shrink-0"
+                                />
+                            )
                         )}
                         <span className="truncate" title={row.name}>
                             {row.name}
@@ -105,8 +113,12 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
                     </div>
                 );
             },
-            file_ext: (row) => String(row.file_ext || row.type || "").toUpperCase() || "",
+            file_ext: (row) =>
+                row.node_type === "folder"
+                    ? "文件夹"
+                    : String(row.file_ext || row.type || "").toUpperCase() || "",
             size_bytes: (row) => {
+                if (row.node_type === "folder") return "";
                 const n = row.size_bytes ?? row.size;
                 if (typeof n === "string") return n;
                 if (typeof n !== "number") return "";

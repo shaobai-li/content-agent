@@ -74,6 +74,12 @@ export function DataPanel({
       return;
     }
 
+    if (!record.record_id) {
+      console.warn("当前节点不支持删除", record);
+      alert("当前仅支持删除文件，不支持删除文件夹");
+      return;
+    }
+
     try {
       await deleteDataFn(record.record_id);
       console.log("删除成功");
