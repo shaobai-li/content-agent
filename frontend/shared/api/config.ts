@@ -10,7 +10,6 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost
  * 简短的 agentId 用于构建 API 路径
  */
 export const AGENT_IDS = {
-  NOTE_MANAGER: "nm",           // 笔记管理
   KNOWLEDGE_BASE: "kb",         // 知识库
   CONTENT_DETECTION: "c",       // 内容检测
   WRITE_AGENT: "w",            // 写作助手

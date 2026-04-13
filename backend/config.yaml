@@ -15,9 +15,3 @@ agents:
     base_dir: "agents/agent_c"
     sessions_file: "sessions.json"
     messages_file: "messages.json"
-  
-  nm:
-    base_dir: "agents/agent_nm"
-    sessions_file: "sessions.json"
-    messages_file: "messages.json"
-    knowledge_base_file: "nodes.json"
