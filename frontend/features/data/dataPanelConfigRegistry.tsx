@@ -1,7 +1,5 @@
-import Image from "next/image";
-import { FolderIcon } from "@heroicons/react/24/solid";
+import { DocumentTextIcon, FolderIcon } from "@heroicons/react/24/solid";
 import { AgentId } from "@/entities/agent/model";
-import { PlatformIconMap, FileTypeIconMap } from "@/shared/ui/icons";
 import { fetchKbRecords, deleteKbRecord } from "@/shared/api/records";
 import type { DataPanelConfig } from "./type";
 
@@ -29,22 +27,12 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
             name: (row) => {
                 const depth = typeof row._depth === "number" ? row._depth : 0;
                 const isFolder = row.node_type === "folder";
-                const ext = (row.file_ext || row.type || "") as keyof typeof FileTypeIconMap;
-                const icon = FileTypeIconMap[ext];
                 return (
                     <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 20}px` }}>
                         {isFolder ? (
                             <FolderIcon className="size-4 flex-shrink-0 text-foreground" />
                         ) : (
-                            icon && (
-                                <Image
-                                    src={icon}
-                                    alt={String(ext)}
-                                    width={16}
-                                    height={16}
-                                    className="flex-shrink-0"
-                                />
-                            )
+                            <DocumentTextIcon className="size-4 flex-shrink-0 text-foreground" />
                         )}
                         <span className="truncate" title={row.name}>
                             {row.name}
