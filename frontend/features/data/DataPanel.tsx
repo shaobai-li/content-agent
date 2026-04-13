@@ -158,7 +158,16 @@ export function DataPanel({
     }
 
     try {
-      await deleteDataFn(record.record_id);
+      const targetId =
+        record?.node_type === "folder"
+          ? record.id
+          : record.record_id ?? record.id;
+
+      if (typeof targetId !== "string" || !targetId) {
+        throw new Error("缺少可删除的节点标识");
+      }
+
+      await deleteDataFn(targetId);
       console.log("删除成功");
       loadData();
     } catch (error) {

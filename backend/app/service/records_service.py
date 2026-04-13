@@ -86,8 +86,8 @@ def create_folder(name: str, agent_id: str, parent_id: str = "fld_root") -> Dict
     return {"success": True, "folder": folder_node}
 
 
-def delete_record(record_id: str, agent_id: str) -> Dict[str, Any]:
-    """根据 record_id 从 nodes.json 中删除对应 record 节点"""
+def delete_node(node_id: str, agent_id: str) -> Dict[str, Any]:
+    """根据节点标识从 nodes.json 中删除对应节点，文件夹会级联删除子节点"""
     path = get_agent_knowledge_base_path(agent_id)
     if not path.exists():
         return {"success": False, "message": "记录文件不存在"}
@@ -105,24 +105,68 @@ def delete_record(record_id: str, agent_id: str) -> Dict[str, Any]:
     if not isinstance(nodes, list):
         return {"success": False, "message": "记录文件不存在或无法解析"}
 
-    new_nodes: List[Dict[str, Any]] = []
-    found = False
-    for n in nodes:
-        if (
-            isinstance(n, dict)
-            and n.get("node_type") == "record"
-            and n.get("record_id") == record_id
-        ):
-            found = True
-        else:
-            new_nodes.append(n)
+    target_node = next(
+        (
+            node
+            for node in nodes
+            if isinstance(node, dict)
+            and (
+                node.get("id") == node_id
+                or (node.get("node_type") == "record" and node.get("record_id") == node_id)
+            )
+        ),
+        None,
+    )
 
-    if not found:
-        return {"success": False, "message": f"记录 {record_id} 不存在"}
+    if not isinstance(target_node, dict):
+        return {"success": False, "message": f"节点 {node_id} 不存在"}
+
+    if target_node.get("id") == "fld_root":
+        return {"success": False, "message": "根目录不允许删除"}
+
+    ids_to_delete = set()
+
+    if target_node.get("node_type") == "folder":
+        children_by_parent: Dict[str, List[str]] = {}
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            node_parent_id = node.get("parent_id")
+            node_self_id = node.get("id")
+            if isinstance(node_parent_id, str) and isinstance(node_self_id, str):
+                children_by_parent.setdefault(node_parent_id, []).append(node_self_id)
+
+        folder_ids_to_visit = [target_node.get("id")]
+        while folder_ids_to_visit:
+            current_folder_id = folder_ids_to_visit.pop()
+            if not isinstance(current_folder_id, str) or current_folder_id in ids_to_delete:
+                continue
+            ids_to_delete.add(current_folder_id)
+            folder_ids_to_visit.extend(children_by_parent.get(current_folder_id, []))
+    else:
+        target_record_id = target_node.get("record_id")
+        if isinstance(target_record_id, str):
+            ids_to_delete.add(target_record_id)
+        target_id = target_node.get("id")
+        if isinstance(target_id, str):
+            ids_to_delete.add(target_id)
+
+    new_nodes: List[Dict[str, Any]] = []
+    for node in nodes:
+        if not isinstance(node, dict):
+            new_nodes.append(node)
+            continue
+
+        node_self_id = node.get("id")
+        node_record_id = node.get("record_id")
+        if node_self_id in ids_to_delete or node_record_id in ids_to_delete:
+            continue
+
+        new_nodes.append(node)
 
     data["nodes"] = new_nodes
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    return {"success": True, "message": f"记录 {record_id} 已删除"}
+    return {"success": True, "message": f"节点 {node_id} 已删除"}
