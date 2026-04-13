@@ -15,6 +15,12 @@ type KbTableNode = KbNode & {
   _depth: number;
 };
 
+type CreateKbFolderResponse = {
+  success: boolean;
+  message?: string;
+  folder?: KbNode;
+};
+
 function isKbNode(node: unknown): node is KbNode {
   return typeof node === "object" && node !== null;
 }
@@ -88,6 +94,9 @@ export const fetchKbRecords = () =>
     .then((res) => ({
       nodes: buildKbTableNodes(res.nodes ?? []),
     }));
+
+export const createKbFolder = (name: string) =>
+  http.post<CreateKbFolderResponse>("/api/agents/kb/res/nodes", { name });
 
 export const deleteKbRecord = (recordId: string) =>
   http.delete(`/api/agents/kb/res/nodes/${recordId}`);
