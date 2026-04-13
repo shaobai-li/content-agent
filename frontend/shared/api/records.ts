@@ -95,8 +95,11 @@ export const fetchKbRecords = () =>
       nodes: buildKbTableNodes(res.nodes ?? []),
     }));
 
-export const createKbFolder = (name: string) =>
-  http.post<CreateKbFolderResponse>("/api/agents/kb/res/nodes", { name });
+export const createKbFolder = (name: string, parentId = "fld_root") =>
+  http.post<CreateKbFolderResponse>("/api/agents/kb/res/nodes", {
+    name,
+    parent_id: parentId,
+  });
 
 export const deleteKbRecord = (recordId: string) =>
   http.delete(`/api/agents/kb/res/nodes/${recordId}`);

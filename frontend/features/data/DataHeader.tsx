@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Plus, FolderPlus, Search } from "lucide-react";
 import { Input } from "@/shared/ui/input";
@@ -13,11 +13,28 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { NewFolderModal } from "./NewFolderModal";
 
+const ROOT_FOLDER_ID = "fld_root";
+const CURRENT_FOLDER_CHANGE_EVENT = "kb-current-folder-change";
+
 export function DataHeader() {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
+  const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
+
+  useEffect(() => {
+    const handleCurrentFolderChange = (event: Event) => {
+      const nextFolderId = (event as CustomEvent<{ folderId?: string }>).detail?.folderId;
+      setCurrentFolderId(typeof nextFolderId === "string" && nextFolderId ? nextFolderId : ROOT_FOLDER_ID);
+    };
+
+    window.addEventListener(CURRENT_FOLDER_CHANGE_EVENT, handleCurrentFolderChange);
+
+    return () => {
+      window.removeEventListener(CURRENT_FOLDER_CHANGE_EVENT, handleCurrentFolderChange);
+    };
+  }, []);
 
   const handleCreateFolder = async (folderName: string) => {
-    const response = await createKbFolder(folderName);
+    const response = await createKbFolder(folderName, currentFolderId);
     if (!response.success) {
       throw new Error(response.message || "创建文件夹失败");
     }

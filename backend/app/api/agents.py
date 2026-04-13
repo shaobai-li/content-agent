@@ -42,7 +42,11 @@ async def create_resource(agent_id: str, res_name: str, payload: dict = Body(...
     """创建指定 Agent 的资源节点"""
     if res_name == "nodes":
         from app.service.records_service import create_folder
-        return create_folder(payload.get("name", ""), agent_id)
+        return create_folder(
+            payload.get("name", ""),
+            agent_id,
+            payload.get("parent_id", "fld_root"),
+        )
     return {"error": f"Unknown resource type: {res_name}"}
 
 @router.delete("/res/{res_name}/{node_id}")

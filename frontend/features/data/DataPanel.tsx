@@ -20,6 +20,7 @@ interface DataPanelProps extends DataPanelConfig {
 
 const ROOT_FOLDER_ID = "fld_root";
 const ROOT_FOLDER_NAME = "Root";
+const CURRENT_FOLDER_CHANGE_EVENT = "kb-current-folder-change";
 
 export function DataPanel({
   fetchData: fetchDataFn,
@@ -190,6 +191,14 @@ export function DataPanel({
       setCurrentFolderId(ROOT_FOLDER_ID);
     }
   }, [currentFolderId, folderMap]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(CURRENT_FOLDER_CHANGE_EVENT, {
+        detail: { folderId: currentFolderId },
+      }),
+    );
+  }, [currentFolderId]);
 
   // 监听自定义刷新事件
   useEffect(() => {
