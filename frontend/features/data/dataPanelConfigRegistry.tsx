@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { FolderIcon } from "@heroicons/react/24/solid";
 import { AgentId } from "@/entities/agent/model";
 import { PlatformIconMap, FileTypeIconMap } from "@/shared/ui/icons";
 import { fetchKbRecords, deleteKbRecord } from "@/shared/api/records";
@@ -8,7 +9,7 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
     kb: {
         fetchData: fetchKbRecords,
         deleteData: deleteKbRecord,
-        rowKeyField: "record_id",
+        rowKeyField: "id",
         dataKey: "nodes",
         emptyMessage: "No knowledge base data available",
         refreshEvent: "kb-data-refresh",
@@ -26,18 +27,24 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
         },
         customRenderers: {
             name: (row) => {
+                const depth = typeof row._depth === "number" ? row._depth : 0;
+                const isFolder = row.node_type === "folder";
                 const ext = (row.file_ext || row.type || "") as keyof typeof FileTypeIconMap;
                 const icon = FileTypeIconMap[ext];
                 return (
-                    <div className="flex items-center gap-2">
-                        {icon && (
-                            <Image
-                                src={icon}
-                                alt={String(ext)}
-                                width={16}
-                                height={16}
-                                className="flex-shrink-0"
-                            />
+                    <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 20}px` }}>
+                        {isFolder ? (
+                            <FolderIcon className="size-4 flex-shrink-0 text-foreground" />
+                        ) : (
+                            icon && (
+                                <Image
+                                    src={icon}
+                                    alt={String(ext)}
+                                    width={16}
+                                    height={16}
+                                    className="flex-shrink-0"
+                                />
+                            )
                         )}
                         <span className="truncate" title={row.name}>
                             {row.name}
@@ -45,8 +52,12 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
                     </div>
                 );
             },
-            file_ext: (row) => String(row.file_ext || row.type || "").toUpperCase() || "",
+            file_ext: (row) =>
+                row.node_type === "folder"
+                    ? "文件夹"
+                    : String(row.file_ext || row.type || "").toUpperCase() || "",
             size_bytes: (row) => {
+                if (row.node_type === "folder") return "";
                 const n = row.size_bytes ?? row.size;
                 if (typeof n === "string") return n;
                 if (typeof n !== "number") return "";

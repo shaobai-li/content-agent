@@ -52,6 +52,9 @@ export function DataTable({
     const [moveDialogOpen, setMoveDialogOpen] = useState(false);
     const [renameModalOpen, setRenameModalOpen] = useState(false);
 
+    const getRowKey = (item: any, index: number) =>
+        item[rowKeyField] ?? item.id ?? item.record_id ?? `${item.name || "row"}-${index}`;
+
     const columns = useMemo<InferredColumn[]>(() => {
         if (data.length === 0) return [];
 
@@ -146,8 +149,8 @@ export function DataTable({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {data.map((item) => (
-                            <TableRow key={item[rowKeyField]} className="group">
+                        {data.map((item, index) => (
+                            <TableRow key={getRowKey(item, index)} className="group">
                                 {finalColumns.map((col) => (
                                     <TableCell
                                         key={col.key}
