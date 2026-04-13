@@ -4,12 +4,19 @@ import { Fragment, useState, useEffect, useCallback, useMemo } from "react";
 import { BookOpen } from "lucide-react";
 import {
   Breadcrumb,
+  BreadcrumbEllipsis,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/shared/ui/breadcrumb";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 import { DataTable } from "./DataTable";
 import type { DataPanelConfig } from "./type";
 
@@ -96,6 +103,10 @@ export function DataPanel({
   }, [currentFolderId, folderMap]);
 
   const currentFolderDepth = Math.max(0, breadcrumbFolders.length - 1);
+  const shouldCollapseBreadcrumbs = breadcrumbFolders.length > 3;
+  const hiddenBreadcrumbFolders = shouldCollapseBreadcrumbs ? breadcrumbFolders.slice(1, -2) : [];
+  const leadingBreadcrumbFolder = shouldCollapseBreadcrumbs ? breadcrumbFolders[0] : null;
+  const trailingBreadcrumbFolders = shouldCollapseBreadcrumbs ? breadcrumbFolders.slice(-2) : breadcrumbFolders;
 
   const visibleData = useMemo(() => {
     return data
@@ -224,8 +235,51 @@ export function DataPanel({
             </BreadcrumbPage>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
-          {breadcrumbFolders.map((folder, index) => {
-            const isCurrent = index === breadcrumbFolders.length - 1;
+          {leadingBreadcrumbFolder ? (
+            <>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild className="cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentFolderId(String(leadingBreadcrumbFolder.id || ROOT_FOLDER_ID))}
+                  >
+                    {String(leadingBreadcrumbFolder.name || ROOT_FOLDER_NAME)}
+                  </button>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+            </>
+          ) : null}
+          {shouldCollapseBreadcrumbs ? (
+            <>
+              <BreadcrumbItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="rounded-sm transition-colors hover:text-foreground"
+                      aria-label="展开隐藏的面包屑层级"
+                    >
+                      <BreadcrumbEllipsis className="size-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {hiddenBreadcrumbFolders.map((folder) => (
+                      <DropdownMenuItem
+                        key={folder.id ?? folder.name}
+                        onClick={() => setCurrentFolderId(String(folder.id || ROOT_FOLDER_ID))}
+                      >
+                        {String(folder.name || ROOT_FOLDER_NAME)}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+            </>
+          ) : null}
+          {trailingBreadcrumbFolders.map((folder, index) => {
+            const isCurrent = index === trailingBreadcrumbFolders.length - 1;
 
             return (
               <Fragment key={folder.id ?? `${folder.name}-${index}`}>
@@ -243,7 +297,7 @@ export function DataPanel({
                     </BreadcrumbLink>
                   )}
                 </BreadcrumbItem>
-                {index < breadcrumbFolders.length - 1 ? <BreadcrumbSeparator /> : null}
+                {index < trailingBreadcrumbFolders.length - 1 ? <BreadcrumbSeparator /> : null}
               </Fragment>
             );
           })}
