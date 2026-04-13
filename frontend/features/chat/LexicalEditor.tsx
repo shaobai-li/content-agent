@@ -158,12 +158,16 @@ export function LexicalEditor({
   const handleSearch = async (_trigger: string, query?: string | null) => {
     try {
       const response = await fetchKbRecords();
-      const records = (response as { nodes?: Array<{ record_id: string; name: string; parsed_path?: string }> })
-        .nodes || [];
+      const records = (
+        response as {
+          nodes?: Array<{ record_id?: string; name?: string; parsed_path?: string; node_type?: string }>;
+        }
+      ).nodes || [];
+      const recordNodes = records.filter((r) => r.node_type !== "folder" && r.record_id);
       const q = (query || "").toLowerCase().trim();
       const filtered = q
-        ? records.filter((r) => r.name?.toLowerCase().includes(q))
-        : records;
+        ? recordNodes.filter((r) => r.name?.toLowerCase().includes(q))
+        : recordNodes;
       return filtered.map((record) => ({
         value: record.name,
         id: record.record_id,

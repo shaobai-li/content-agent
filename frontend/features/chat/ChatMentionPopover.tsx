@@ -35,7 +35,9 @@ export function ChatMentionPopover({
     if (open) {
       fetchKbRecords()
         .then((response) => {
-          const nodes = response.nodes || [];
+          const nodes = (response.nodes || []).filter(
+            (node: any) => node.node_type !== "folder" && node.record_id
+          );
           const options = nodes.map((record: any) => ({
             id: record.record_id,
             label: record.name,
