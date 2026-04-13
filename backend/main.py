@@ -9,7 +9,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import app.agents.content_detection
 import app.agents.write_agent
 import app.agents.knowledge_base
-import app.agents.note_manager
 # 导入统一 API 路由
 from app.api.agents import router as agents_router
 
@@ -37,7 +36,7 @@ async def root():
     return {
         "status": "running",
         "version": "0.0.1",
-        "agents": ["nm", "kb", "c", "w"]
+        "agents": ["kb", "c", "w"]
     }
 
 if __name__ == "__main__":

@@ -12,8 +12,6 @@ function isFolderNode(n: unknown): boolean {
   );
 }
 
-export const fetchNmRecords = () => http.get("/api/agents/nm/res/nodes");
-
 export const fetchKbRecords = () =>
   http
     .get<{ nodes?: unknown[] }>("/api/agents/kb/res/nodes")
@@ -23,6 +21,3 @@ export const fetchKbRecords = () =>
 
 export const deleteKbRecord = (recordId: string) =>
   http.delete(`/api/agents/kb/res/nodes/${recordId}`);
-
-export const deleteNmRecord = (recordId: string) =>
-  http.delete(`/api/agents/nm/res/nodes/${recordId}`);
