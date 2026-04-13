@@ -5,7 +5,11 @@ from fastapi.responses import StreamingResponse
 from app.service.sessions_service import load_sessions, delete_session
 from app.service.messages_service import load_messages
 from app.service.chat_service import build_chat_response
-from app.service.stream_service import build_stream_chunk, build_stream_done
+from app.service.stream_service import (
+    aggregate_stream_to_chat_response,
+    build_stream_chunk,
+    build_stream_done,
+)
 from app.runtime.agent_registry import get_agent_config
 
 router = APIRouter(prefix="/api/agents/{agent_id}", tags=["agents"])
@@ -53,12 +57,14 @@ async def chat(
     
     if not agent_config:
         return build_chat_response(reply=f"Unknown agent: {agent_id}")
-    
-    return await agent_config.handle_chat(
-        text=text,
-        session_id=session_id,
-        mentions=mentions,
-        attachments=attachments
+
+    return await aggregate_stream_to_chat_response(
+        agent_config.handle_chat_stream(
+            text=text,
+            session_id=session_id,
+            mentions=mentions,
+            attachments=attachments,
+        )
     )
 
 
@@ -72,7 +78,7 @@ async def chat_stream(
 ):
     agent_config = get_agent_config(agent_id)
 
-    if not agent_config or not agent_config.handle_chat_stream:
+    if not agent_config:
         async def _unknown():
             yield build_stream_chunk(f"Unknown agent: {agent_id}")
             yield build_stream_done(session_id="")

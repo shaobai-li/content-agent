@@ -12,17 +12,8 @@ class BaseAgent(ABC):
     def __init__(self, agent_id: str, system_prompt: str = ""):
         self.agent_id = agent_id
         self.system_prompt = system_prompt
-    
-    @abstractmethod
-    async def handle_chat(
-        self,
-        text: Optional[str] = None,
-        session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None,
-        mentions: Optional[str] = None
-    ) -> Dict[str, Any]:
-        pass
 
+    @abstractmethod
     async def handle_chat_stream(
         self,
         text: Optional[str] = None,
@@ -30,15 +21,9 @@ class BaseAgent(ABC):
         attachments: Optional[List[UploadFile]] = None,
         mentions: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
-        """默认回退实现：调用 handle_chat，将整体结果包装成单块流返回。
-        支持 LLM 流式的子类应覆盖此方法以获得逐 token 效果。"""
-        from app.service.stream_service import build_stream_chunk, build_stream_done
-        result = await self.handle_chat(text=text, session_id=session_id, attachments=attachments, mentions=mentions)
-        reply = result.get("reply", "")
-        sid = result.get("session_id", "")
-        extra = {k: v for k, v in result.items() if k not in ("reply", "session_id")}
-        yield build_stream_chunk(reply)
-        yield build_stream_done(session_id=sid, extra=extra or None)
+        """流式对话：yield 行级 JSON（chunk / done 等），与 stream_service 协议一致。"""
+        raise NotImplementedError
+        yield  # noqa: unreachable — 标记为 async generator 供子类覆盖
 
     def get_config_dict(self) -> dict:
         return {
