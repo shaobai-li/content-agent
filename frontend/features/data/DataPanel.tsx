@@ -330,6 +330,7 @@ export function DataPanel({
 
       <DataTable
         data={visibleData}
+        allData={data}
         rowKeyField={rowKeyField}
         columnLabels={columnLabels}
         customRenderers={resolvedRenderers}
