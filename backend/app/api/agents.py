@@ -62,7 +62,11 @@ async def delete_resource(agent_id: str, res_name: str, node_id: str):
 async def update_resource(agent_id: str, res_name: str, node_id: str, payload: dict = Body(...)):
     """更新指定 Agent 的资源节点"""
     if res_name == "nodes":
-        from app.service.records_service import rename_node
+        from app.service.records_service import move_node, rename_node
+
+        if "parent_id" in payload:
+            return move_node(node_id, payload.get("parent_id", "fld_root"), agent_id)
+
         return rename_node(node_id, payload.get("name", ""), agent_id)
     return {"error": f"Unknown resource type: {res_name}"}
 
