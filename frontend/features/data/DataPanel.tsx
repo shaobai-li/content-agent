@@ -32,6 +32,7 @@ const CURRENT_FOLDER_CHANGE_EVENT = "kb-current-folder-change";
 export function DataPanel({
   fetchData: fetchDataFn,
   renameData: renameDataFn,
+  moveData: moveDataFn,
   deleteData: deleteDataFn,
   rowKeyField,
   dataKey = "nodes",
@@ -212,6 +213,29 @@ export function DataPanel({
     loadData();
   }, [renameDataFn, loadData]);
 
+  const handleMove = useCallback(async (record: any, parentId: string) => {
+    if (!moveDataFn) {
+      console.warn("未配置移动函数");
+      return;
+    }
+
+    const targetId =
+      record?.node_type === "folder"
+        ? record.id
+        : record.record_id ?? record.id;
+
+    if (typeof targetId !== "string" || !targetId) {
+      throw new Error("缺少可移动的节点标识");
+    }
+
+    const response = await moveDataFn(targetId, parentId);
+    if (response?.success === false) {
+      throw new Error(response.message || "移动失败");
+    }
+
+    loadData();
+  }, [moveDataFn, loadData]);
+
   // 初始加载
   useEffect(() => {
     loadData();
@@ -339,6 +363,7 @@ export function DataPanel({
         loading={loading}
         emptyMessage={emptyMessage}
         onView={onView}
+        onMove={handleMove}
         onRename={handleRename}
         onRemove={handleRemove}
       />

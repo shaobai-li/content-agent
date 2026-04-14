@@ -1,12 +1,13 @@
 import { DocumentTextIcon, FolderIcon } from "@heroicons/react/24/solid";
 import { AgentId } from "@/entities/agent/model";
-import { fetchKbRecords, deleteKbRecord, renameKbRecord } from "@/shared/api/records";
+import { fetchKbRecords, deleteKbRecord, moveKbRecord, renameKbRecord } from "@/shared/api/records";
 import type { DataPanelConfig } from "./type";
 
 export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> = {
     kb: {
         fetchData: fetchKbRecords,
         renameData: renameKbRecord,
+        moveData: moveKbRecord,
         deleteData: deleteKbRecord,
         rowKeyField: "id",
         dataKey: "nodes",

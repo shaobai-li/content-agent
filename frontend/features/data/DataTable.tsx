@@ -33,6 +33,7 @@ interface DataTableProps {
     loading?: boolean;
     emptyMessage?: string;
     onView?: (item: any) => void;
+    onMove?: (item: any, parentId: string) => Promise<void>;
     onRename?: (item: any, name: string) => Promise<void>;
     onRemove?: (item: any) => void;
 }
@@ -48,6 +49,7 @@ export function DataTable({
     loading = false,
     emptyMessage = "暂无数据",
     onView,
+    onMove,
     onRename,
     onRemove,
 }: DataTableProps) {
@@ -197,6 +199,7 @@ export function DataTable({
                 onOpenChange={handleMoveDialogChange}
                 data={allData}
                 record={moveTargetRecord}
+                onMove={onMove}
             />
             <RenameModal
                 open={renameModalOpen}

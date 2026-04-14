@@ -27,6 +27,12 @@ type RenameKbNodeResponse = {
   node?: KbNode;
 };
 
+type MoveKbNodeResponse = {
+  success: boolean;
+  message?: string;
+  node?: KbNode;
+};
+
 function isKbNode(node: unknown): node is KbNode {
   return typeof node === "object" && node !== null;
 }
@@ -110,6 +116,11 @@ export const createKbFolder = (name: string, parentId = "fld_root") =>
 export const renameKbRecord = (nodeId: string, name: string) =>
   http.put<RenameKbNodeResponse>(`/api/agents/kb/res/nodes/${nodeId}`, {
     name,
+  });
+
+export const moveKbRecord = (nodeId: string, parentId: string) =>
+  http.put<MoveKbNodeResponse>(`/api/agents/kb/res/nodes/${nodeId}`, {
+    parent_id: parentId,
   });
 
 export const deleteKbRecord = (recordId: string) =>
