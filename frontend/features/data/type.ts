@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 export interface DataPanelConfig {
     fetchData: () => Promise<any>;
     renameData?: (recordId: string, name: string) => Promise<any>;
+    moveData?: (recordId: string, parentId: string) => Promise<any>;
     deleteData?: (recordId: string) => Promise<any>;
     rowKeyField: string;
     dataKey?: string;

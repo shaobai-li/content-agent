@@ -24,6 +24,7 @@ interface MoveToFolderDialogProps {
     onOpenChange: (open: boolean) => void;
     data?: any[];
     record?: any | null;
+    onMove?: (record: any, parentId: string) => Promise<void>;
 }
 
 interface FolderNode {
@@ -94,8 +95,10 @@ export function MoveToFolderDialog({
     onOpenChange,
     data = [],
     record = null,
+    onMove,
 }: MoveToFolderDialogProps) {
     const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
+    const [submitting, setSubmitting] = useState(false);
 
     const { childrenByParent, folderMap } = useMemo(
         () => buildMovableFolders(data, record),
@@ -105,6 +108,7 @@ export function MoveToFolderDialog({
     useEffect(() => {
         if (!open) {
             setCurrentFolderId(ROOT_FOLDER_ID);
+            setSubmitting(false);
         }
     }, [open]);
 
@@ -141,7 +145,6 @@ export function MoveToFolderDialog({
     }, [currentFolderId, folderMap]);
 
     const handleFolderClick = (folder: FolderNode) => {
-        if (!childrenByParent.has(folder.id)) return;
         setCurrentFolderId(folder.id);
     };
 
@@ -154,6 +157,29 @@ export function MoveToFolderDialog({
         const targetFolder = pathStack[targetLevel];
         if (targetFolder?.id) {
             setCurrentFolderId(targetFolder.id);
+        }
+    };
+
+    const currentParentId =
+        typeof record?.parent_id === "string" && record.parent_id
+            ? record.parent_id
+            : ROOT_FOLDER_ID;
+    const canSubmit = !!record && !submitting && currentFolderId !== currentParentId;
+
+    const handleMove = async () => {
+        if (!record || !onMove || !canSubmit) {
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+            await onMove(record, currentFolderId);
+            onOpenChange(false);
+        } catch (error) {
+            console.error("移动失败:", error);
+            alert(error instanceof Error ? error.message : "移动失败，请重试");
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -235,7 +261,9 @@ export function MoveToFolderDialog({
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-                    <Button>移动</Button>
+                    <Button onClick={handleMove} disabled={!canSubmit}>
+                        {submitting ? "移动中..." : "移动"}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
