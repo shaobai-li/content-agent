@@ -57,6 +57,15 @@ async def delete_resource(agent_id: str, res_name: str, node_id: str):
         return delete_node(node_id, agent_id)
     return {"error": f"Unknown resource type: {res_name}"}
 
+
+@router.put("/res/{res_name}/{node_id}")
+async def update_resource(agent_id: str, res_name: str, node_id: str, payload: dict = Body(...)):
+    """更新指定 Agent 的资源节点"""
+    if res_name == "nodes":
+        from app.service.records_service import rename_node
+        return rename_node(node_id, payload.get("name", ""), agent_id)
+    return {"error": f"Unknown resource type: {res_name}"}
+
 @router.post("/chat")
 async def chat(
     agent_id: str,

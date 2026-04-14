@@ -21,6 +21,12 @@ type CreateKbFolderResponse = {
   folder?: KbNode;
 };
 
+type RenameKbNodeResponse = {
+  success: boolean;
+  message?: string;
+  node?: KbNode;
+};
+
 function isKbNode(node: unknown): node is KbNode {
   return typeof node === "object" && node !== null;
 }
@@ -99,6 +105,11 @@ export const createKbFolder = (name: string, parentId = "fld_root") =>
   http.post<CreateKbFolderResponse>("/api/agents/kb/res/nodes", {
     name,
     parent_id: parentId,
+  });
+
+export const renameKbRecord = (nodeId: string, name: string) =>
+  http.put<RenameKbNodeResponse>(`/api/agents/kb/res/nodes/${nodeId}`, {
+    name,
   });
 
 export const deleteKbRecord = (recordId: string) =>
