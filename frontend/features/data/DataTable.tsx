@@ -24,6 +24,7 @@ interface InferredColumn {
 
 interface DataTableProps {
     data: any[];
+    allData?: any[];
     rowKeyField: string;
     columnLabels?: Record<string, string>;
     customRenderers?: Record<string, (row: any) => React.ReactNode>;
@@ -38,6 +39,7 @@ interface DataTableProps {
 
 export function DataTable({
     data,
+    allData = data,
     rowKeyField,
     columnLabels = {},
     customRenderers = {},
@@ -52,6 +54,7 @@ export function DataTable({
     const [moveDialogOpen, setMoveDialogOpen] = useState(false);
     const [renameModalOpen, setRenameModalOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
+    const [moveTargetRecord, setMoveTargetRecord] = useState<any | null>(null);
 
     const getRowKey = (item: any, index: number) =>
         item[rowKeyField] ?? item.id ?? item.record_id ?? `${item.name || "row"}-${index}`;
@@ -66,6 +69,13 @@ export function DataTable({
         setRenameModalOpen(open);
         if (!open) {
             setSelectedRecord(null);
+        }
+    };
+
+    const handleMoveDialogChange = (open: boolean) => {
+        setMoveDialogOpen(open);
+        if (!open) {
+            setMoveTargetRecord(null);
         }
     };
 
@@ -109,7 +119,10 @@ export function DataTable({
                             {
                                 label: "Move",
                                 icon: <FolderInput className="size-4" />,
-                                onClick: () => setMoveDialogOpen(true),
+                                onClick: () => {
+                                    setMoveTargetRecord(record);
+                                    setMoveDialogOpen(true);
+                                },
                             },
                             {
                                 label: "Rename",
@@ -179,7 +192,12 @@ export function DataTable({
                     </TableBody>
                 </Table>
             </div>
-            <MoveToFolderDialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen} />
+            <MoveToFolderDialog
+                open={moveDialogOpen}
+                onOpenChange={handleMoveDialogChange}
+                data={allData}
+                record={moveTargetRecord}
+            />
             <RenameModal
                 open={renameModalOpen}
                 onOpenChange={handleRenameModalChange}
