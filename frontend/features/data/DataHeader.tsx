@@ -15,10 +15,12 @@ import { NewFolderModal } from "./NewFolderModal";
 
 const ROOT_FOLDER_ID = "fld_root";
 const CURRENT_FOLDER_CHANGE_EVENT = "kb-current-folder-change";
+const SEARCH_CHANGE_EVENT = "kb-data-search-change";
 
 export function DataHeader() {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   useEffect(() => {
     const handleCurrentFolderChange = (event: Event) => {
@@ -32,6 +34,20 @@ export function DataHeader() {
       window.removeEventListener(CURRENT_FOLDER_CHANGE_EVENT, handleCurrentFolderChange);
     };
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent(SEARCH_CHANGE_EVENT, {
+          detail: { keyword: searchKeyword },
+        }),
+      );
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [searchKeyword]);
 
   const handleCreateFolder = async (folderName: string) => {
     const response = await createKbFolder(folderName, currentFolderId);
@@ -55,6 +71,8 @@ export function DataHeader() {
             <Input
               placeholder="Search"
               className="h-8 text-xs w-full border-none focus-visible:ring-0 placeholder:text-muted-foreground shadow-none"
+              value={searchKeyword}
+              onChange={(event) => setSearchKeyword(event.target.value)}
             />
           </div>
           <DropdownMenu>
