@@ -28,6 +28,7 @@ interface DataPanelProps extends DataPanelConfig {
 const ROOT_FOLDER_ID = "fld_root";
 const ROOT_FOLDER_NAME = "Root";
 const CURRENT_FOLDER_CHANGE_EVENT = "kb-current-folder-change";
+const SEARCH_CHANGE_EVENT = "kb-data-search-change";
 
 export function DataPanel({
   fetchData: fetchDataFn,
@@ -48,6 +49,7 @@ export function DataPanel({
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   // 数据获取函数
   const loadData = useCallback(() => {
@@ -109,12 +111,36 @@ export function DataPanel({
   const hiddenBreadcrumbFolders = shouldCollapseBreadcrumbs ? breadcrumbFolders.slice(1, -2) : [];
   const leadingBreadcrumbFolder = shouldCollapseBreadcrumbs ? breadcrumbFolders[0] : null;
   const trailingBreadcrumbFolders = shouldCollapseBreadcrumbs ? breadcrumbFolders.slice(-2) : breadcrumbFolders;
+  const normalizedSearchKeyword = searchKeyword.trim().toLowerCase();
 
   const visibleData = useMemo(() => {
+    const isDescendantOfCurrentFolder = (item: any) => {
+      let parentId = typeof item?.parent_id === "string" ? item.parent_id : null;
+
+      if (currentFolderId === ROOT_FOLDER_ID) {
+        return true;
+      }
+
+      while (parentId) {
+        if (parentId === currentFolderId) {
+          return true;
+        }
+
+        const parentFolder = folderMap.get(parentId);
+        parentId = typeof parentFolder?.parent_id === "string" ? parentFolder.parent_id : null;
+      }
+
+      return false;
+    };
+
     return data
       .filter((item) => {
-        const parentId = typeof item?.parent_id === "string" ? item.parent_id : null;
+        if (normalizedSearchKeyword) {
+          const itemName = String(item?.name || "").toLowerCase();
+          return isDescendantOfCurrentFolder(item) && itemName.includes(normalizedSearchKeyword);
+        }
 
+        const parentId = typeof item?.parent_id === "string" ? item.parent_id : null;
         if (currentFolderId === ROOT_FOLDER_ID) {
           return parentId === ROOT_FOLDER_ID || parentId === null;
         }
@@ -125,7 +151,7 @@ export function DataPanel({
         ...item,
         _depth: Math.max(0, (typeof item?._depth === "number" ? item._depth : 0) - currentFolderDepth),
       }));
-  }, [currentFolderDepth, currentFolderId, data]);
+  }, [currentFolderDepth, currentFolderId, data, folderMap, normalizedSearchKeyword]);
 
   const resolvedRenderers = useMemo(() => {
     if (!customRenderers?.name) {
@@ -259,6 +285,19 @@ export function DataPanel({
     );
   }, [currentFolderId]);
 
+  useEffect(() => {
+    const handleSearchChange = (event: Event) => {
+      const nextKeyword = (event as CustomEvent<{ keyword?: string }>).detail?.keyword;
+      setSearchKeyword(typeof nextKeyword === "string" ? nextKeyword : "");
+    };
+
+    window.addEventListener(SEARCH_CHANGE_EVENT, handleSearchChange);
+
+    return () => {
+      window.removeEventListener(SEARCH_CHANGE_EVENT, handleSearchChange);
+    };
+  }, []);
+
   // 监听自定义刷新事件
   useEffect(() => {
     const handleRefresh = () => {
@@ -361,7 +400,7 @@ export function DataPanel({
         columnWidths={columnWidths}
         columnOrder={columnOrder}
         loading={loading}
-        emptyMessage={emptyMessage}
+        emptyMessage={normalizedSearchKeyword ? "未找到匹配的文件或文件夹" : emptyMessage}
         onView={onView}
         onMove={handleMove}
         onRename={handleRename}
