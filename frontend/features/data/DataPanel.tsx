@@ -31,6 +31,7 @@ const CURRENT_FOLDER_CHANGE_EVENT = "kb-current-folder-change";
 
 export function DataPanel({
   fetchData: fetchDataFn,
+  renameData: renameDataFn,
   deleteData: deleteDataFn,
   rowKeyField,
   dataKey = "nodes",
@@ -188,6 +189,29 @@ export function DataPanel({
     }
   }, [deleteDataFn, onRemove, loadData]);
 
+  const handleRename = useCallback(async (record: any, name: string) => {
+    if (!renameDataFn) {
+      console.warn("未配置重命名函数");
+      return;
+    }
+
+    const targetId =
+      record?.node_type === "folder"
+        ? record.id
+        : record.record_id ?? record.id;
+
+    if (typeof targetId !== "string" || !targetId) {
+      throw new Error("缺少可重命名的节点标识");
+    }
+
+    const response = await renameDataFn(targetId, name);
+    if (response?.success === false) {
+      throw new Error(response.message || "重命名失败");
+    }
+
+    loadData();
+  }, [renameDataFn, loadData]);
+
   // 初始加载
   useEffect(() => {
     loadData();
@@ -314,6 +338,7 @@ export function DataPanel({
         loading={loading}
         emptyMessage={emptyMessage}
         onView={onView}
+        onRename={handleRename}
         onRemove={handleRemove}
       />
     </div>
