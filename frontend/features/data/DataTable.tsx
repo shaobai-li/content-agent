@@ -32,7 +32,7 @@ interface DataTableProps {
     loading?: boolean;
     emptyMessage?: string;
     onView?: (item: any) => void;
-    onRename?: (item: any) => void;
+    onRename?: (item: any, name: string) => Promise<void>;
     onRemove?: (item: any) => void;
 }
 
@@ -51,9 +51,23 @@ export function DataTable({
 }: DataTableProps) {
     const [moveDialogOpen, setMoveDialogOpen] = useState(false);
     const [renameModalOpen, setRenameModalOpen] = useState(false);
+    const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
 
     const getRowKey = (item: any, index: number) =>
         item[rowKeyField] ?? item.id ?? item.record_id ?? `${item.name || "row"}-${index}`;
+
+    const handleRenameOpen = (record: any) => {
+        if (!onRename) return;
+        setSelectedRecord(record);
+        setRenameModalOpen(true);
+    };
+
+    const handleRenameModalChange = (open: boolean) => {
+        setRenameModalOpen(open);
+        if (!open) {
+            setSelectedRecord(null);
+        }
+    };
 
     const columns = useMemo<InferredColumn[]>(() => {
         if (data.length === 0) return [];
@@ -100,7 +114,7 @@ export function DataTable({
                             {
                                 label: "Rename",
                                 icon: <Pencil className="size-4" />,
-                                onClick: () => setRenameModalOpen(true),
+                                onClick: () => handleRenameOpen(record),
                             },
                             {
                                 label: "Remove",
@@ -166,7 +180,12 @@ export function DataTable({
                 </Table>
             </div>
             <MoveToFolderDialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen} />
-            <RenameModal open={renameModalOpen} onOpenChange={setRenameModalOpen} />
+            <RenameModal
+                open={renameModalOpen}
+                onOpenChange={handleRenameModalChange}
+                record={selectedRecord}
+                onRename={onRename}
+            />
         </>
     );
 }

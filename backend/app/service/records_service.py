@@ -86,6 +86,58 @@ def create_folder(name: str, agent_id: str, parent_id: str = "fld_root") -> Dict
     return {"success": True, "folder": folder_node}
 
 
+def rename_node(node_id: str, name: str, agent_id: str) -> Dict[str, Any]:
+    """根据节点标识更新 nodes.json 中对应节点的名称"""
+    node_name = name.strip()
+    if not node_name:
+        return {"success": False, "message": "名称不能为空"}
+
+    path = get_agent_knowledge_base_path(agent_id)
+    if not path.exists():
+        return {"success": False, "message": "记录文件不存在"}
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return {"success": False, "message": "记录文件不存在或无法解析"}
+
+    if not isinstance(data, dict):
+        return {"success": False, "message": "记录文件不存在或无法解析"}
+
+    nodes = data.get("nodes")
+    if not isinstance(nodes, list):
+        return {"success": False, "message": "记录文件不存在或无法解析"}
+
+    target_node = next(
+        (
+            node
+            for node in nodes
+            if isinstance(node, dict)
+            and (
+                node.get("id") == node_id
+                or (node.get("node_type") == "record" and node.get("record_id") == node_id)
+            )
+        ),
+        None,
+    )
+
+    if not isinstance(target_node, dict):
+        return {"success": False, "message": f"节点 {node_id} 不存在"}
+
+    if target_node.get("id") == "fld_root":
+        return {"success": False, "message": "根目录不允许重命名"}
+
+    target_node["name"] = node_name
+    target_node["updated_at"] = _utc_iso()
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+    return {"success": True, "node": target_node}
+
+
 def delete_node(node_id: str, agent_id: str) -> Dict[str, Any]:
     """根据节点标识从 nodes.json 中删除对应节点，文件夹会级联删除子节点"""
     path = get_agent_knowledge_base_path(agent_id)
