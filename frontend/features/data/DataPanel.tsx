@@ -106,11 +106,15 @@ export function DataPanel({
     return path.filter(Boolean);
   }, [currentFolderId, folderMap]);
 
+  const displayBreadcrumbFolders = useMemo(
+    () => breadcrumbFolders.filter((folder) => folder?.id !== ROOT_FOLDER_ID),
+    [breadcrumbFolders],
+  );
   const currentFolderDepth = Math.max(0, breadcrumbFolders.length - 1);
-  const shouldCollapseBreadcrumbs = breadcrumbFolders.length > 3;
-  const hiddenBreadcrumbFolders = shouldCollapseBreadcrumbs ? breadcrumbFolders.slice(1, -2) : [];
-  const leadingBreadcrumbFolder = shouldCollapseBreadcrumbs ? breadcrumbFolders[0] : null;
-  const trailingBreadcrumbFolders = shouldCollapseBreadcrumbs ? breadcrumbFolders.slice(-2) : breadcrumbFolders;
+  const shouldCollapseBreadcrumbs = displayBreadcrumbFolders.length > 3;
+  const hiddenBreadcrumbFolders = shouldCollapseBreadcrumbs ? displayBreadcrumbFolders.slice(1, -2) : [];
+  const leadingBreadcrumbFolder = shouldCollapseBreadcrumbs ? displayBreadcrumbFolders[0] : null;
+  const trailingBreadcrumbFolders = shouldCollapseBreadcrumbs ? displayBreadcrumbFolders.slice(-2) : displayBreadcrumbFolders;
   const normalizedSearchKeyword = searchKeyword.trim().toLowerCase();
 
   const visibleData = useMemo(() => {
@@ -321,7 +325,7 @@ export function DataPanel({
               <BookOpen className="size-4" />
             </BreadcrumbPage>
           </BreadcrumbItem>
-          <BreadcrumbSeparator />
+          {displayBreadcrumbFolders.length > 0 ? <BreadcrumbSeparator /> : null}
           {leadingBreadcrumbFolder ? (
             <>
               <BreadcrumbItem>
