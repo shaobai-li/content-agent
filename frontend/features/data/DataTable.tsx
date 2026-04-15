@@ -162,14 +162,14 @@ export function DataTable({
 
     return (
         <>
-            <div className="overflow-auto border rounded-lg bg-white shadow-sm">
-                <Table>
+            <div className="border rounded-lg bg-white shadow-sm">
+                <Table className="table-fixed">
                     <TableHeader>
                         <TableRow>
                             {finalColumns.map((col) => (
                                 <TableHead
                                     key={col.key}
-                                    className="text-xs font-semibold text-muted-foreground px-6"
+                                    className={`px-6 text-xs font-semibold text-muted-foreground ${col.key === "name" ? "w-auto" : ""}`}
                                     style={col.width ? { width: col.width } : undefined}
                                 >
                                     {col.label}
@@ -183,7 +183,7 @@ export function DataTable({
                                 {finalColumns.map((col) => (
                                     <TableCell
                                         key={col.key}
-                                        className={`px-6 py-4 ${col.className || ''}`}
+                                        className={`px-6 py-4 ${col.key === "name" ? "min-w-0" : ""} ${col.className || ''}`}
                                         style={col.width ? { width: col.width } : undefined}
                                     >
                                         {col.render(item)}
