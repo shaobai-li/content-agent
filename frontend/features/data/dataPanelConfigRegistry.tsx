@@ -3,6 +3,23 @@ import { AgentId } from "@/entities/agent/model";
 import { fetchKbRecords, deleteKbRecord, moveKbRecord, renameKbRecord } from "@/shared/api/records";
 import type { DataPanelConfig } from "./type";
 
+function formatLocalDateTime(value: unknown) {
+    if (typeof value !== "string" || !value) return "";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    const pad = (part: number) => String(part).padStart(2, "0");
+
+    return [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate()),
+    ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> = {
     kb: {
         fetchData: fetchKbRecords,
@@ -23,7 +40,7 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
         columnWidths: {
             file_ext: "100px",
             size_bytes: "120px",
-            created_at: "140px",
+            created_at: "180px",
         },
         customRenderers: {
             name: (row) => {
@@ -58,7 +75,7 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
                 if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
                 return `${(n / (1024 * 1024)).toFixed(1)} MB`;
             },
-            created_at: (row) => String(row.created_at || row.date_added || ""),
+            created_at: (row) => formatLocalDateTime(row.created_at || row.date_added || ""),
         },
     },
 };
