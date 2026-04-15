@@ -4,9 +4,7 @@ from fastapi.responses import StreamingResponse
 
 from app.service.sessions_service import load_sessions, delete_session
 from app.service.messages_service import load_messages
-from app.service.chat_service import build_chat_response
 from app.service.stream_service import (
-    aggregate_stream_to_chat_response,
     build_stream_chunk,
     build_stream_done,
 )
@@ -58,7 +56,6 @@ async def delete_resource(agent_id: str, res_name: str, node_id: str):
         return delete_node(node_id, agent_id)
     return {"error": f"Unknown resource type: {res_name}"}
 
-
 @router.put("/res/{res_name}/{node_id}")
 async def update_resource(agent_id: str, res_name: str, node_id: str, payload: dict = Body(...)):
     """更新指定 Agent 的资源节点"""
@@ -70,33 +67,6 @@ async def update_resource(agent_id: str, res_name: str, node_id: str, payload: d
 
         return rename_node(node_id, payload.get("name", ""), agent_id)
     return {"error": f"Unknown resource type: {res_name}"}
-
-@router.post("/chat")
-async def chat(
-    agent_id: str,
-    text: Optional[str] = Form(None),
-    session_id: Optional[str] = Form(None),
-    mentions: Optional[str] = Form(None),
-    attachments: Optional[List[UploadFile]] = File(None)
-):
-    
-    agent_config = get_agent_config(agent_id)
-    
-    if not agent_config:
-        return build_chat_response(reply=f"Unknown agent: {agent_id}")
-
-    ctx = build_agent_turn_context(
-        agent_id,
-        text=text,
-        session_id=session_id,
-        mentions=mentions,
-        attachments=attachments,
-    )
-
-    return await aggregate_stream_to_chat_response(
-        agent_config.handle_chat_stream(ctx)
-    )
-
 
 @router.post("/chat/stream")
 async def chat_stream(
