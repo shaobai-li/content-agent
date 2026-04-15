@@ -17,7 +17,7 @@ function formatLocalDateTime(value: unknown) {
         date.getFullYear(),
         pad(date.getMonth() + 1),
         pad(date.getDate()),
-    ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> = {
@@ -35,7 +35,7 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
             name: "文件名",
             file_ext: "类型",
             size_bytes: "大小",
-            created_at: "添加日期",
+            created_at: "添加时间",
         },
         columnWidths: {
             file_ext: "100px",
