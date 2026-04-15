@@ -321,9 +321,20 @@ export function DataPanel({
       <Breadcrumb className="px-6">
         <BreadcrumbList className="text-xs">
           <BreadcrumbItem>
-            <BreadcrumbPage aria-label="DATA">
-              <BookOpen className="size-4" />
-            </BreadcrumbPage>
+            {currentFolderId === ROOT_FOLDER_ID ? (
+              <BreadcrumbPage aria-label="DATA">
+                <BookOpen className="size-4" />
+              </BreadcrumbPage>
+            ) : (
+              <BreadcrumbLink asChild className="cursor-pointer" aria-label="返回根层级">
+                <button
+                  type="button"
+                  onClick={() => setCurrentFolderId(ROOT_FOLDER_ID)}
+                >
+                  <BookOpen className="size-4" />
+                </button>
+              </BreadcrumbLink>
+            )}
           </BreadcrumbItem>
           {displayBreadcrumbFolders.length > 0 ? <BreadcrumbSeparator /> : null}
           {leadingBreadcrumbFolder ? (
