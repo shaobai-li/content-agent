@@ -47,17 +47,16 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
                 const depth = typeof row._depth === "number" ? row._depth : 0;
                 const isFolder = row.node_type === "folder";
                 const name = String(row.name || "");
-                const displayName = name.length > 15 ? `${name.slice(0, 15)}...` : name;
 
                 return (
-                    <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 20}px` }}>
+                    <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${depth * 20}px` }}>
                         {isFolder ? (
                             <FolderIcon className="size-4 flex-shrink-0 text-foreground" />
                         ) : (
                             <DocumentTextIcon className="size-4 flex-shrink-0 text-foreground" />
                         )}
-                        <span className="truncate" title={name}>
-                            {displayName}
+                        <span className="min-w-0 flex-1 truncate" title={name}>
+                            {name}
                         </span>
                     </div>
                 );
