@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 导入各个 agent 模块（导入即注册）
-import app.agents.content_detection
+import app.agents.standard
 import app.agents.write_agent
 import app.agents.knowledge_base
 # 导入统一 API 路由
@@ -36,7 +36,7 @@ async def root():
     return {
         "status": "running",
         "version": "0.0.1",
-        "agents": ["kb", "c", "w"]
+        "agents": ["kb", "std", "w"]
     }
 
 if __name__ == "__main__":
