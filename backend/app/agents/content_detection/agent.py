@@ -1,9 +1,8 @@
 """内容检测 Agent"""
 from typing import AsyncGenerator, Optional, List
-from fastapi import UploadFile
 
 from app.agents.base_agent import BaseAgent
-from app.runtime.agent_turn_context import build_agent_turn_context
+from app.runtime.agent_turn_context import AgentTurnContext
 from app.service.agent_chat_service import standard_chat_stream_from_context
 
 AGENT_ID = "c"
@@ -17,17 +16,7 @@ class ContentDetectionAgent(BaseAgent):
     
     async def handle_chat_stream(
         self,
-        text: Optional[str] = None,
-        session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None,
-        mentions: Optional[str] = None
+        ctx: AgentTurnContext,
     ) -> AsyncGenerator[str, None]:
-        ctx = build_agent_turn_context(
-            self.agent_id,
-            text=text,
-            session_id=session_id,
-            mentions=mentions,
-            attachments=attachments,
-        )
         async for chunk in standard_chat_stream_from_context(ctx, self.system_prompt):
             yield chunk

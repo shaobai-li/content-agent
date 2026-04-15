@@ -11,6 +11,7 @@ from app.service.stream_service import (
     build_stream_done,
 )
 from app.runtime.agent_registry import get_agent_config
+from app.runtime.agent_turn_context import build_agent_turn_context
 
 router = APIRouter(prefix="/api/agents/{agent_id}", tags=["agents"])
 
@@ -84,13 +85,16 @@ async def chat(
     if not agent_config:
         return build_chat_response(reply=f"Unknown agent: {agent_id}")
 
+    ctx = build_agent_turn_context(
+        agent_id,
+        text=text,
+        session_id=session_id,
+        mentions=mentions,
+        attachments=attachments,
+    )
+
     return await aggregate_stream_to_chat_response(
-        agent_config.handle_chat_stream(
-            text=text,
-            session_id=session_id,
-            mentions=mentions,
-            attachments=attachments,
-        )
+        agent_config.handle_chat_stream(ctx)
     )
 
 
@@ -110,12 +114,15 @@ async def chat_stream(
             yield build_stream_done(session_id="")
         return StreamingResponse(_unknown(), media_type="application/json")
 
+    ctx = build_agent_turn_context(
+        agent_id,
+        text=text,
+        session_id=session_id,
+        mentions=mentions,
+        attachments=attachments,
+    )
+
     return StreamingResponse(
-        agent_config.handle_chat_stream(
-            text=text,
-            session_id=session_id,
-            mentions=mentions,
-            attachments=attachments
-        ),
+        agent_config.handle_chat_stream(ctx),
         media_type="application/json",
     )

@@ -1,14 +1,14 @@
-from typing import AsyncGenerator, Optional, List, Dict, Any
+from typing import AsyncGenerator, List, Dict, Any
 from pathlib import Path
-from fastapi import UploadFile
 
 from app.agents.base_agent import BaseAgent
+from app.runtime.agent_turn_context import AgentTurnContext
 from app.utils.skill_loader import load_skill
 from app.utils.llm_client import deepseek_chat_stream
 from app.service.agent_chat_service import save_chat_session
 from app.utils.article_parser import extract_article_content
-from app.service.stream_service import build_stream_chunk, build_stream_done
-from app.utils.context_utils import parse_mentions, build_user_message_with_mentions, get_article_context_messages
+from app.service.stream_service import build_stream_done
+from app.utils.context_utils import get_article_context_messages
 from app.utils.xml_stream_parser import XmlStreamParser
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
@@ -28,10 +28,7 @@ class WriteAgent(BaseAgent):
     
     async def handle_chat_stream(
         self,
-        text: Optional[str] = None,
-        session_id: Optional[str] = None,
-        attachments: Optional[List[UploadFile]] = None,
-        mentions: Optional[str] = None
+        ctx: AgentTurnContext,
     ) -> AsyncGenerator[str, None]:
         """写作 Agent 的流式输出：使用 XML 解析器的四阶段结构。"""
         import uuid
@@ -49,12 +46,10 @@ class WriteAgent(BaseAgent):
             {"role": "assistant", "content": draft_skill},
         ]
 
-        mentions_list = parse_mentions(mentions)
-        article_messages = get_article_context_messages(mentions_list)
+        article_messages = get_article_context_messages(ctx.mentions)
         messages.extend(article_messages)
 
-        user_text = build_user_message_with_mentions(text or "", mentions_list)
-        messages.append({"role": "user", "content": user_text})
+        messages.append({"role": "user", "content": ctx.user_text})
 
         # 第一阶段：生成大纲(plan)，使用 XML 解析器
         plan_parts: List[str] = []
@@ -92,7 +87,7 @@ class WriteAgent(BaseAgent):
         execute_path.write_text(execution_reply, encoding="utf-8")
 
         reply = execution_reply
-        session_id = save_chat_session(AGENT_ID, session_id, user_text, reply)
+        session_id = save_chat_session(AGENT_ID, ctx.session_id, ctx.user_text, reply)
 
         article_content = extract_article_content(reply)
 
