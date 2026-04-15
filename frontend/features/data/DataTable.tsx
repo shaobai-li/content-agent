@@ -163,7 +163,7 @@ export function DataTable({
     return (
         <>
             <div className="overflow-auto border rounded-lg bg-white shadow-sm">
-                <Table>
+                <Table className="table-fixed">
                     <TableHeader>
                         <TableRow>
                             {finalColumns.map((col) => (
