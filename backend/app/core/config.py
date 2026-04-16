@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import yaml
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -54,3 +54,12 @@ def get_agent_knowledge_base_path(agent_id: str) -> Path:
     agent_config = get_agent_config(agent_id)
     knowledge_base_file = agent_config.get("knowledge_base_file", "knowledge_base.jsonl")
     return base_dir / knowledge_base_file
+
+
+def get_agent_skill_ids(agent_id: str) -> List[str]:
+    """config.yaml 中 agents.<id>.skills 列出的仓库内 skill 目录名（app/agents/skills/<id>/）。"""
+    block = AGENTS_CONFIG.get(agent_id) or {}
+    raw = block.get("skills", [])
+    if not isinstance(raw, list):
+        return []
+    return [str(x).strip() for x in raw if str(x).strip()]

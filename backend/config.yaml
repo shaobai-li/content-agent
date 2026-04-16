@@ -4,6 +4,9 @@ agents:
     base_dir: "agents/agent_w"
     sessions_file: "sessions.json"
     messages_file: "messages.json"
+    skills:
+      - article-draft-generator
+      - article-critic-refiner
   
   kb:    
     base_dir: "agents/agent_kb"
@@ -15,3 +18,5 @@ agents:
     base_dir: "agents/agent_std"
     sessions_file: "sessions.json"
     messages_file: "messages.json"
+    skills:
+      - say-german
