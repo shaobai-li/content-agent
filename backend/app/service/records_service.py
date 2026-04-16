@@ -10,6 +10,64 @@ from app.core.config import get_agent_knowledge_base_path
 from app.core.ids import new_uuid
 
 
+def _default_kb_document() -> Dict[str, Any]:
+    return {
+        "kb_id": "kb_auto_generated",
+        "version": 1,
+        "nodes": [_root_folder_node()],
+    }
+
+
+def ensure_kb_initialized(agent_id: str) -> Dict[str, Any]:
+    """
+    幂等初始化指定 Agent 的 nodes.json：
+    - 文件不存在：创建默认结构
+    - 文件可读但结构缺失：补齐必要字段
+    - 文件损坏/不可读：用默认结构修复
+    """
+    path = get_agent_knowledge_base_path(agent_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    data: Dict[str, Any]
+    if not path.exists():
+        data = _default_kb_document()
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return data
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            loaded = json.load(f)
+        data = loaded if isinstance(loaded, dict) else _default_kb_document()
+    except (json.JSONDecodeError, OSError, TypeError):
+        data = _default_kb_document()
+
+    changed = False
+    if "kb_id" not in data or not isinstance(data.get("kb_id"), str):
+        data["kb_id"] = "kb_auto_generated"
+        changed = True
+    if "version" not in data or not isinstance(data.get("version"), int):
+        data["version"] = 1
+        changed = True
+
+    nodes = data.get("nodes")
+    if not isinstance(nodes, list):
+        nodes = []
+        data["nodes"] = nodes
+        changed = True
+
+    has_root = any(isinstance(node, dict) and node.get("id") == "fld_root" for node in nodes)
+    if not has_root:
+        nodes.insert(0, _root_folder_node())
+        changed = True
+
+    if changed:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    return data
+
+
 def get_all_records(agent_id: str) -> List[Dict[str, Any]]:
     """获取指定 Agent 知识库 nodes.json 中的完整节点列表（含 folder 与 record）"""
     path = get_agent_knowledge_base_path(agent_id)
