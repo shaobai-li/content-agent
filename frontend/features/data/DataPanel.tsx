@@ -266,6 +266,15 @@ export function DataPanel({
     loadData();
   }, [moveDataFn, loadData]);
 
+  const handleView = useCallback((record: any) => {
+    if (record?.node_type === "folder" && typeof record.id === "string") {
+      setCurrentFolderId(record.id);
+      return;
+    }
+
+    onView?.(record);
+  }, [onView]);
+
   // 初始加载
   useEffect(() => {
     loadData();
@@ -416,7 +425,7 @@ export function DataPanel({
         columnOrder={columnOrder}
         loading={loading}
         emptyMessage={normalizedSearchKeyword ? "未找到匹配的文件或文件夹" : emptyMessage}
-        onView={onView}
+        onView={handleView}
         onMove={handleMove}
         onRename={handleRename}
         onRemove={handleRemove}
