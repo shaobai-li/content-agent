@@ -3,7 +3,7 @@ from pathlib import Path
 
 from app.agents.base_agent import BaseAgent
 from app.runtime.agent_turn_context import AgentTurnContext
-from app.utils.skill_loader import load_skill
+from app.utils.skill_loader import bundled_skills_dir, load_skill_body
 from app.utils.llm_client import deepseek_chat_stream
 from app.service.agent_chat_service import save_chat_session
 from app.utils.article_parser import extract_article_content
@@ -12,7 +12,6 @@ from app.utils.context_utils import get_article_context_messages
 from app.utils.xml_stream_parser import XmlStreamParser
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "system.md"
-_SKILL_PATH = Path(__file__).parent / "skills"
 AGENT_ID = "w"
 
 
@@ -34,8 +33,9 @@ class WriteAgent(BaseAgent):
         import uuid
 
         system_prompt = self.system_prompt
-        draft_skill = load_skill(_SKILL_PATH, "article-draft-generator")
-        refine_skill = load_skill(_SKILL_PATH, "article-critic-refiner")
+        _skills_root = bundled_skills_dir()
+        draft_skill = load_skill_body(_skills_root, "article-draft-generator")
+        refine_skill = load_skill_body(_skills_root, "article-critic-refiner")
 
         run_id = uuid.uuid4().hex
         cache_dir = Path("test/cache")
