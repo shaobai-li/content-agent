@@ -15,8 +15,8 @@ export const agentRegistry: Record<Agent["id"], Agent> = {
         id: "std",
         name: "标准 Agent",
         layout: {
-            left: ["history", "document"],
-            defaultLeft: "document",
+            left: ["history", "knowledgebase", "document"],
+            defaultLeft: "knowledgebase",
             right: ["chat"],
             defaultRight: "chat",
         },

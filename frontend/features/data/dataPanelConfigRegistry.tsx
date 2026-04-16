@@ -20,15 +20,14 @@ function formatLocalDateTime(value: unknown) {
     ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> = {
-    kb: {
+const knowledgeBasePanelConfig: DataPanelConfig = {
         fetchData: fetchKbRecords,
         renameData: renameKbRecord,
         moveData: moveKbRecord,
         deleteData: deleteKbRecord,
         rowKeyField: "id",
         dataKey: "nodes",
-        emptyMessage: "暂无数据",
+        emptyMessage: "No knowledge base data available",
         refreshEvent: "kb-data-refresh",
         columnOrder: ["name", "file_ext", "size_bytes", "created_at"],
         columnLabels: {
@@ -48,19 +47,19 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
                 const isFolder = row.node_type === "folder";
                 const name = String(row.name || "");
 
-                return (
-                    <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${depth * 20}px` }}>
-                        {isFolder ? (
-                            <FolderIcon className="size-4 flex-shrink-0 text-foreground" />
-                        ) : (
-                            <DocumentTextIcon className="size-4 flex-shrink-0 text-foreground" />
-                        )}
-                        <span className="min-w-0 flex-1 truncate" title={name}>
-                            {name}
-                        </span>
-                    </div>
-                );
-            },
+            return (
+                <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${depth * 20}px` }}>
+                    {isFolder ? (
+                        <FolderIcon className="size-4 flex-shrink-0 text-foreground" />
+                    ) : (
+                        <DocumentTextIcon className="size-4 flex-shrink-0 text-foreground" />
+                    )}
+                    <span className="min-w-0 flex-1 truncate" title={name}>
+                        {name}
+                    </span>
+                </div>
+            );
+        },
             file_ext: (row) =>
                 row.node_type === "folder"
                     ? "文件夹"
@@ -76,5 +75,9 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
             },
             created_at: (row) => formatLocalDateTime(row.created_at || row.date_added || ""),
         },
-    },
+};
+
+export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> = {
+    kb: knowledgeBasePanelConfig,
+    std: knowledgeBasePanelConfig,
 };
