@@ -325,6 +325,12 @@ export function DataPanel({
     };
   }, [refreshEvent, loadData]);
 
+  const resolvedEmptyMessage = normalizedSearchKeyword
+    ? "未找到匹配的文件或文件夹"
+    : currentFolderId === ROOT_FOLDER_ID
+      ? emptyMessage
+      : "该文件夹为空";
+
   return (
     <div className="-mt-2 flex h-full flex-col gap-2">
       <Breadcrumb className="px-6">
@@ -424,7 +430,7 @@ export function DataPanel({
         columnWidths={columnWidths}
         columnOrder={columnOrder}
         loading={loading}
-        emptyMessage={normalizedSearchKeyword ? "未找到匹配的文件或文件夹" : emptyMessage}
+        emptyMessage={resolvedEmptyMessage}
         onView={handleView}
         onMove={handleMove}
         onRename={handleRename}
