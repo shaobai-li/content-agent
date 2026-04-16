@@ -91,7 +91,7 @@ class StandardAgent(BaseAgent):
             f"\n工作区绝对路径: {workspace.resolve()}\n禁止访问工作区外的路径。"
         )
         messages: List[Dict[str, Any]] = [
-            {"role": "system", "content": self.system_prompt + guard},
+            {"role": "system", "content": self.get_system_prompt_for_llm() + guard},
         ]
         messages.extend(_history_llm_turns(ctx.history_messages))
         messages.extend(get_article_context_messages(ctx.mentions))

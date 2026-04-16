@@ -3,10 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from xml.sax.saxutils import escape
 
 import yaml
 
 from app.core.config import get_agent_base_dir, get_agent_skill_ids
+
+
+def _xml_text(s: str) -> str:
+    """XML 元素文本转义（&, <, >）。"""
+    return escape(s, entities={'"': "&quot;", "'": "&apos;"})
 
 
 @dataclass(frozen=True)
@@ -116,6 +122,64 @@ def discover_skills_for_agent(agent_id: str) -> List[SkillHead]:
             out.append(merged[sid])
     for sid in sorted(user_only):
         out.append(merged[sid])
+    return out
+
+
+def format_skills_discovery_xml(heads: List[SkillHead]) -> str:
+    """
+    将发现的 SKILL 头信息序列化为一段 XML（供模型解析）。
+    每个 skill 含：id、source、name、description、path（SKILL.md 绝对路径）。
+    """
+    if not heads:
+        return ""
+    parts = ["<skills>"]
+    for h in heads:
+        path_str = str(h.skill_md_path.resolve())
+        parts.append(
+            f'  <skill id="{_xml_text(h.skill_id)}" source="{_xml_text(h.source)}">'
+        )
+        parts.append(f"    <name>{_xml_text(h.name)}</name>")
+        parts.append(f"    <description>{_xml_text(h.description)}</description>")
+        parts.append(f"    <path>{_xml_text(path_str)}</path>")
+        parts.append("  </skill>")
+    parts.append("</skills>")
+    return "\n".join(parts)
+
+
+def discover_skills_xml_for_agent(agent_id: str) -> str:
+    """发现某 agent 可用 skill，返回仅含头信息的 XML 字符串；无 skill 时返回空串。"""
+    return format_skills_discovery_xml(discover_skills_for_agent(agent_id))
+
+
+def prepend_skill_catalog_xml_to_system_prompt(base_system_prompt: str, agent_id: str) -> str:
+    """
+    将技能目录 XML 动态置于 system prompt 最前；无可用 skill 时等价于 base_system_prompt。
+    """
+    heads = discover_skills_for_agent(agent_id)
+    xml_block = format_skills_discovery_xml(heads)
+
+    print(
+        f"[skill_catalog] agent_id={agent_id!r} heads={len(heads)} "
+        f"xml_len={len(xml_block)} base_prompt_len={len(base_system_prompt)}",
+        flush=True,
+    )
+    for h in heads:
+        print(
+            f"[skill_catalog]   skill_id={h.skill_id!r} source={h.source!r} path={h.skill_md_path!s}",
+            flush=True,
+        )
+    if xml_block.strip():
+        preview = xml_block[:600] + ("…" if len(xml_block) > 600 else "")
+        print(f"[skill_catalog] xml_preview:\n{preview}\n[skill_catalog] ---", flush=True)
+    else:
+        print("[skill_catalog] xml_block empty -> return base_system_prompt unchanged", flush=True)
+
+    if not xml_block.strip():
+        return base_system_prompt
+    if not base_system_prompt.strip():
+        return xml_block
+    out = f"{xml_block}\n\n{base_system_prompt}"
+    print(f"[skill_catalog] combined_len={len(out)}", flush=True)
     return out
 
 
