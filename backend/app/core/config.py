@@ -9,8 +9,8 @@ load_dotenv()
 # 绝对路径：从 .env 读取
 DATA_DIR = Path(os.getenv("DATA_DIR", ".")).resolve()
 
-# 相对路径：从 yaml 读取
-CONFIG_PATH = Path("config.yaml")
+# 与包相对：避免进程工作目录不在 backend 时读不到 config.yaml
+CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.yaml"
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
 

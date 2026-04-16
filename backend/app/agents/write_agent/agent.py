@@ -32,7 +32,7 @@ class WriteAgent(BaseAgent):
         """写作 Agent 的流式输出：使用 XML 解析器的四阶段结构。"""
         import uuid
 
-        system_prompt = self.system_prompt
+        system_prompt = self.get_system_prompt_for_llm()
         _skills_root = bundled_skills_dir()
         draft_skill = load_skill_body(_skills_root, "article-draft-generator")
         refine_skill = load_skill_body(_skills_root, "article-critic-refiner")

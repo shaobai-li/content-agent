@@ -13,6 +13,12 @@ class BaseAgent(ABC):
         self.agent_id = agent_id
         self.system_prompt = system_prompt
 
+    def get_system_prompt_for_llm(self) -> str:
+        """发往 LLM 的 system 内容：在静态 system_prompt 前动态附加本 agent 已发现技能的 XML 目录。"""
+        from app.utils.skill_loader import prepend_skill_catalog_xml_to_system_prompt
+
+        return prepend_skill_catalog_xml_to_system_prompt(self.system_prompt, self.agent_id)
+
     @abstractmethod
     async def handle_chat_stream(
         self,
