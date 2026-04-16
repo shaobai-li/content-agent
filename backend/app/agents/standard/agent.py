@@ -104,7 +104,7 @@ class StandardAgent(BaseAgent):
         ctx: AgentTurnContext,
     ) -> AsyncGenerator[str, None]:
         workspace = self._workspace_dir()
-        execute_tool = make_tool_executor(workspace)
+        execute_tool = make_tool_executor(workspace, self.agent_id)
         messages = self._build_loop_messages(ctx, workspace)
         final_reply_text = ""
 
