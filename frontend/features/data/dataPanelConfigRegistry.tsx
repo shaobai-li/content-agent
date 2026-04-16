@@ -28,7 +28,7 @@ export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> 
         deleteData: deleteKbRecord,
         rowKeyField: "id",
         dataKey: "nodes",
-        emptyMessage: "No knowledge base data available",
+        emptyMessage: "暂无数据",
         refreshEvent: "kb-data-refresh",
         columnOrder: ["name", "file_ext", "size_bytes", "created_at"],
         columnLabels: {
