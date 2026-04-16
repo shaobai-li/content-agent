@@ -6,6 +6,8 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable, Dict, List
 
+from app.service.skill_service import invoke_skill as invoke_skill_service
+
 # OpenAI / DeepSeek chat.completions 的 tools 定义（与 temp/pi_agent.py 对齐）
 STANDARD_AGENT_TOOLS: List[Dict[str, Any]] = [
     {
@@ -46,6 +48,27 @@ STANDARD_AGENT_TOOLS: List[Dict[str, Any]] = [
                     "content": {"type": "string"},
                 },
                 "required": ["path", "content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "invoke_skill",
+            "description": (
+                "加载某个 skill 的完整 SKILL.md 全文（含 YAML 头）。"
+                "skill_id 须与系统提示词最前 <skills> 目录中某 <skill> 的 id 属性一致；"
+                "仅可加载当前 Agent 已列出的 skill。"
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "skill_id": {
+                        "type": "string",
+                        "description": "技能 id，与 <skill id=\"...\"> 相同。",
+                    }
+                },
+                "required": ["skill_id"],
             },
         },
     },
@@ -102,7 +125,7 @@ def run_command(workspace: Path, command: str) -> str:
         return f"Error: {e}"
 
 
-def make_tool_executor(workspace: Path) -> Callable[[str, str], str]:
+def make_tool_executor(workspace: Path, agent_id: str) -> Callable[[str, str], str]:
     """返回 (name, arguments_json) -> result_str，供 agent loop 调用。"""
 
     def execute(name: str, arguments: str) -> str:
@@ -116,6 +139,8 @@ def make_tool_executor(workspace: Path) -> Callable[[str, str], str]:
             return write_file(workspace, str(args.get("path", "")), str(args.get("content", "")))
         if name == "run_command":
             return run_command(workspace, str(args.get("command", "")))
+        if name == "invoke_skill":
+            return invoke_skill_service(agent_id, str(args.get("skill_id", "")))
         return f"Error: unknown tool {name!r}"
 
     return execute
