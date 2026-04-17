@@ -18,6 +18,7 @@ interface InferredColumn {
     key: string;
     label: string;
     width?: string;
+    minWidth?: string;
     className?: string;
     render: (row: any) => React.ReactNode;
 }
@@ -29,6 +30,8 @@ interface DataTableProps {
     columnLabels?: Record<string, string>;
     customRenderers?: Record<string, (row: any) => React.ReactNode>;
     columnWidths?: Record<string, string>;
+    columnMinWidths?: Record<string, string>;
+    tableMinWidth?: string;
     columnOrder?: string[];
     loading?: boolean;
     emptyMessage?: string;
@@ -45,6 +48,8 @@ export function DataTable({
     columnLabels = {},
     customRenderers = {},
     columnWidths = {},
+    columnMinWidths = {},
+    tableMinWidth,
     columnOrder,
     loading = false,
     emptyMessage = "暂无数据",
@@ -91,6 +96,7 @@ export function DataTable({
             key,
             label: columnLabels[key] || key,
             width: columnWidths[key],
+            minWidth: columnMinWidths[key],
             className: customRenderers[key] ? "" : "text-xs text-muted-foreground",
             render: customRenderers[key] || ((row: any) => {
                 const value = row[key];
@@ -100,7 +106,7 @@ export function DataTable({
                 return String(value || "");
             }),
         }));
-    }, [data, rowKeyField, columnLabels, customRenderers, columnWidths, columnOrder]);
+    }, [data, rowKeyField, columnLabels, customRenderers, columnWidths, columnMinWidths, columnOrder]);
 
     const finalColumns: InferredColumn[] = [
         ...columns,
@@ -162,7 +168,10 @@ export function DataTable({
 
     return (
         <>
-            <div className="overflow-auto border rounded-lg bg-white shadow-sm">
+            <div
+                className="overflow-hidden border rounded-lg bg-white shadow-sm"
+                style={tableMinWidth ? { minWidth: tableMinWidth } : undefined}
+            >
                 <Table className="table-fixed">
                     <TableHeader>
                         <TableRow>
@@ -170,7 +179,7 @@ export function DataTable({
                                 <TableHead
                                     key={col.key}
                                     className="text-xs font-semibold text-muted-foreground px-6"
-                                    style={col.width ? { width: col.width } : undefined}
+                                    style={col.width || col.minWidth ? { width: col.width, minWidth: col.minWidth } : undefined}
                                 >
                                     {col.label}
                                 </TableHead>
@@ -184,7 +193,7 @@ export function DataTable({
                                     <TableCell
                                         key={col.key}
                                         className={`px-6 py-4 ${col.className || ''}`}
-                                        style={col.width ? { width: col.width } : undefined}
+                                        style={col.width || col.minWidth ? { width: col.width, minWidth: col.minWidth } : undefined}
                                     >
                                         {col.render(item)}
                                     </TableCell>

@@ -37,10 +37,12 @@ const knowledgeBasePanelConfig: DataPanelConfig = {
             created_at: "添加时间",
         },
         columnWidths: {
+            name: "30%",
             file_ext: "100px",
             size_bytes: "120px",
             created_at: "180px",
         },
+        tableMinWidth: "720px",
         customRenderers: {
             name: (row) => {
                 const depth = typeof row._depth === "number" ? row._depth : 0;
