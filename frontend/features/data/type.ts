@@ -12,5 +12,7 @@ export interface DataPanelConfig {
     columnLabels?: Record<string, string>;
     customRenderers?: Record<string, (row: any) => ReactNode>;
     columnWidths?: Record<string, string>;
+    columnMinWidths?: Record<string, string>;
+    tableMinWidth?: string;
     columnOrder?: string[];
 }
