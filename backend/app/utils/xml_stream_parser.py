@@ -16,8 +16,7 @@ XML 流式解析器
 </response>
 
 输出事件类型：
-- thinking_start/thinking_chunk/thinking_end
-- plan_start/plan_item/plan_end
+- box_start / box_chunk / box_end（思考、计划等均用 title + 正文块）
 - response_start/response_chunk/response_end
 
 使用示例：
@@ -195,22 +194,24 @@ class XmlStreamParser:
             # 没有找到结束标签，输出所有内容为 chunk（保留可能的不完整标签）
             content = self._extract_content_preserving_tags()
             if content:
-                self.events.append(StreamEvent(
-                    event="thinking_chunk",
-                    data={"content": content}
-                ))
+                self.events.append(
+                    StreamEvent(
+                        event="box_chunk",
+                        data={"content": content},
+                    )
+                )
             return False
 
         # 找到结束标签，输出到结束标签前的内容
         content = self.buffer[:end_pos]
         if content:
             self.events.append(StreamEvent(
-                event="thinking_chunk",
+                event="box_chunk",
                 data={"content": content}
             ))
 
-        # 发送 thinking_end 事件
-        self.events.append(StreamEvent(event="thinking_end", data={}))
+        # 发送 box_end 事件
+        self.events.append(StreamEvent(event="box_end", data={}))
 
         # 切换状态
         self.buffer = self.buffer[end_pos + len(self.TAG_THINKING_END):]
@@ -232,7 +233,7 @@ class XmlStreamParser:
 
         # 检查是否是 plan 结束标签
         if self.buffer.startswith(self.TAG_PLAN_END):
-            self.events.append(StreamEvent(event="plan_end", data={}))
+            self.events.append(StreamEvent(event="box_end", data={}))
             self.buffer = self.buffer[len(self.TAG_PLAN_END):]
             self.state = self.STATE_IDLE
             return True
@@ -276,13 +277,8 @@ class XmlStreamParser:
 
         # 找到结束标签
         content = self.buffer[:end_pos].strip()
-        self.events.append(StreamEvent(
-            event="plan_item",
-            data={
-                "step": content,
-                "index": self.plan_step_index
-            }
-        ))
+        line = f"{self.plan_step_index}. {content}\n"
+        self.events.append(StreamEvent(event="box_chunk", data={"content": line}))
 
         # 返回 plan 状态继续处理其他 step
         self.buffer = self.buffer[end_pos + len(self.TAG_STEP_END):]
@@ -327,10 +323,10 @@ class XmlStreamParser:
     def _enter_state(self, new_state: str) -> None:
         """进入新状态，发送相应事件"""
         if new_state == self.STATE_THINKING:
-            self.events.append(StreamEvent(event="thinking_start", data={}))
+            self.events.append(StreamEvent(event="box_start", data={"title": "思考过程"}))
             self.buffer = self.buffer[len(self.TAG_THINKING_START):]
         elif new_state == self.STATE_PLAN:
-            self.events.append(StreamEvent(event="plan_start", data={}))
+            self.events.append(StreamEvent(event="box_start", data={"title": "执行计划"}))
             self.plan_step_index = 0
             self.buffer = self.buffer[len(self.TAG_PLAN_START):]
         elif new_state == self.STATE_RESPONSE:
@@ -441,23 +437,18 @@ class XmlStreamParser:
         # 根据当前状态处理剩余内容
         if self.state == self.STATE_THINKING and self.buffer:
             self.events.append(StreamEvent(
-                event="thinking_chunk",
+                event="box_chunk",
                 data={"content": self.buffer}
             ))
-            self.events.append(StreamEvent(event="thinking_end", data={}))
+            self.events.append(StreamEvent(event="box_end", data={}))
         elif self.state == self.STATE_STEP and self.buffer:
             content = self.buffer.strip()
             if content:
-                self.events.append(StreamEvent(
-                    event="plan_item",
-                    data={
-                        "step": content,
-                        "index": self.plan_step_index
-                    }
-                ))
-            self.events.append(StreamEvent(event="plan_end", data={}))
+                line = f"{self.plan_step_index}. {content}\n"
+                self.events.append(StreamEvent(event="box_chunk", data={"content": line}))
+            self.events.append(StreamEvent(event="box_end", data={}))
         elif self.state == self.STATE_PLAN:
-            self.events.append(StreamEvent(event="plan_end", data={}))
+            self.events.append(StreamEvent(event="box_end", data={}))
         elif self.state == self.STATE_RESPONSE and self.buffer:
             self.events.append(StreamEvent(
                 event="response_chunk",
