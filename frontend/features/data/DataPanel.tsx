@@ -42,6 +42,8 @@ export function DataPanel({
   columnLabels,
   customRenderers,
   columnWidths,
+  columnMinWidths,
+  tableMinWidth,
   columnOrder,
   onView,
   onRemove,
@@ -428,6 +430,8 @@ export function DataPanel({
         columnLabels={columnLabels}
         customRenderers={resolvedRenderers}
         columnWidths={columnWidths}
+        columnMinWidths={columnMinWidths}
+        tableMinWidth={tableMinWidth}
         columnOrder={columnOrder}
         loading={loading}
         emptyMessage={resolvedEmptyMessage}
