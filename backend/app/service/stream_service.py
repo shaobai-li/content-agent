@@ -3,14 +3,11 @@
 单一职责：把业务数据转换成行级 JSON 字符串，供 StreamingResponse 使用
 
 协议约定：
-  chunk: {"event": "chunk", "data": {"content": "..."}}
-  done:  {"event": "done",  "data": {"session_id": "...", ...extra}}
-  thinking_start: {"event": "thinking_start", "data": {}}
-  thinking_chunk: {"event": "thinking_chunk", "data": {"content": "..."}}
-  thinking_end: {"event": "thinking_end", "data": {}}
-  plan_start: {"event": "plan_start", "data": {}}
-  plan_item: {"event": "plan_item", "data": {"step": "...", "index": 1}}
-  plan_end: {"event": "plan_end", "data": {}}
+  chunk:      {"event": "chunk", "data": {"content": "..."}}
+  done:       {"event": "done",  "data": {"session_id": "...", ...extra}}
+  box_start:  {"event": "box_start", "data": {"title": "..."}}
+  box_chunk:  {"event": "box_chunk", "data": {"content": "..."}}
+  box_end:    {"event": "box_end", "data": {}}
 """
 import json
 from typing import Any, AsyncGenerator, Dict, Optional
@@ -29,28 +26,19 @@ def build_stream_done(session_id: str, extra: Optional[Dict[str, Any]] = None) -
     return json.dumps({"event": "done", "data": data}) + "\n"
 
 
-def build_thinking_start() -> str:
-    return json.dumps({"event": "thinking_start", "data": {}}) + "\n"
+def build_box_start(title: str, icon: Optional[str] = None) -> str:
+    data: Dict[str, Any] = {"title": title}
+    if icon:
+        data["icon"] = icon
+    return json.dumps({"event": "box_start", "data": data}) + "\n"
 
 
-def build_thinking_chunk(content: str) -> str:
-    return json.dumps({"event": "thinking_chunk", "data": {"content": content}}) + "\n"
+def build_box_chunk(content: str) -> str:
+    return json.dumps({"event": "box_chunk", "data": {"content": content}}) + "\n"
 
 
-def build_thinking_end() -> str:
-    return json.dumps({"event": "thinking_end", "data": {}}) + "\n"
-
-
-def build_plan_start() -> str:
-    return json.dumps({"event": "plan_start", "data": {}}) + "\n"
-
-
-def build_plan_item(step: str, index: int) -> str:
-    return json.dumps({"event": "plan_item", "data": {"step": step, "index": index}}) + "\n"
-
-
-def build_plan_end() -> str:
-    return json.dumps({"event": "plan_end", "data": {}}) + "\n"
+def build_box_end() -> str:
+    return json.dumps({"event": "box_end", "data": {}}) + "\n"
 
 
 async def aggregate_stream_to_chat_response(
