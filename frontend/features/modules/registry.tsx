@@ -40,7 +40,7 @@ export const uiModuleRegistry: Record<
   }),
 
   knowledgebase: (agentId) => ({
-    header: <DataHeader />,
+    header: <DataHeader agentId={agentId} />,
     body: getKnowledgePanel(agentId),
   }),
 

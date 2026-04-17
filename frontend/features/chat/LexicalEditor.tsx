@@ -89,6 +89,7 @@ export interface LexicalEditorProps {
   value?: string;
   onEnter?: () => void;
   editable?: boolean;
+  agentId: string;
 }
 
 function SyncExternalValuePlugin({ value }: { value: string }) {
@@ -146,6 +147,7 @@ export function LexicalEditor({
   value = "",
   onEnter,
   editable = true,
+  agentId,
 }: LexicalEditorProps) {
   const initialConfig = {
     namespace: "ChatLexicalEditor",
@@ -157,7 +159,7 @@ export function LexicalEditor({
 
   const handleSearch = async (_trigger: string, query?: string | null) => {
     try {
-      const response = await fetchKbRecords();
+      const response = await fetchKbRecords(agentId);
       const records = (response as { nodes?: Array<{ record_id: string; name: string; parsed_path?: string }> })
         .nodes || [];
       const q = (query || "").toLowerCase().trim();

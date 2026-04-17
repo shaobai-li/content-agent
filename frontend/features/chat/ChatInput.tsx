@@ -8,6 +8,7 @@ import { FileChip } from "./FileChip";
 import type { MentionItem } from "./MentionChip";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { Upload } from "lucide-react";
+import { AgentId } from "@/entities/agent/model";
 
 // 文件项类型
 export type FileItem = {
@@ -29,6 +30,7 @@ interface ChatInputProps {
   onFilesDropped?: (files: FileList) => void; // 拖拽文件回调
   onFileRemove?: (id: string) => void; // 改为通过 id 删除
   isSending?: boolean; // 发送状态
+  agentId: AgentId;
 }
 
 // 内部 Hook：处理文件拖拽逻辑
@@ -98,6 +100,7 @@ export function ChatInput({
   onFilesDropped,
   onFileRemove,
   isSending,
+  agentId,
 }: ChatInputProps) {
   const { isDragging, dragHandlers } = useDragAndDrop(onFilesDropped);
 
@@ -186,6 +189,7 @@ export function ChatInput({
           value={value}
           onChange={handleEditorChange}
           onEnter={onSend}
+          agentId={agentId}
         />
         <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
           Send

@@ -20,34 +20,34 @@ function formatLocalDateTime(value: unknown) {
     ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-const knowledgeBasePanelConfig: DataPanelConfig = {
-        fetchData: fetchKbRecords,
-        renameData: renameKbRecord,
-        moveData: moveKbRecord,
-        deleteData: deleteKbRecord,
-        rowKeyField: "id",
-        dataKey: "nodes",
-        emptyMessage: "No knowledge base data available",
-        refreshEvent: "kb-data-refresh",
-        columnOrder: ["name", "file_ext", "size_bytes", "created_at"],
-        columnLabels: {
-            name: "文件名",
-            file_ext: "类型",
-            size_bytes: "大小",
-            created_at: "添加时间",
-        },
-        columnWidths: {
-            name: "30%",
-            file_ext: "100px",
-            size_bytes: "120px",
-            created_at: "180px",
-        },
-        tableMinWidth: "720px",
-        customRenderers: {
-            name: (row) => {
-                const depth = typeof row._depth === "number" ? row._depth : 0;
-                const isFolder = row.node_type === "folder";
-                const name = String(row.name || "");
+const createKnowledgeBasePanelConfig = (agentId: AgentId): DataPanelConfig => ({
+    fetchData: () => fetchKbRecords(agentId),
+    renameData: (nodeId: string, name: string) => renameKbRecord(agentId, nodeId, name),
+    moveData: (nodeId: string, parentId: string) => moveKbRecord(agentId, nodeId, parentId),
+    deleteData: (recordId: string) => deleteKbRecord(agentId, recordId),
+    rowKeyField: "id",
+    dataKey: "nodes",
+    emptyMessage: "No knowledge base data available",
+    refreshEvent: "kb-data-refresh",
+    columnOrder: ["name", "file_ext", "size_bytes", "created_at"],
+    columnLabels: {
+        name: "文件名",
+        file_ext: "类型",
+        size_bytes: "大小",
+        created_at: "添加时间",
+    },
+    columnWidths: {
+        name: "30%",
+        file_ext: "100px",
+        size_bytes: "120px",
+        created_at: "180px",
+    },
+    tableMinWidth: "720px",
+    customRenderers: {
+        name: (row) => {
+            const depth = typeof row._depth === "number" ? row._depth : 0;
+            const isFolder = row.node_type === "folder";
+            const name = String(row.name || "");
 
             return (
                 <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${depth * 20}px` }}>
@@ -62,24 +62,24 @@ const knowledgeBasePanelConfig: DataPanelConfig = {
                 </div>
             );
         },
-            file_ext: (row) =>
-                row.node_type === "folder"
-                    ? "文件夹"
-                    : String(row.file_ext || row.type || "").toUpperCase() || "",
-            size_bytes: (row) => {
-                if (row.node_type === "folder") return "";
-                const n = row.size_bytes ?? row.size;
-                if (typeof n === "string") return n;
-                if (typeof n !== "number") return "";
-                if (n < 1024) return `${n} B`;
-                if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-                return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-            },
-            created_at: (row) => formatLocalDateTime(row.created_at || row.date_added || ""),
+        file_ext: (row) =>
+            row.node_type === "folder"
+                ? "文件夹"
+                : String(row.file_ext || row.type || "").toUpperCase() || "",
+        size_bytes: (row) => {
+            if (row.node_type === "folder") return "";
+            const n = row.size_bytes ?? row.size;
+            if (typeof n === "string") return n;
+            if (typeof n !== "number") return "";
+            if (n < 1024) return `${n} B`;
+            if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+            return `${(n / (1024 * 1024)).toFixed(1)} MB`;
         },
-};
+        created_at: (row) => formatLocalDateTime(row.created_at || row.date_added || ""),
+    },
+});
 
 export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> = {
-    kb: knowledgeBasePanelConfig,
-    std: knowledgeBasePanelConfig,
+    kb: createKnowledgeBasePanelConfig("kb"),
+    std: createKnowledgeBasePanelConfig("std"),
 };
