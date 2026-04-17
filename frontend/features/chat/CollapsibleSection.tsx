@@ -1,35 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Lightbulb, ListOrdered } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, PenSquare, TerminalSquare, WandSparkles, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 
 interface CollapsibleSectionProps {
   title: string;
-  content: string | string[];
+  icon?: string;
+  content: string;
   isStreaming?: boolean;
-  type: "thinking" | "plan";
   defaultExpanded?: boolean;
+  /** 流式尚未收到正文时的占位 */
+  emptyLabel?: string;
 }
 
 export function CollapsibleSection({
   title,
+  icon,
   content,
   isStreaming = false,
-  type,
-  defaultExpanded = true,
+  defaultExpanded = false,
+  emptyLabel = "加载中…",
 }: CollapsibleSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   const toggleExpanded = () => setIsExpanded(!isExpanded);
 
-  const Icon = type === "thinking" ? Lightbulb : ListOrdered;
-  const contentArray = Array.isArray(content) ? content : [content];
-  const hasContent = contentArray.length > 0 && contentArray[0] !== "";
+  const hasContent = content.length > 0;
+  const iconMap: Record<string, LucideIcon> = {
+    "tool-read": FileText,
+    "tool-write": PenSquare,
+    "tool-command": TerminalSquare,
+    "tool-skill": WandSparkles,
+  };
+  const BoxIcon = icon ? (iconMap[icon] || FileText) : FileText;
 
   return (
     <div className="mb-2 border border-slate-200 rounded-lg overflow-hidden bg-slate-50/50">
       <button
+        type="button"
         onClick={toggleExpanded}
         className={cn(
           "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium",
@@ -42,7 +51,7 @@ export function CollapsibleSection({
         ) : (
           <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
         )}
-        <Icon className="w-4 h-4 text-slate-500 shrink-0" />
+        <BoxIcon className="w-4 h-4 text-slate-500 shrink-0" />
         <span className="flex-1 text-left text-slate-700">{title}</span>
         {isStreaming && (
           <span className="flex items-center gap-1">
@@ -55,27 +64,13 @@ export function CollapsibleSection({
 
       {isExpanded && (
         <div className="px-3 pb-3">
-          {type === "thinking" ? (
-            <div className="text-sm text-slate-600 whitespace-pre-wrap">
-              {hasContent ? (
-                contentArray[0]
-              ) : (
-                <span className="text-slate-400 italic">思考中...</span>
-              )}
-            </div>
-          ) : (
-            <ol className="list-decimal list-inside space-y-1">
-              {hasContent ? (
-                contentArray.map((step, index) => (
-                  <li key={index} className="text-sm text-slate-600">
-                    {step}
-                  </li>
-                ))
-              ) : (
-                <li className="text-sm text-slate-400 italic">规划中...</li>
-              )}
-            </ol>
-          )}
+          <div className="text-sm text-slate-600 whitespace-pre-wrap">
+            {hasContent ? (
+              content
+            ) : (
+              <span className="text-slate-400 italic">{emptyLabel}</span>
+            )}
+          </div>
         </div>
       )}
     </div>

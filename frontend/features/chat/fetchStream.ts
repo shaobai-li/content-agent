@@ -3,14 +3,11 @@
  * 单一职责：将 fetch Response body 解析为行级 JSON 事件流
  *
  * 后端协议约定：
- *   chunk:           { event: "chunk", data: { content: string } }
- *   done:            { event: "done",  data: { session_id: string, [key: string]: unknown } }
- *   thinking_start:  { event: "thinking_start", data: {} }
- *   thinking_chunk:  { event: "thinking_chunk", data: { content: string } }
- *   thinking_end:    { event: "thinking_end", data: {} }
- *   plan_start:      { event: "plan_start", data: {} }
- *   plan_item:       { event: "plan_item", data: { step: string; index: number } }
- *   plan_end:        { event: "plan_end", data: {} }
+ *   chunk:      { event: "chunk", data: { content: string } }
+ *   done:       { event: "done",  data: { session_id: string, ... } }
+ *   box_start:  { event: "box_start", data: { title: string } }
+ *   box_chunk:  { event: "box_chunk", data: { content: string } }
+ *   box_end:    { event: "box_end", data: {} }
  */
 
 export type StreamChunkEvent = {
@@ -23,45 +20,27 @@ export type StreamDoneEvent = {
   data: { session_id?: string; [key: string]: unknown };
 };
 
-export type ThinkingStartEvent = {
-  event: "thinking_start";
-  data: Record<string, never>;
+export type BoxStartEvent = {
+  event: "box_start";
+  data: { title: string; icon?: string };
 };
 
-export type ThinkingChunkEvent = {
-  event: "thinking_chunk";
+export type BoxChunkEvent = {
+  event: "box_chunk";
   data: { content: string };
 };
 
-export type ThinkingEndEvent = {
-  event: "thinking_end";
-  data: Record<string, never>;
-};
-
-export type PlanStartEvent = {
-  event: "plan_start";
-  data: Record<string, never>;
-};
-
-export type PlanItemEvent = {
-  event: "plan_item";
-  data: { step: string; index: number };
-};
-
-export type PlanEndEvent = {
-  event: "plan_end";
+export type BoxEndEvent = {
+  event: "box_end";
   data: Record<string, never>;
 };
 
 export type StreamEvent =
   | StreamChunkEvent
   | StreamDoneEvent
-  | ThinkingStartEvent
-  | ThinkingChunkEvent
-  | ThinkingEndEvent
-  | PlanStartEvent
-  | PlanItemEvent
-  | PlanEndEvent;
+  | BoxStartEvent
+  | BoxChunkEvent
+  | BoxEndEvent;
 
 export async function* readStreamLines(
   response: Response

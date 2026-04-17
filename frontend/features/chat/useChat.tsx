@@ -141,72 +141,54 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
               })
             );
             break;
-          case "thinking_start":
+          case "box_start":
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantMsgId
-                  ? { ...m, parts: [...(m.parts || []), { type: "thinking", content: "", complete: false }] }
+                  ? {
+                      ...m,
+                      parts: [
+                        ...(m.parts || []),
+                        {
+                          type: "box",
+                          title: event.data.title || "详情",
+                          icon: event.data.icon,
+                          content: "",
+                          complete: false,
+                        },
+                      ],
+                    }
                   : m
               )
             );
             break;
-          case "thinking_chunk":
+          case "box_chunk":
             setMessages((prev) =>
               prev.map((m) => {
                 if (m.id !== assistantMsgId) return m;
                 const parts = [...(m.parts || [])];
                 const lastIdx = parts.length - 1;
-                if (lastIdx >= 0 && parts[lastIdx].type === "thinking") {
-                  const p = parts[lastIdx] as { type: "thinking"; content: string; complete: boolean };
+                if (lastIdx >= 0 && parts[lastIdx].type === "box") {
+                  const p = parts[lastIdx] as {
+                    type: "box";
+                    title: string;
+                    icon?: string;
+                    content: string;
+                    complete: boolean;
+                  };
                   parts[lastIdx] = { ...p, content: p.content + event.data.content };
                 }
                 return { ...m, parts };
               })
             );
             break;
-          case "thinking_end":
+          case "box_end":
             setMessages((prev) =>
               prev.map((m) => {
                 if (m.id !== assistantMsgId) return m;
                 const parts = [...(m.parts || [])];
                 const lastIdx = parts.length - 1;
-                if (lastIdx >= 0 && parts[lastIdx].type === "thinking") {
-                  parts[lastIdx] = { ...parts[lastIdx], complete: true };
-                }
-                return { ...m, parts };
-              })
-            );
-            break;
-          case "plan_start":
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === assistantMsgId
-                  ? { ...m, parts: [...(m.parts || []), { type: "plan", steps: [], complete: false }] }
-                  : m
-              )
-            );
-            break;
-          case "plan_item":
-            setMessages((prev) =>
-              prev.map((m) => {
-                if (m.id !== assistantMsgId) return m;
-                const parts = [...(m.parts || [])];
-                const lastIdx = parts.length - 1;
-                if (lastIdx >= 0 && parts[lastIdx].type === "plan") {
-                  const p = parts[lastIdx] as { type: "plan"; steps: string[]; complete: boolean };
-                  parts[lastIdx] = { ...p, steps: [...p.steps, event.data.step] };
-                }
-                return { ...m, parts };
-              })
-            );
-            break;
-          case "plan_end":
-            setMessages((prev) =>
-              prev.map((m) => {
-                if (m.id !== assistantMsgId) return m;
-                const parts = [...(m.parts || [])];
-                const lastIdx = parts.length - 1;
-                if (lastIdx >= 0 && parts[lastIdx].type === "plan") {
+                if (lastIdx >= 0 && parts[lastIdx].type === "box") {
                   parts[lastIdx] = { ...parts[lastIdx], complete: true };
                 }
                 return { ...m, parts };

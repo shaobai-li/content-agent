@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List
+from typing import Any, AsyncGenerator, Callable, Dict, List
 
 from openai.types.chat import ChatCompletionMessage
 
@@ -12,21 +12,21 @@ from app.core.config import get_agent_base_dir
 from app.runtime.agent_turn_context import AgentTurnContext
 from app.service.agent_chat_service import save_chat_session
 from app.service.stream_service import (
+    build_box_chunk,
+    build_box_end,
+    build_box_start,
     build_stream_chunk,
     build_stream_done,
-    build_thinking_chunk,
-    build_thinking_end,
-    build_thinking_start,
 )
 from app.utils.context_utils import get_article_context_messages
-from app.utils.llm_client import deepseek_chat_completion_message
+from app.utils.llm_client import deepseek_chat_stream
+from app.utils.skill_loader import discover_skills_for_agent
 
 from .tools import STANDARD_AGENT_TOOLS, make_tool_executor
 
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 _MAX_TOOL_ROUNDS = 20
-_FINAL_CHUNK_SIZE = 120
 
 
 def load_default_system_prompt() -> str:
@@ -65,12 +65,57 @@ def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str,
     return out
 
 
-async def _yield_thinking_text(text: str) -> AsyncGenerator[str, None]:
-    yield build_thinking_start()
+def _invoke_skill_name_description_block(agent_id: str, raw_args: str) -> str:
+    """供 UI 展示：仅技能的 name 与 description。"""
+    sid = ""
+    try:
+        sid = str((json.loads(raw_args or "{}") or {}).get("skill_id", "") or "").strip()
+    except json.JSONDecodeError:
+        sid = ""
+    if not sid:
+        return "name\n（未提供 skill_id）\n\ndescription\n—"
+    for head in discover_skills_for_agent(agent_id):
+        if head.skill_id == sid:
+            return f"name : {head.name}\ndescription : {head.description}"
+    return f"name\n（未找到技能 {sid!r}）\n\ndescription\n—"
+
+
+async def _yield_box_call_then_result(
+    title: str,
+    icon: str,
+    call_summary: str,
+    run_tool: Callable[[], str],
+    *,
+    result_max_len: int = 4000,
+    tool_name: str = "",
+    raw_args: str = "{}",
+    agent_id: str = "",
+) -> AsyncGenerator[str, None]:
+    """
+    单次 box 会话（一对 box_start / box_end）：
+    先流式推送调用说明（invoke_skill 时仅 name/description），再执行 run_tool()，再按需推送输出摘要。
+    """
     step = 800
-    for i in range(0, len(text), step):
-        yield build_thinking_chunk(text[i : i + step])
-    yield build_thinking_end()
+    is_invoke_skill = tool_name == "invoke_skill" and bool(agent_id)
+
+    if is_invoke_skill:
+        box_title = "技能加载 ..."
+        pre_body = _invoke_skill_name_description_block(agent_id, raw_args)
+        yield build_box_start(box_title, icon=icon)
+        for i in range(0, len(pre_body), step):
+            yield build_box_chunk(pre_body[i : i + step])
+        run_tool()
+    else:
+        yield build_box_start(title, icon=icon)
+        for i in range(0, len(call_summary), step):
+            yield build_box_chunk(call_summary[i : i + step])
+        yield build_box_chunk("\n\n")
+        raw = run_tool()
+        preview = raw if len(raw) <= result_max_len else raw[:result_max_len] + "\n…(truncated)"
+        result_summary = f"工具输出:\n{preview}"
+        for i in range(0, len(result_summary), step):
+            yield build_box_chunk(result_summary[i : i + step])
+    yield build_box_end()
 
 
 class StandardAgent(BaseAgent):
@@ -111,10 +156,17 @@ class StandardAgent(BaseAgent):
         rounds = 0
         while rounds < _MAX_TOOL_ROUNDS:
             rounds += 1
-            assistant_msg = await deepseek_chat_completion_message(
+            assistant_msg: ChatCompletionMessage | None = None
+            async for part in deepseek_chat_stream(
                 messages,
                 tools=STANDARD_AGENT_TOOLS,
-            )
+            ):
+                if isinstance(part, str):
+                    yield build_stream_chunk(part)
+                else:
+                    assistant_msg = part
+            if assistant_msg is None:
+                break
             messages.append(_assistant_message_as_dict(assistant_msg))
 
             if assistant_msg.tool_calls:
@@ -125,11 +177,34 @@ class StandardAgent(BaseAgent):
                         preview = json.dumps(json.loads(raw_args), ensure_ascii=False)[:600]
                     except json.JSONDecodeError:
                         preview = raw_args[:600]
-                    result = execute_tool(name, raw_args)
-                    result_preview = result if len(result) <= 4000 else result[:4000] + "\n…(truncated)"
-                    log = f"调用工具 `{name}`\n参数: {preview}\n\n输出:\n{result_preview}"
-                    async for line in _yield_thinking_text(log):
+                    # 同一 collapse：一对 box_start/end；先推送调用信息，再执行工具，再推送输出。
+                    # tool_calls 在本轮流式结束后才完整，故「调用意图」无法早于本轮流结束展示。
+                    call_summary = f"参数: {preview}"
+                    result_box: list[str] = []
+
+                    def _run_tool() -> str:
+                        r = execute_tool(name, raw_args)
+                        result_box.append(r)
+                        return r
+
+                    box_title = f"调用工具 {name} ..."
+                    icon = {
+                        "read_file": "tool-read",
+                        "write_file": "tool-write",
+                        "run_command": "tool-command",
+                        "invoke_skill": "tool-skill",
+                    }.get(name, "tool-command")
+                    async for line in _yield_box_call_then_result(
+                        box_title,
+                        icon,
+                        call_summary,
+                        _run_tool,
+                        tool_name=name,
+                        raw_args=raw_args,
+                        agent_id=self.agent_id,
+                    ):
                         yield line
+                    result = result_box[0]
                     messages.append(
                         {
                             "role": "tool",
@@ -139,10 +214,7 @@ class StandardAgent(BaseAgent):
                     )
                 continue
 
-            final = (assistant_msg.content or "").strip()
-            final_reply_text = final
-            for i in range(0, len(final), _FINAL_CHUNK_SIZE):
-                yield build_stream_chunk(final[i : i + _FINAL_CHUNK_SIZE])
+            final_reply_text = (assistant_msg.content or "").strip()
             break
         else:
             final_reply_text = "已达到工具调用轮数上限，请简化任务或分步提问。"
