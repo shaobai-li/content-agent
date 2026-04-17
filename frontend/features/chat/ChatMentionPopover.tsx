@@ -15,12 +15,14 @@ import {
 import { BookOpen } from "lucide-react";
 import { fetchKbRecords } from "@/shared/api/records";
 import type { MentionItem } from "./MentionChip";
+import { AgentId } from "@/entities/agent/model";
 
 interface ChatMentionPopoverProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (item: MentionItem) => void;
   children: React.ReactNode;
+  agentId: AgentId;
 }
 
 export function ChatMentionPopover({
@@ -28,12 +30,13 @@ export function ChatMentionPopover({
   onOpenChange,
   onSelect,
   children,
+  agentId,
 }: ChatMentionPopoverProps) {
   const [mentionOptions, setMentionOptions] = useState<MentionItem[]>([]);
 
   useEffect(() => {
     if (open) {
-      fetchKbRecords()
+      fetchKbRecords(agentId)
         .then((response) => {
           const nodes = response.nodes || [];
           const options = nodes.map((record: any) => ({
@@ -48,7 +51,7 @@ export function ChatMentionPopover({
           setMentionOptions([]);
         });
     }
-  }, [open]);
+  }, [open, agentId]);
 
   const handleSelect = (item: MentionItem) => {
     onSelect(item);

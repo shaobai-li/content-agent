@@ -117,9 +117,9 @@ export function ChatPage({ agentId }: ChatPageProps) {
           <ChatMessage messages={messages} />
         </ScrollArea>
         <div className="flex flex-col border p-4 bg-background">
-          <ChatInput 
-            value={input} 
-            onChange={setInput} 
+          <ChatInput
+            value={input}
+            onChange={setInput}
             onSend={handleSendWithFiles}
             mentions={mentions}
             onMentionsChange={setMentions}
@@ -127,6 +127,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
             onFilesDropped={handleFilesDropped}
             onFileRemove={handleFileRemove}
             isSending={isSending}
+            agentId={agentId}
           />
         </div>
       </div>

@@ -12,12 +12,17 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { NewFolderModal } from "./NewFolderModal";
+import { AgentId } from "@/entities/agent/model";
 
 const ROOT_FOLDER_ID = "fld_root";
 const CURRENT_FOLDER_CHANGE_EVENT = "kb-current-folder-change";
 const SEARCH_CHANGE_EVENT = "kb-data-search-change";
 
-export function DataHeader() {
+interface DataHeaderProps {
+  agentId: AgentId;
+}
+
+export function DataHeader({ agentId }: DataHeaderProps) {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
   const [searchKeyword, setSearchKeyword] = useState("");
@@ -50,7 +55,7 @@ export function DataHeader() {
   }, [searchKeyword]);
 
   const handleCreateFolder = async (folderName: string) => {
-    const response = await createKbFolder(folderName, currentFolderId);
+    const response = await createKbFolder(agentId, folderName, currentFolderId);
     if (!response.success) {
       throw new Error(response.message || "创建文件夹失败");
     }

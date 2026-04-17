@@ -100,28 +100,28 @@ function buildKbTableNodes(nodes: unknown[]): KbTableNode[] {
   return flattened;
 }
 
-export const fetchKbRecords = () =>
+export const fetchKbRecords = (agentId: string) =>
   http
-    .get<{ nodes?: unknown[] }>("/api/agents/kb/res/nodes")
+    .get<{ nodes?: unknown[] }>(`/api/agents/${agentId}/res/nodes`)
     .then((res) => ({
       nodes: buildKbTableNodes(res.nodes ?? []),
     }));
 
-export const createKbFolder = (name: string, parentId = "fld_root") =>
-  http.post<CreateKbFolderResponse>("/api/agents/kb/res/nodes", {
+export const createKbFolder = (agentId: string, name: string, parentId = "fld_root") =>
+  http.post<CreateKbFolderResponse>(`/api/agents/${agentId}/res/nodes`, {
     name,
     parent_id: parentId,
   });
 
-export const renameKbRecord = (nodeId: string, name: string) =>
-  http.put<RenameKbNodeResponse>(`/api/agents/kb/res/nodes/${nodeId}`, {
+export const renameKbRecord = (agentId: string, nodeId: string, name: string) =>
+  http.put<RenameKbNodeResponse>(`/api/agents/${agentId}/res/nodes/${nodeId}`, {
     name,
   });
 
-export const moveKbRecord = (nodeId: string, parentId: string) =>
-  http.put<MoveKbNodeResponse>(`/api/agents/kb/res/nodes/${nodeId}`, {
+export const moveKbRecord = (agentId: string, nodeId: string, parentId: string) =>
+  http.put<MoveKbNodeResponse>(`/api/agents/${agentId}/res/nodes/${nodeId}`, {
     parent_id: parentId,
   });
 
-export const deleteKbRecord = (recordId: string) =>
-  http.delete(`/api/agents/kb/res/nodes/${recordId}`);
+export const deleteKbRecord = (agentId: string, recordId: string) =>
+  http.delete(`/api/agents/${agentId}/res/nodes/${recordId}`);
