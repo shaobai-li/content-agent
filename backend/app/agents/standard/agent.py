@@ -29,9 +29,29 @@ _PROMPTS_DIR = Path(__file__).parent / "prompts"
 _MAX_TOOL_ROUNDS = 20
 
 
+USER_SYSTEM_PROMPT_REL = Path("prompts") / "system_prompt.md"
+
+
 def load_default_system_prompt() -> str:
     path = _PROMPTS_DIR / "system.md"
     return path.read_text(encoding="utf-8").strip()
+
+
+def resolve_standard_agent_base_system_prompt(agent_id: str) -> str:
+    """
+    优先使用 agent 数据目录下 prompts/system_prompt.md（如 {DATA_DIR}/agents/agent_std/prompts/system_prompt.md）；
+    若不存在或正文为空，则使用仓库内置 prompts/system.md。
+    """
+    try:
+        user_path = get_agent_base_dir(agent_id) / USER_SYSTEM_PROMPT_REL
+    except ValueError:
+        return load_default_system_prompt()
+    if not user_path.is_file():
+        return load_default_system_prompt()
+    text = user_path.read_text(encoding="utf-8").strip()
+    if not text:
+        return load_default_system_prompt()
+    return text
 
 
 def _assistant_message_as_dict(msg: ChatCompletionMessage) -> Dict[str, Any]:
@@ -121,8 +141,20 @@ async def _yield_box_call_then_result(
 class StandardAgent(BaseAgent):
     """带标准 tool-use loop；工具仅作用于该 agent 数据目录下的 `workspace` 子目录。"""
 
-    def __init__(self, agent_id: str, system_prompt: str):
-        super().__init__(agent_id=agent_id, system_prompt=system_prompt)
+    def __init__(self, agent_id: str):
+        super().__init__(agent_id=agent_id, system_prompt="")
+
+    def get_system_prompt_for_llm(self) -> str:
+        from app.utils.skill_loader import prepend_skill_catalog_xml_to_system_prompt
+
+        base = resolve_standard_agent_base_system_prompt(self.agent_id)
+        return prepend_skill_catalog_xml_to_system_prompt(base, self.agent_id)
+
+    def get_config_dict(self) -> dict:
+        return {
+            "agent_id": self.agent_id,
+            "system_prompt": resolve_standard_agent_base_system_prompt(self.agent_id),
+        }
 
     def _workspace_dir(self) -> Path:
         root = get_agent_base_dir(self.agent_id)

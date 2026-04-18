@@ -20,9 +20,33 @@ _deepseek_async_client = AsyncOpenAI(
     base_url="https://api.deepseek.com",
 )
 
+# 避免 tool 多轮中对同一条 system 重复刷满屏日志
+_last_logged_system_prompt: Optional[str] = None
+
+
+def _log_system_prompt_sent_to_llm(messages: List[Dict[str, Any]]) -> None:
+    """记录发往 LLM 的完整 system 内容（与 API messages[0] 一致）。"""
+    global _last_logged_system_prompt
+    if not messages:
+        return
+    m0 = messages[0]
+    if m0.get("role") != "system":
+        return
+    content = m0.get("content")
+    if not isinstance(content, str):
+        return
+    if content == _last_logged_system_prompt:
+        return
+    _last_logged_system_prompt = content
+    print(
+        f"[llm_system_prompt] full_len={len(content)}\n{content}\n[llm_system_prompt] ---",
+        flush=True,
+    )
+
 
 def deepseek_chat(messages: List[Dict[str, Any]], model: str = "deepseek-chat") -> str:
     """同步、无 tools：底层统一走流式接口，聚合为完整正文。"""
+    _log_system_prompt_sent_to_llm(messages)
     stream = _deepseek_client.chat.completions.create(
         model=model,
         messages=messages,
@@ -80,6 +104,7 @@ async def deepseek_chat_stream(
     if tools:
         kwargs["tools"] = tools
 
+    _log_system_prompt_sent_to_llm(messages)
     stream = await _deepseek_async_client.chat.completions.create(**kwargs)
 
     if not tools:
