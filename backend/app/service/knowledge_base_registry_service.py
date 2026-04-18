@@ -36,7 +36,7 @@ def _root_folder_node() -> Dict[str, Any]:
     }
 
 
-def _default_kb_id(agent_id: str) -> str:
+def _legacy_kb_id(agent_id: str) -> str:
     default_path = get_agent_knowledge_base_path(agent_id)
     if default_path.parent.name == "view":
         candidate = default_path.parent.parent.name
@@ -66,8 +66,8 @@ def get_database_registry_path(agent_id: str) -> Path:
 
 
 def get_database_nodes_path(agent_id: str, kb_id: Optional[str] = None) -> Path:
-    default_kb_id = _default_kb_id(agent_id)
-    if not kb_id or kb_id == default_kb_id:
+    legacy_kb_id = _legacy_kb_id(agent_id)
+    if not kb_id or kb_id == legacy_kb_id:
         return get_agent_knowledge_base_path(agent_id)
     return get_agent_local_data_dir(agent_id) / kb_id / "view" / "nodes.json"
 
@@ -81,7 +81,7 @@ def _default_kb_document(kb_id: str) -> Dict[str, Any]:
 
 
 def ensure_kb_document(agent_id: str, kb_id: Optional[str] = None) -> Dict[str, Any]:
-    resolved_kb_id = kb_id or _default_kb_id(agent_id)
+    resolved_kb_id = kb_id or _legacy_kb_id(agent_id)
     path = get_database_nodes_path(agent_id, resolved_kb_id)
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -169,17 +169,18 @@ def ensure_database_registry(agent_id: str) -> List[Dict[str, Any]]:
         except (json.JSONDecodeError, OSError, TypeError):
             loaded_entries = []
 
-    default_kb_id = _default_kb_id(agent_id)
-    ensure_kb_document(agent_id, default_kb_id)
+    legacy_kb_id = _legacy_kb_id(agent_id)
+    legacy_path = get_agent_knowledge_base_path(agent_id)
+    has_legacy_entry = any(entry["id"] == legacy_kb_id for entry in loaded_entries)
+    if legacy_path.exists():
+        ensure_kb_document(agent_id, legacy_kb_id)
 
-    has_default = any(entry["id"] == default_kb_id for entry in loaded_entries)
-    if not has_default:
+    if legacy_path.exists() and not has_legacy_entry:
         now = _utc_iso()
         default_meta = _default_database_meta(agent_id)
-        loaded_entries.insert(
-            0,
+        loaded_entries.append(
             {
-                "id": default_kb_id,
+                "id": legacy_kb_id,
                 "name": default_meta["name"],
                 "description": default_meta["description"],
                 "created_at": now,
@@ -192,14 +193,7 @@ def ensure_database_registry(agent_id: str) -> List[Dict[str, Any]]:
 
 
 def list_knowledge_bases(agent_id: str) -> List[Dict[str, Any]]:
-    default_kb_id = _default_kb_id(agent_id)
-    return [
-        {
-            **entry,
-            "is_default": entry["id"] == default_kb_id,
-        }
-        for entry in ensure_database_registry(agent_id)
-    ]
+    return ensure_database_registry(agent_id)
 
 
 def create_knowledge_base(name: str, description: str, agent_id: str) -> Dict[str, Any]:
@@ -237,10 +231,6 @@ def delete_knowledge_base(agent_id: str, kb_id: str) -> Dict[str, Any]:
     if not database_id:
         return {"success": False, "message": "知识库不存在"}
 
-    default_kb_id = _default_kb_id(agent_id)
-    if database_id == default_kb_id:
-        return {"success": False, "message": "默认知识库不允许删除"}
-
     databases = ensure_database_registry(agent_id)
     database = next((entry for entry in databases if entry["id"] == database_id), None)
     if not database:
@@ -249,8 +239,14 @@ def delete_knowledge_base(agent_id: str, kb_id: str) -> Dict[str, Any]:
     remaining_databases = [entry for entry in databases if entry["id"] != database_id]
     _save_database_registry(agent_id, remaining_databases)
 
-    database_dir = get_agent_local_data_dir(agent_id) / database_id
-    if database_dir.exists():
-        shutil.rmtree(database_dir, ignore_errors=True)
+    legacy_kb_id = _legacy_kb_id(agent_id)
+    if database_id == legacy_kb_id:
+        database_path = get_agent_knowledge_base_path(agent_id)
+        if database_path.exists():
+            database_path.unlink()
+    else:
+        database_dir = get_agent_local_data_dir(agent_id) / database_id
+        if database_dir.exists():
+            shutil.rmtree(database_dir, ignore_errors=True)
 
     return {"success": True, "database": database}

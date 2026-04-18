@@ -97,7 +97,6 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
     <div className="-mx-6 -my-6 flex h-full flex-col overflow-auto">
       {visibleDatabases.map((database) => {
         const isActive = database.id === databaseId;
-        const deleteDisabled = database.is_default === true;
 
         return (
           <Card
@@ -124,10 +123,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
                 {database.description}
               </CardDescription>
               <CardAction>
-                <HistoryItemMenu
-                  deleteDisabled={deleteDisabled}
-                  onDelete={() => handleDelete(database.id, database.name)}
-                />
+                <HistoryItemMenu onDelete={() => handleDelete(database.id, database.name)} />
               </CardAction>
             </CardHeader>
           </Card>

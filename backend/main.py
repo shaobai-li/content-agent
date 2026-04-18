@@ -12,6 +12,7 @@ import app.agents.knowledge_base
 # 导入统一 API 路由
 from app.api.agents import router as agents_router
 from app.core.config import AGENTS_CONFIG
+from app.service.knowledge_base_registry_service import list_knowledge_bases
 from app.service.records_service import ensure_kb_initialized
 
 app = FastAPI(
@@ -35,10 +36,13 @@ app.include_router(agents_router)
 
 @app.on_event("startup")
 async def initialize_agent_knowledge_bases():
-    """启动时初始化所有配置了 knowledge_base_file 的 Agent 节点文件。"""
+    """启动时初始化注册表中已有的知识库节点文件。"""
     for agent_id, cfg in AGENTS_CONFIG.items():
         if isinstance(cfg, dict) and cfg.get("knowledge_base_file"):
-            ensure_kb_initialized(agent_id)
+            for database in list_knowledge_bases(agent_id):
+                kb_id = database.get("id")
+                if isinstance(kb_id, str) and kb_id:
+                    ensure_kb_initialized(agent_id, kb_id)
 
 
 @app.get("/")
