@@ -27,17 +27,17 @@ async def get_session_messages(agent_id: str, session_id: str):
 async def delete_session_endpoint(agent_id: str, session_id: str):
     return delete_session(agent_id, session_id)
 @router.get("/res/{res_name}")
-async def get_resources(agent_id: str, res_name: str):
+async def get_resources(agent_id: str, res_name: str, kb_id: Optional[str] = None):
     """获取指定 Agent 的资源列表（nodes.json 为 nodes）"""
     if res_name == "nodes":
         from app.service.records_service import get_all_records
-        nodes = get_all_records(agent_id)
+        nodes = get_all_records(agent_id, kb_id)
         return {"nodes": nodes}
     return {"error": f"Unknown resource type: {res_name}"}
 
 
 @router.post("/res/{res_name}")
-async def create_resource(agent_id: str, res_name: str, payload: dict = Body(...)):
+async def create_resource(agent_id: str, res_name: str, payload: dict = Body(...), kb_id: Optional[str] = None):
     """创建指定 Agent 的资源节点"""
     if res_name == "nodes":
         from app.service.records_service import create_folder
@@ -45,28 +45,53 @@ async def create_resource(agent_id: str, res_name: str, payload: dict = Body(...
             payload.get("name", ""),
             agent_id,
             payload.get("parent_id", "fld_root"),
+            kb_id,
         )
     return {"error": f"Unknown resource type: {res_name}"}
 
 @router.delete("/res/{res_name}/{node_id}")
-async def delete_resource(agent_id: str, res_name: str, node_id: str):
+async def delete_resource(agent_id: str, res_name: str, node_id: str, kb_id: Optional[str] = None):
     """删除指定 Agent 的资源节点"""
     if res_name == "nodes":
         from app.service.records_service import delete_node
-        return delete_node(node_id, agent_id)
+        return delete_node(node_id, agent_id, kb_id)
     return {"error": f"Unknown resource type: {res_name}"}
 
 @router.put("/res/{res_name}/{node_id}")
-async def update_resource(agent_id: str, res_name: str, node_id: str, payload: dict = Body(...)):
+async def update_resource(
+    agent_id: str,
+    res_name: str,
+    node_id: str,
+    payload: dict = Body(...),
+    kb_id: Optional[str] = None,
+):
     """更新指定 Agent 的资源节点"""
     if res_name == "nodes":
         from app.service.records_service import move_node, rename_node
 
         if "parent_id" in payload:
-            return move_node(node_id, payload.get("parent_id", "fld_root"), agent_id)
+            return move_node(node_id, payload.get("parent_id", "fld_root"), agent_id, kb_id)
 
-        return rename_node(node_id, payload.get("name", ""), agent_id)
+        return rename_node(node_id, payload.get("name", ""), agent_id, kb_id)
     return {"error": f"Unknown resource type: {res_name}"}
+
+
+@router.get("/knowledge-bases")
+async def get_knowledge_bases(agent_id: str):
+    from app.service.knowledge_base_registry_service import list_knowledge_bases
+
+    return {"databases": list_knowledge_bases(agent_id)}
+
+
+@router.post("/knowledge-bases")
+async def create_knowledge_base_endpoint(agent_id: str, payload: dict = Body(...)):
+    from app.service.knowledge_base_registry_service import create_knowledge_base
+
+    return create_knowledge_base(
+        payload.get("name", ""),
+        payload.get("description", ""),
+        agent_id,
+    )
 
 @router.post("/chat/stream")
 async def chat_stream(
