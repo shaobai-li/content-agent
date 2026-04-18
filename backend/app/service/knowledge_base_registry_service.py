@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import shutil
 from typing import Any, Dict, List, Optional
 
 from app.core.config import get_agent_base_dir, get_agent_knowledge_base_path
@@ -191,7 +192,14 @@ def ensure_database_registry(agent_id: str) -> List[Dict[str, Any]]:
 
 
 def list_knowledge_bases(agent_id: str) -> List[Dict[str, Any]]:
-    return ensure_database_registry(agent_id)
+    default_kb_id = _default_kb_id(agent_id)
+    return [
+        {
+            **entry,
+            "is_default": entry["id"] == default_kb_id,
+        }
+        for entry in ensure_database_registry(agent_id)
+    ]
 
 
 def create_knowledge_base(name: str, description: str, agent_id: str) -> Dict[str, Any]:
@@ -220,5 +228,29 @@ def create_knowledge_base(name: str, description: str, agent_id: str) -> Dict[st
     ensure_kb_document(agent_id, kb_id)
     databases.append(database)
     _save_database_registry(agent_id, databases)
+
+    return {"success": True, "database": database}
+
+
+def delete_knowledge_base(agent_id: str, kb_id: str) -> Dict[str, Any]:
+    database_id = kb_id.strip()
+    if not database_id:
+        return {"success": False, "message": "知识库不存在"}
+
+    default_kb_id = _default_kb_id(agent_id)
+    if database_id == default_kb_id:
+        return {"success": False, "message": "默认知识库不允许删除"}
+
+    databases = ensure_database_registry(agent_id)
+    database = next((entry for entry in databases if entry["id"] == database_id), None)
+    if not database:
+        return {"success": False, "message": "知识库不存在"}
+
+    remaining_databases = [entry for entry in databases if entry["id"] != database_id]
+    _save_database_registry(agent_id, remaining_databases)
+
+    database_dir = get_agent_local_data_dir(agent_id) / database_id
+    if database_dir.exists():
+        shutil.rmtree(database_dir, ignore_errors=True)
 
     return {"success": True, "database": database}

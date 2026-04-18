@@ -93,6 +93,13 @@ async def create_knowledge_base_endpoint(agent_id: str, payload: dict = Body(...
         agent_id,
     )
 
+
+@router.delete("/knowledge-bases/{kb_id}")
+async def delete_knowledge_base_endpoint(agent_id: str, kb_id: str):
+    from app.service.knowledge_base_registry_service import delete_knowledge_base
+
+    return delete_knowledge_base(agent_id, kb_id)
+
 @router.post("/chat/stream")
 async def chat_stream(
     agent_id: str,

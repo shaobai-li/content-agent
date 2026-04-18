@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { AgentId } from "@/entities/agent/model";
+import { deleteKnowledgeBase } from "@/shared/api/records";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { HistoryItemMenu } from "../history/HistoryItemMenu";
+import { KNOWLEDGE_BASES_REFRESH_EVENT } from "./databaseRegistry";
 import { useKnowledgeBaseSelection } from "./useKnowledgeBaseSelection";
 import { useKnowledgeBases } from "./useKnowledgeBases";
 
@@ -16,7 +18,7 @@ interface KnowledgeBaseListPanelProps {
 
 export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps) {
   const { databases, loading } = useKnowledgeBases(agentId);
-  const { databaseId, selectDatabase } = useKnowledgeBaseSelection();
+  const { databaseId, selectDatabase, clearDatabase } = useKnowledgeBaseSelection();
   const [searchKeyword, setSearchKeyword] = useState("");
 
   useEffect(() => {
@@ -44,6 +46,28 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
       return name.includes(normalizedSearchKeyword) || description.includes(normalizedSearchKeyword);
     });
   }, [databases, normalizedSearchKeyword]);
+
+  const handleDelete = async (targetDatabaseId: string, databaseName: string) => {
+    if (!confirm(`确定要删除 "${databaseName}" 吗？`)) {
+      return;
+    }
+
+    try {
+      const response = await deleteKnowledgeBase(agentId, targetDatabaseId);
+      if (!response.success) {
+        throw new Error(response.message || "删除知识库失败");
+      }
+
+      if (databaseId === targetDatabaseId) {
+        clearDatabase();
+      }
+
+      window.dispatchEvent(new Event(KNOWLEDGE_BASES_REFRESH_EVENT));
+    } catch (error) {
+      console.error("删除知识库失败:", error);
+      alert(error instanceof Error ? error.message : "删除知识库失败，请重试");
+    }
+  };
 
   if (loading) {
     return (
@@ -73,6 +97,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
     <div className="-mx-6 -my-6 flex h-full flex-col overflow-auto">
       {visibleDatabases.map((database) => {
         const isActive = database.id === databaseId;
+        const deleteDisabled = database.is_default === true;
 
         return (
           <Card
@@ -99,7 +124,10 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
                 {database.description}
               </CardDescription>
               <CardAction>
-                <HistoryItemMenu />
+                <HistoryItemMenu
+                  deleteDisabled={deleteDisabled}
+                  onDelete={() => handleDelete(database.id, database.name)}
+                />
               </CardAction>
             </CardHeader>
           </Card>
