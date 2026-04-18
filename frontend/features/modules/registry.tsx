@@ -4,25 +4,14 @@ import { HistoryPanel } from "../history/HistoryPanel";
 import { DocumentHeader } from "../document/DocumentHeader";
 import { DocumentPanel } from "../document/DocumentPanel";
 
-import { DataHeader } from "../data/DataHeader";
-import { DataPanel } from "../data/DataPanel";
+import { KnowledgeBaseHeader } from "../knowledge-base/KnowledgeBaseHeader";
+import { KnowledgeBasePanel } from "../knowledge-base/KnowledgeBasePanel";
 
 import { AgentId } from "@/entities/agent/model";
-import { dataPanelConfigRegistry } from "../data/dataPanelConfigRegistry";
 
 export type ModuleRenderResult = {
   header: React.ReactNode;
   body: React.ReactNode;
-};
-
-const getKnowledgePanel = (agentId: AgentId) => {
-  const config = dataPanelConfigRegistry[agentId];
-
-  if (!config) {
-    return <div className="p-4 text-muted-foreground">暂无数据面板</div>;
-  }
-
-  return <DataPanel {...config} />;
 };
 
 export const uiModuleRegistry: Record<
@@ -40,8 +29,8 @@ export const uiModuleRegistry: Record<
   }),
 
   knowledgebase: (agentId) => ({
-    header: <DataHeader agentId={agentId} />,
-    body: getKnowledgePanel(agentId),
+    header: <KnowledgeBaseHeader agentId={agentId} />,
+    body: <KnowledgeBasePanel agentId={agentId} />,
   }),
 
   chat: () => ({
