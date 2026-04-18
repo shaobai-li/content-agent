@@ -19,7 +19,6 @@ export type KnowledgeBaseDatabase = {
   id: string;
   name: string;
   description: string;
-  is_default?: boolean;
 };
 
 type CreateKbFolderResponse = {
