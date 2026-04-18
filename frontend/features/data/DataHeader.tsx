@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/button";
-import { Plus, FolderPlus, Search, BookOpen } from "lucide-react";
+import { ArrowLeft, Plus, FolderPlus, Search, BookOpen } from "lucide-react";
 import { Input } from "@/shared/ui/input";
 import { createKbFolder } from "@/shared/api/records";
 import {
@@ -21,9 +21,11 @@ const SEARCH_CHANGE_EVENT = "kb-data-search-change";
 
 interface DataHeaderProps {
   agentId: AgentId;
+  title?: string;
+  onBack?: () => void;
 }
 
-export function DataHeader({ agentId }: DataHeaderProps) {
+export function DataHeader({ agentId, title = "DATA", onBack }: DataHeaderProps) {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [isNewDataModalOpen, setIsNewDataModalOpen] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
@@ -68,8 +70,20 @@ export function DataHeader({ agentId }: DataHeaderProps) {
   return (
     <>
       <div className="flex flex-row items-center w-full">
-        <div className="flex items-center">
-          <h2 className="text-sm font-semibold text-foreground">DATA</h2>
+        <div className="flex items-center gap-2">
+          {onBack ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Back to database list"
+              className="border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              onClick={onBack}
+            >
+              <ArrowLeft className="size-4" />
+            </Button>
+          ) : null}
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
         </div>
 
         <div className="ml-auto flex items-center gap-4">
