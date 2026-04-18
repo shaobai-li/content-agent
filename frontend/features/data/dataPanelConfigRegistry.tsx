@@ -20,11 +20,11 @@ function formatLocalDateTime(value: unknown) {
     ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-const createKnowledgeBasePanelConfig = (agentId: AgentId): DataPanelConfig => ({
-    fetchData: () => fetchKbRecords(agentId),
-    renameData: (nodeId: string, name: string) => renameKbRecord(agentId, nodeId, name),
-    moveData: (nodeId: string, parentId: string) => moveKbRecord(agentId, nodeId, parentId),
-    deleteData: (recordId: string) => deleteKbRecord(agentId, recordId),
+export const createKnowledgeBasePanelConfig = (agentId: AgentId, databaseId: string): DataPanelConfig => ({
+    fetchData: () => fetchKbRecords(agentId, databaseId),
+    renameData: (nodeId: string, name: string) => renameKbRecord(agentId, nodeId, name, databaseId),
+    moveData: (nodeId: string, parentId: string) => moveKbRecord(agentId, nodeId, parentId, databaseId),
+    deleteData: (recordId: string) => deleteKbRecord(agentId, recordId, databaseId),
     rowKeyField: "id",
     dataKey: "nodes",
     emptyMessage: "No knowledge base data available",
@@ -78,8 +78,3 @@ const createKnowledgeBasePanelConfig = (agentId: AgentId): DataPanelConfig => ({
         created_at: (row) => formatLocalDateTime(row.created_at || row.date_added || ""),
     },
 });
-
-export const dataPanelConfigRegistry: Partial<Record<AgentId, DataPanelConfig>> = {
-    kb: createKnowledgeBasePanelConfig("kb"),
-    std: createKnowledgeBasePanelConfig("std"),
-};

@@ -23,9 +23,17 @@ interface DataHeaderProps {
   agentId: AgentId;
   title?: string;
   onBack?: () => void;
+  databaseId?: string;
+  onCreateData?: (name: string, description: string) => Promise<void> | void;
 }
 
-export function DataHeader({ agentId, title = "DATA", onBack }: DataHeaderProps) {
+export function DataHeader({
+  agentId,
+  title = "DATA",
+  onBack,
+  databaseId,
+  onCreateData,
+}: DataHeaderProps) {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [isNewDataModalOpen, setIsNewDataModalOpen] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
@@ -59,7 +67,7 @@ export function DataHeader({ agentId, title = "DATA", onBack }: DataHeaderProps)
   }, [searchKeyword]);
 
   const handleCreateFolder = async (folderName: string) => {
-    const response = await createKbFolder(agentId, folderName, currentFolderId);
+    const response = await createKbFolder(agentId, folderName, currentFolderId, databaseId);
     if (!response.success) {
       throw new Error(response.message || "创建文件夹失败");
     }
@@ -119,13 +127,15 @@ export function DataHeader({ agentId, title = "DATA", onBack }: DataHeaderProps)
                 <Plus className="size-4" strokeWidth={3} />
                 <span>Add File</span>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="gap-2.5"
-                onSelect={() => setIsNewDataModalOpen(true)}
-              >
-                <BookOpen className="size-4" strokeWidth={3} />
-                <span>New DATA</span>
-              </DropdownMenuItem>
+              {onCreateData ? (
+                <DropdownMenuItem
+                  className="gap-2.5"
+                  onSelect={() => setIsNewDataModalOpen(true)}
+                >
+                  <BookOpen className="size-4" strokeWidth={3} />
+                  <span>New DATA</span>
+                </DropdownMenuItem>
+              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -135,7 +145,13 @@ export function DataHeader({ agentId, title = "DATA", onBack }: DataHeaderProps)
         onOpenChange={setIsNewFolderModalOpen}
         onCreateFolder={handleCreateFolder}
       />
-      <NewDataModal open={isNewDataModalOpen} onOpenChange={setIsNewDataModalOpen} />
+      {onCreateData ? (
+        <NewDataModal
+          open={isNewDataModalOpen}
+          onOpenChange={setIsNewDataModalOpen}
+          onCreateData={onCreateData}
+        />
+      ) : null}
     </>
   );
 }

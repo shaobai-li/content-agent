@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Plus, Search } from "lucide-react";
 import type { AgentId } from "@/entities/agent/model";
+import { createKnowledgeBase } from "@/shared/api/records";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import {
@@ -13,7 +14,9 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { NewDataModal } from "../data/NewDataModal";
 import { DataHeader } from "../data/DataHeader";
+import { KNOWLEDGE_BASES_REFRESH_EVENT } from "./databaseRegistry";
 import { useKnowledgeBaseSelection } from "./useKnowledgeBaseSelection";
+import { useKnowledgeBases } from "./useKnowledgeBases";
 
 const DATABASE_SEARCH_CHANGE_EVENT = "kb-database-search-change";
 
@@ -22,7 +25,12 @@ interface KnowledgeBaseHeaderProps {
 }
 
 export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
-  const { selectedDatabase, clearDatabase } = useKnowledgeBaseSelection(agentId);
+  const { databases } = useKnowledgeBases(agentId);
+  const { databaseId, selectDatabase, clearDatabase } = useKnowledgeBaseSelection();
+  const selectedDatabase = useMemo(
+    () => databases.find((database) => database.id === databaseId) ?? null,
+    [databaseId, databases],
+  );
   const [searchKeyword, setSearchKeyword] = useState("");
   const [isNewDataModalOpen, setIsNewDataModalOpen] = useState(false);
 
@@ -39,6 +47,16 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
       window.clearTimeout(timer);
     };
   }, [searchKeyword]);
+
+  const handleCreateData = async (name: string, description: string) => {
+    const response = await createKnowledgeBase(agentId, name, description);
+    if (!response.success || !response.database) {
+      throw new Error(response.message || "创建知识库失败");
+    }
+
+    window.dispatchEvent(new Event(KNOWLEDGE_BASES_REFRESH_EVENT));
+    selectDatabase(response.database.id);
+  };
 
   if (!selectedDatabase) {
     return (
@@ -78,7 +96,11 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
             </DropdownMenu>
           </div>
         </div>
-        <NewDataModal open={isNewDataModalOpen} onOpenChange={setIsNewDataModalOpen} />
+        <NewDataModal
+          open={isNewDataModalOpen}
+          onOpenChange={setIsNewDataModalOpen}
+          onCreateData={handleCreateData}
+        />
       </>
     );
   }
@@ -87,7 +109,9 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
     <DataHeader
       agentId={agentId}
       title={selectedDatabase.name}
+      databaseId={selectedDatabase.id}
       onBack={clearDatabase}
+      onCreateData={handleCreateData}
     />
   );
 }

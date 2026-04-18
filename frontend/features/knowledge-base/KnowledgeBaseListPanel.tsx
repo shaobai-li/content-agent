@@ -5,8 +5,8 @@ import { ChevronRight } from "lucide-react";
 import type { AgentId } from "@/entities/agent/model";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
-import { getKnowledgeBaseDatabases } from "./databaseRegistry";
 import { useKnowledgeBaseSelection } from "./useKnowledgeBaseSelection";
+import { useKnowledgeBases } from "./useKnowledgeBases";
 
 const DATABASE_SEARCH_CHANGE_EVENT = "kb-database-search-change";
 
@@ -15,8 +15,8 @@ interface KnowledgeBaseListPanelProps {
 }
 
 export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps) {
-  const databases = getKnowledgeBaseDatabases(agentId);
-  const { databaseId, selectDatabase } = useKnowledgeBaseSelection(agentId);
+  const { databases, loading } = useKnowledgeBases(agentId);
+  const { databaseId, selectDatabase } = useKnowledgeBaseSelection();
   const [searchKeyword, setSearchKeyword] = useState("");
 
   useEffect(() => {
@@ -44,6 +44,14 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
       return name.includes(normalizedSearchKeyword) || description.includes(normalizedSearchKeyword);
     });
   }, [databases, normalizedSearchKeyword]);
+
+  if (loading) {
+    return (
+      <div className="px-3 py-4 text-sm text-muted-foreground">
+        正在加载数据库...
+      </div>
+    );
+  }
 
   if (databases.length === 0) {
     return (
