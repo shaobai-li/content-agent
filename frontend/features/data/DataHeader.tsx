@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/button";
-import { Plus, FolderPlus, Search } from "lucide-react";
+import { Plus, FolderPlus, Search, BookOpen } from "lucide-react";
 import { Input } from "@/shared/ui/input";
 import { createKbFolder } from "@/shared/api/records";
 import {
@@ -102,6 +102,10 @@ export function DataHeader({ agentId }: DataHeaderProps) {
               <DropdownMenuItem className="gap-2.5">
                 <Plus className="size-4" strokeWidth={3} />
                 <span>Add File</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2.5">
+                <BookOpen className="size-4" strokeWidth={3} />
+                <span>New DATA</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
