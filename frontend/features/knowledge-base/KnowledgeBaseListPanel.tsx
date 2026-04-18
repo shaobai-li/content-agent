@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight } from "lucide-react";
 import type { AgentId } from "@/entities/agent/model";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
+import { HistoryItemMenu } from "../history/HistoryItemMenu";
 import { useKnowledgeBaseSelection } from "./useKnowledgeBaseSelection";
 import { useKnowledgeBases } from "./useKnowledgeBases";
 
@@ -87,22 +87,20 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
               }
             }}
             className={cn(
-              "cursor-pointer gap-0 rounded-none border-0 border-b border-neutral-200 px-4 py-4 shadow-none transition-colors",
+              "group cursor-pointer gap-0 rounded-none border-0 border-b border-neutral-200 px-4 py-4 shadow-none transition-colors",
               isActive ? "bg-muted" : "bg-neutral-50 hover:bg-muted",
             )}
           >
-            <CardHeader className="px-0 py-0">
-              <div className="flex items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="truncate text-sm font-semibold text-foreground">
-                    {database.name}
-                  </CardTitle>
-                  <CardDescription className="mt-1 text-xs">
-                    {database.description}
-                  </CardDescription>
-                </div>
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-              </div>
+            <CardHeader className="px-0 py-0 gap-1 has-data-[slot=card-action]:grid-cols-[1fr_auto]">
+              <CardTitle className="min-w-0 truncate text-sm font-semibold text-foreground">
+                {database.name}
+              </CardTitle>
+              <CardDescription className="min-w-0 line-clamp-2 text-xs">
+                {database.description}
+              </CardDescription>
+              <CardAction>
+                <HistoryItemMenu />
+              </CardAction>
             </CardHeader>
           </Card>
         );
