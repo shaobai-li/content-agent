@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import type { AgentId } from "@/entities/agent/model";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { getKnowledgeBaseDatabases } from "./databaseRegistry";
 import { useKnowledgeBaseSelection } from "./useKnowledgeBaseSelection";
+
+const DATABASE_SEARCH_CHANGE_EVENT = "kb-database-search-change";
 
 interface KnowledgeBaseListPanelProps {
   agentId: AgentId;
@@ -14,6 +17,33 @@ interface KnowledgeBaseListPanelProps {
 export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps) {
   const databases = getKnowledgeBaseDatabases(agentId);
   const { databaseId, selectDatabase } = useKnowledgeBaseSelection(agentId);
+  const [searchKeyword, setSearchKeyword] = useState("");
+
+  useEffect(() => {
+    const handleSearchChange = (event: Event) => {
+      const nextKeyword = (event as CustomEvent<{ keyword?: string }>).detail?.keyword;
+      setSearchKeyword(typeof nextKeyword === "string" ? nextKeyword : "");
+    };
+
+    window.addEventListener(DATABASE_SEARCH_CHANGE_EVENT, handleSearchChange);
+
+    return () => {
+      window.removeEventListener(DATABASE_SEARCH_CHANGE_EVENT, handleSearchChange);
+    };
+  }, []);
+
+  const normalizedSearchKeyword = searchKeyword.trim().toLowerCase();
+  const visibleDatabases = useMemo(() => {
+    if (!normalizedSearchKeyword) {
+      return databases;
+    }
+
+    return databases.filter((database) => {
+      const name = database.name.toLowerCase();
+      const description = database.description.toLowerCase();
+      return name.includes(normalizedSearchKeyword) || description.includes(normalizedSearchKeyword);
+    });
+  }, [databases, normalizedSearchKeyword]);
 
   if (databases.length === 0) {
     return (
@@ -23,9 +53,17 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
     );
   }
 
+  if (visibleDatabases.length === 0) {
+    return (
+      <div className="px-3 py-4 text-sm text-muted-foreground">
+        未找到匹配的数据库
+      </div>
+    );
+  }
+
   return (
     <div className="-mx-6 -my-6 flex h-full flex-col overflow-auto">
-      {databases.map((database) => {
+      {visibleDatabases.map((database) => {
         const isActive = database.id === databaseId;
 
         return (
