@@ -19,6 +19,7 @@ export type KnowledgeBaseDatabase = {
   id: string;
   name: string;
   description: string;
+  is_default?: boolean;
 };
 
 type CreateKbFolderResponse = {
@@ -44,6 +45,12 @@ type KnowledgeBaseListResponse = {
 };
 
 type CreateKnowledgeBaseResponse = {
+  success: boolean;
+  message?: string;
+  database?: KnowledgeBaseDatabase;
+};
+
+type DeleteKnowledgeBaseResponse = {
   success: boolean;
   message?: string;
   database?: KnowledgeBaseDatabase;
@@ -136,6 +143,9 @@ export const createKnowledgeBase = (agentId: string, name: string, description: 
     name,
     description,
   });
+
+export const deleteKnowledgeBase = (agentId: string, kbId: string) =>
+  http.delete<DeleteKnowledgeBaseResponse>(`/api/agents/${agentId}/knowledge-bases/${kbId}`);
 
 export const fetchKbRecords = (agentId: string, kbId?: string) =>
   http

@@ -10,9 +10,10 @@ import {
 
 interface HistoryItemMenuProps {
   onDelete?: () => void;
+  deleteDisabled?: boolean;
 }
 
-export function HistoryItemMenu({ onDelete }: HistoryItemMenuProps) {
+export function HistoryItemMenu({ onDelete, deleteDisabled = false }: HistoryItemMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -29,6 +30,7 @@ export function HistoryItemMenu({ onDelete }: HistoryItemMenuProps) {
           Rename
         </DropdownMenuItem>
         <DropdownMenuItem
+          disabled={deleteDisabled}
           className="gap-2 text-red-600 focus:bg-red-50 focus:text-red-600"
           onClick={(e) => {
             e.preventDefault();
