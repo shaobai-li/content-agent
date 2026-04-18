@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { NewFolderModal } from "./NewFolderModal";
+import { NewDataModal } from "./NewDataModal";
 import { AgentId } from "@/entities/agent/model";
 
 const ROOT_FOLDER_ID = "fld_root";
@@ -24,6 +25,7 @@ interface DataHeaderProps {
 
 export function DataHeader({ agentId }: DataHeaderProps) {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
+  const [isNewDataModalOpen, setIsNewDataModalOpen] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
   const [searchKeyword, setSearchKeyword] = useState("");
 
@@ -103,7 +105,10 @@ export function DataHeader({ agentId }: DataHeaderProps) {
                 <Plus className="size-4" strokeWidth={3} />
                 <span>Add File</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2.5">
+              <DropdownMenuItem
+                className="gap-2.5"
+                onSelect={() => setIsNewDataModalOpen(true)}
+              >
                 <BookOpen className="size-4" strokeWidth={3} />
                 <span>New DATA</span>
               </DropdownMenuItem>
@@ -116,6 +121,7 @@ export function DataHeader({ agentId }: DataHeaderProps) {
         onOpenChange={setIsNewFolderModalOpen}
         onCreateFolder={handleCreateFolder}
       />
+      <NewDataModal open={isNewDataModalOpen} onOpenChange={setIsNewDataModalOpen} />
     </>
   );
 }
