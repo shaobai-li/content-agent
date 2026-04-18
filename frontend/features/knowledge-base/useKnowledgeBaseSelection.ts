@@ -1,25 +1,16 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { AgentId } from "@/entities/agent/model";
-import { getKnowledgeBaseDatabase } from "./databaseRegistry";
 
 const DATABASE_QUERY_KEY = "db";
 
-export function useKnowledgeBaseSelection(agentId: AgentId) {
+export function useKnowledgeBaseSelection() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const databaseId = searchParams.get(DATABASE_QUERY_KEY);
-  const selectedDatabase = useMemo(() => {
-    if (!databaseId) {
-      return null;
-    }
-
-    return getKnowledgeBaseDatabase(agentId, databaseId);
-  }, [agentId, databaseId]);
 
   const updateDatabaseId = useCallback((nextDatabaseId: string | null) => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -44,7 +35,6 @@ export function useKnowledgeBaseSelection(agentId: AgentId) {
 
   return {
     databaseId,
-    selectedDatabase,
     selectDatabase,
     clearDatabase,
   };

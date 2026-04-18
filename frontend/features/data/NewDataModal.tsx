@@ -14,11 +14,13 @@ import { Input } from "@/shared/ui/input";
 interface NewDataModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreateData: (name: string, description: string) => Promise<void> | void;
 }
 
-export function NewDataModal({ open, onOpenChange }: NewDataModalProps) {
+export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalProps) {
   const [dataName, setDataName] = useState("");
   const [dataDescription, setDataDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -28,12 +30,23 @@ export function NewDataModal({ open, onOpenChange }: NewDataModalProps) {
   }, [open]);
 
   const handleClose = () => {
+    if (isSubmitting) return;
     onOpenChange(false);
   };
 
-  const handleCreate = () => {
-    if (!dataName.trim()) return;
-    onOpenChange(false);
+  const handleCreate = async () => {
+    if (!dataName.trim() || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      await onCreateData(dataName.trim(), dataDescription.trim());
+      onOpenChange(false);
+    } catch (error) {
+      console.error("创建知识库失败:", error);
+      alert(error instanceof Error ? error.message : "创建知识库失败，请重试");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -59,11 +72,11 @@ export function NewDataModal({ open, onOpenChange }: NewDataModalProps) {
           className="mt-3 h-10"
         />
         <DialogFooter className="mt-auto flex-row justify-end">
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             取消
           </Button>
-          <Button onClick={handleCreate} disabled={!dataName.trim()}>
-            创建
+          <Button onClick={handleCreate} disabled={!dataName.trim() || isSubmitting}>
+            {isSubmitting ? "创建中..." : "创建"}
           </Button>
         </DialogFooter>
       </DialogContent>
