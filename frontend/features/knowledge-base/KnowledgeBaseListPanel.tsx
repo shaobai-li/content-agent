@@ -5,6 +5,7 @@ import type { AgentId } from "@/entities/agent/model";
 import { deleteKnowledgeBase } from "@/shared/api/records";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
+import { usePagination } from "@/shared/lib/usePagination";
 import { HistoryFooter } from "../history/HistoryFooter";
 import { HistoryItemMenu } from "../history/HistoryItemMenu";
 import { KNOWLEDGE_BASES_REFRESH_EVENT } from "./databaseRegistry";
@@ -12,6 +13,7 @@ import { useKnowledgeBaseSelection } from "./useKnowledgeBaseSelection";
 import { useKnowledgeBases } from "./useKnowledgeBases";
 
 const DATABASE_SEARCH_CHANGE_EVENT = "kb-database-search-change";
+const PAGE_SIZE = 7;
 
 interface KnowledgeBaseListPanelProps {
   agentId: AgentId;
@@ -47,6 +49,14 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
       return name.includes(normalizedSearchKeyword) || description.includes(normalizedSearchKeyword);
     });
   }, [databases, normalizedSearchKeyword]);
+  const { currentItems, canGoPrev, canGoNext, goPrev, goNext, resetPage } = usePagination(
+    visibleDatabases,
+    PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    resetPage();
+  }, [normalizedSearchKeyword, resetPage]);
 
   const handleDelete = async (targetDatabaseId: string, databaseName: string) => {
     if (!confirm(`确定要删除 "${databaseName}" 吗？`)) {
@@ -97,7 +107,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-1 flex-col overflow-auto">
-        {visibleDatabases.map((database) => {
+        {currentItems.map((database) => {
           const isActive = database.id === databaseId;
 
           return (
@@ -133,7 +143,12 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
         })}
       </div>
       <div className="flex flex-col border-t p-4">
-        <HistoryFooter />
+        <HistoryFooter
+          canGoPrev={canGoPrev}
+          canGoNext={canGoNext}
+          onPrev={goPrev}
+          onNext={goNext}
+        />
       </div>
     </div>
   );
