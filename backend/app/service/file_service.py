@@ -1,9 +1,10 @@
 from typing import List, Dict, Any, Optional, Callable, Awaitable
+import mimetypes
 from fastapi import UploadFile
 from pathlib import Path
 from datetime import datetime
 
-from app.core.config import get_agent_base_dir
+from app.core.config import get_agent_attachment_cache_dir
 from app.core.ids import new_uuid
 
 
@@ -99,10 +100,7 @@ async def save_uploaded_file(
     agent_id: str
 ) -> tuple[Path, bytes]:
 
-    # 获取agent的base目录，然后在其下创建cache子目录
-    agent_base_dir = get_agent_base_dir(agent_id)
-    agent_cache_dir = agent_base_dir / "cache"
-    agent_cache_dir.mkdir(parents=True, exist_ok=True)
+    agent_cache_dir = get_agent_attachment_cache_dir(agent_id)
 
     file_ext = Path(file.filename).suffix if file.filename else ""
     cached_filename = f"{new_uuid()}{file_ext}"
@@ -113,6 +111,78 @@ async def save_uploaded_file(
         f.write(content)
     
     return cached_path, content
+
+
+def sanitize_attachment_filename(raw: Optional[str]) -> str:
+    """仅使用 basename，去掉空名与危险片段，尽量保留用户原始文件名。"""
+    if not raw:
+        return "unnamed"
+    name = Path(raw).name.replace("\x00", "").strip()
+    if not name or name in (".", ".."):
+        return "unnamed"
+    return name
+
+
+async def save_upload_to_agent_cache_keep_name(file: UploadFile, agent_id: str) -> Path:
+    """写入 ``local_data/cache/``，文件名与上传名一致（经 sanitize）。"""
+    agent_cache_dir = get_agent_attachment_cache_dir(agent_id)
+    safe_name = sanitize_attachment_filename(file.filename)
+    dest = agent_cache_dir / safe_name
+    content = await file.read()
+    dest.write_bytes(content)
+    return dest
+
+
+def resolve_validated_cache_paths(agent_id: str, path_strings: List[Any]) -> List[Path]:
+    """仅接受位于该 Agent 附件缓存目录下的已存在文件路径（绝对或相对 cache 根）。"""
+    cache_root = get_agent_attachment_cache_dir(agent_id).resolve()
+    validated: List[Path] = []
+    for item in path_strings:
+        if not isinstance(item, str):
+            continue
+        s = item.strip()
+        if not s:
+            continue
+        try:
+            raw = Path(s)
+            p = raw.resolve() if raw.is_absolute() else (cache_root / raw).resolve()
+        except OSError:
+            continue
+        if not p.is_file():
+            continue
+        try:
+            p.relative_to(cache_root)
+        except ValueError:
+            continue
+        validated.append(p)
+    return validated
+
+
+async def process_pre_cached_attachments(
+    paths: List[Path],
+    agent_id: str,
+    processor: Optional[Callable[[Path, str, str], Awaitable[Optional[str]]]] = None,
+) -> List[FileInfo]:
+    """对已落在 cache 目录内的文件做解析等处理，等价于 process_attachments 的结果结构。"""
+    file_info_list: List[FileInfo] = []
+    for path in paths:
+        filename = path.name
+        guessed, _ = mimetypes.guess_type(filename)
+        content_type = guessed or "application/octet-stream"
+        size = path.stat().st_size
+        parsed_path: Optional[str] = None
+        if processor:
+            parsed_path = await processor(path, filename, content_type)
+        file_info_list.append(
+            FileInfo(
+                filename=filename,
+                content_type=content_type,
+                size=size,
+                cached_path=path,
+                parsed_path=parsed_path,
+            )
+        )
+    return file_info_list
 
 
 async def process_attachments(

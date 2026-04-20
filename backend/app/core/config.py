@@ -34,11 +34,31 @@ def get_agent_base_dir(agent_id: str) -> Path:
     return base_dir
 
 
+def get_agent_workspace_dir(agent_id: str) -> Path:
+    """Agent 工作区根目录：<base>/workspace/"""
+    ws = get_agent_base_dir(agent_id) / "workspace"
+    ws.mkdir(parents=True, exist_ok=True)
+    return ws
+
+
+def get_agent_local_data_dir(agent_id: str) -> Path:
+    """用户数据根目录：<base>/workspace/local_data/（知识库、注册表等）。"""
+    local_data = get_agent_workspace_dir(agent_id) / "local_data"
+    local_data.mkdir(parents=True, exist_ok=True)
+    return local_data
+
+
+def get_agent_attachment_cache_dir(agent_id: str) -> Path:
+    """附件缓存：<base>/workspace/local_data/cache/"""
+    cache = get_agent_local_data_dir(agent_id) / "cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    return cache
+
+
 def get_agent_sessions_path(agent_id: str) -> Path:
     base_dir = get_agent_base_dir(agent_id)
     agent_config = get_agent_config(agent_id)
     sessions_file = agent_config.get("sessions_file", "sessions.json")
-    print()
     return base_dir / sessions_file
 
 
