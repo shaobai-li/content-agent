@@ -12,12 +12,12 @@ agents:
     base_dir: "agents/agent_kb"
     sessions_file: "sessions.json"
     messages_file: "messages.json"
-    knowledge_base_file: "local_data/kb_auto_generated/view/nodes.json"
+    knowledge_base_file: "workspace/local_data/kb_auto_generated/view/nodes.json"
 
   std:
     base_dir: "agents/agent_std"
     sessions_file: "sessions.json"
     messages_file: "messages.json"
-    knowledge_base_file: "local_data/std_knowledge_base/view/nodes.json"
+    knowledge_base_file: "workspace/local_data/std_knowledge_base/view/nodes.json"
     skills:
       - say-german

@@ -8,7 +8,7 @@ from typing import Any, AsyncGenerator, Callable, Dict, List
 from openai.types.chat import ChatCompletionMessage
 
 from app.agents.base_agent import BaseAgent
-from app.core.config import get_agent_base_dir
+from app.core.config import get_agent_base_dir, get_agent_workspace_dir
 from app.runtime.agent_turn_context import AgentTurnContext
 from app.service.agent_chat_service import save_chat_session
 from app.service.stream_service import (
@@ -157,10 +157,7 @@ class StandardAgent(BaseAgent):
         }
 
     def _workspace_dir(self) -> Path:
-        root = get_agent_base_dir(self.agent_id)
-        ws = root / "workspace"
-        ws.mkdir(parents=True, exist_ok=True)
-        return ws
+        return get_agent_workspace_dir(self.agent_id)
 
     def _build_loop_messages(self, ctx: AgentTurnContext, workspace: Path) -> List[Dict[str, Any]]:
         guard = (

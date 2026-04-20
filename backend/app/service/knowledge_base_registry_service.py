@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 from typing import Any, Dict, List, Optional
 
-from app.core.config import get_agent_base_dir, get_agent_knowledge_base_path
+from app.core.config import get_agent_knowledge_base_path, get_agent_local_data_dir
 from app.core.ids import new_uuid
 
 
@@ -53,12 +53,6 @@ def _default_database_meta(agent_id: str) -> Dict[str, str]:
             "description": "点击进入当前知识库数据页",
         },
     )
-
-
-def get_agent_local_data_dir(agent_id: str) -> Path:
-    local_data_dir = get_agent_base_dir(agent_id) / "local_data"
-    local_data_dir.mkdir(parents=True, exist_ok=True)
-    return local_data_dir
 
 
 def get_database_registry_path(agent_id: str) -> Path:

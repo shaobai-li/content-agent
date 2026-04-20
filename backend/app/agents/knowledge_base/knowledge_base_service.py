@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 from datetime import datetime, timezone
 
-from app.core.config import get_agent_knowledge_base_path, get_agent_base_dir
+from app.core.config import get_agent_knowledge_base_path, get_agent_local_data_dir
 from app.service.file_service import FileInfo
 from .parsers import get_parser
 
@@ -38,7 +38,7 @@ async def process_and_parse(file_path: Path, filename: str, content_type: str, a
         return None
     
     try:
-        output_dir = get_agent_base_dir(agent_id) / "parsed"
+        output_dir = get_agent_local_data_dir(agent_id) / "parsed"
         md_path = await parser.parse(file_path, output_dir)
         return str(md_path)
     except Exception:
