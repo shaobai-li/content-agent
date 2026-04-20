@@ -1,21 +1,24 @@
 "use client";
 
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSessionList } from "@/entities/session/useSessionList";
+import { usePagination } from "@/shared/lib/usePagination";
 import { deleteSession } from "@/entities/session/api";
 import { HistoryItem } from "./HistoryItem";
 import { HistoryFooter } from "./HistoryFooter";
 
-interface HistoryPanelProps {
-  children?: ReactNode;
-}
+const PAGE_SIZE = 7;
 
 export function HistoryPanel() {
   const params = useParams();
   const agentId = (params?.agentId as string) ?? null;
   const { sessions, loading, error, refreshSessions } = useSessionList(agentId);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const { currentItems, canGoPrev, canGoNext, goPrev, goNext } = usePagination(
+    sessions,
+    PAGE_SIZE,
+  );
 
   // 监听对话保存事件，刷新历史列表
   useEffect(() => {
@@ -56,8 +59,8 @@ export function HistoryPanel() {
   );
 
   return (
-    <div className="flex flex-col h-full overflow-auto">
-      <div className="flex flex-col flex-1">
+    <div className="flex h-full flex-col">
+      <div className="flex flex-1 flex-col overflow-auto">
         {loading ? (
           <div className="px-3 py-4 text-sm text-muted-foreground">
             加载中...
@@ -65,7 +68,7 @@ export function HistoryPanel() {
         ) : error ? (
           <div className="px-3 py-4 text-sm text-destructive">{error}</div>
         ) : (
-          sessions.map((item) => (
+          currentItems.map((item) => (
             <HistoryItem
               key={item.session_id}
               id={item.session_id}
@@ -79,7 +82,12 @@ export function HistoryPanel() {
         )}
       </div>
       <div className="flex flex-col p-4 border-t">
-        <HistoryFooter />
+        <HistoryFooter
+          canGoPrev={canGoPrev}
+          canGoNext={canGoNext}
+          onPrev={goPrev}
+          onNext={goNext}
+        />
       </div>
     </div>
   );
