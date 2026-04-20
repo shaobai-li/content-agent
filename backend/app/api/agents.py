@@ -100,13 +100,24 @@ async def delete_knowledge_base_endpoint(agent_id: str, kb_id: str):
 
     return delete_knowledge_base(agent_id, kb_id)
 
+
+@router.post("/attachments/cache")
+async def upload_attachment_to_agent_cache(agent_id: str, file: UploadFile = File(...)):
+    """将单个文件持久化到该 Agent 的 ``workspace/local_data/cache/``，保留原始文件名。"""
+    from app.service.file_service import save_upload_to_agent_cache_keep_name
+
+    path = await save_upload_to_agent_cache_keep_name(file, agent_id)
+    return {"cached_path": str(path.resolve())}
+
+
 @router.post("/chat/stream")
 async def chat_stream(
     agent_id: str,
     text: Optional[str] = Form(None),
     session_id: Optional[str] = Form(None),
     mentions: Optional[str] = Form(None),
-    attachments: Optional[List[UploadFile]] = File(None)
+    attachment_paths: Optional[str] = Form(None),
+    attachments: Optional[List[UploadFile]] = File(None),
 ):
     agent_config = get_agent_config(agent_id)
 
@@ -122,6 +133,7 @@ async def chat_stream(
         session_id=session_id,
         mentions=mentions,
         attachments=attachments,
+        attachment_paths=attachment_paths,
     )
 
     return StreamingResponse(

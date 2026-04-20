@@ -1,12 +1,13 @@
 """
 知识库 Agent 核心逻辑
 """
+from pathlib import Path
 from typing import AsyncGenerator
 
 from app.agents.base_agent import BaseAgent
 from app.runtime.agent_turn_context import AgentTurnContext
 from app.service.agent_chat_service import save_chat_session
-from app.service.file_service import process_attachments
+from app.service.file_service import process_attachments, process_pre_cached_attachments
 from app.service.stream_service import build_stream_chunk, build_stream_done
 from .knowledge_base_service import (
     process_and_parse,
@@ -31,13 +32,24 @@ class KnowledgeBaseAgent(BaseAgent):
         if ctx.user_text:
             reply_parts.append(f"收到文本消息: {ctx.user_text}")
 
-        if ctx.attachments:
+        if ctx.resolved_attachment_paths:
+            path_objs = [Path(p) for p in ctx.resolved_attachment_paths]
+            file_info_list = await process_pre_cached_attachments(
+                path_objs,
+                self.agent_id,
+                processor=lambda path, fn, ct: process_and_parse(
+                    path, fn, ct, self.agent_id
+                ),
+            )
+            for file_info in file_info_list:
+                save_to_knowledge_base(file_info, self.agent_id)
+        elif ctx.attachments:
             file_info_list = await process_attachments(
                 attachments=ctx.attachments,
                 agent_id=self.agent_id,
                 processor=lambda path, fn, ct: process_and_parse(
                     path, fn, ct, self.agent_id
-                )
+                ),
             )
             for file_info in file_info_list:
                 save_to_knowledge_base(file_info, self.agent_id)

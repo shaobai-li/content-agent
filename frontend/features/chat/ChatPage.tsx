@@ -8,6 +8,8 @@ import { ChatInput, type FileItem } from "./ChatInput";
 import type { MentionItem } from "./MentionChip";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { ScrollArea } from "@/shared/ui/scroll-area";
+import { API_BASE_URL } from "@/shared/api/config";
+import { uploadAgentAttachmentCache } from "@/shared/api/attachments";
 
 interface ChatPageProps {
   agentId: string; // 简短的agent标识，用于构建API端点
@@ -15,7 +17,7 @@ interface ChatPageProps {
 
 export function ChatPage({ agentId }: ChatPageProps) {
   // 根据 agentId 自动构建 API 端点
-  const apiEndpoint = `http://localhost:8000/api/agents/${agentId}/chat`;
+  const apiEndpoint = `${API_BASE_URL}/api/agents/${agentId}/chat`;
   
   const { input, setInput, messages, handleSend, isSending, loadSession, startNewSession } = useChat({ 
     agentId, 
@@ -56,29 +58,43 @@ export function ChatPage({ agentId }: ChatPageProps) {
     return 'docx';
   };
 
-  // 处理文件拖拽
   const handleFilesDropped = (fileList: FileList) => {
-    console.log("Files dropped, generating FILE objects:", fileList);
-    
-    const newFiles: FileItem[] = Array.from(fileList).map((file) => {
-      const fileItem: FileItem = {
-        file, // 保存原始 File 对象
-        fileName: file.name,
-        fileType: getFileType(file.name),
-        id: `${Date.now()}-${Math.random()}`, // 生成唯一ID
-      };
-      
-      console.log("Generated FILE object:", {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
-      });
-      
-      return fileItem;
-    });
+    const newFiles: FileItem[] = Array.from(fileList).map((file) => ({
+      file,
+      fileName: file.name,
+      fileType: getFileType(file.name),
+      id: `${Date.now()}-${Math.random()}`,
+      cacheStatus: "uploading" as const,
+    }));
 
     setPendingFiles((prev) => [...prev, ...newFiles]);
+
+    void Promise.all(
+      newFiles.map(async (item) => {
+        try {
+          const cachedPath = await uploadAgentAttachmentCache(agentId, item.file);
+          setPendingFiles((prev) =>
+            prev.map((f) =>
+              f.id === item.id
+                ? { ...f, cachedPath, cacheStatus: "ready" as const }
+                : f,
+            ),
+          );
+        } catch {
+          setPendingFiles((prev) =>
+            prev.map((f) =>
+              f.id === item.id
+                ? {
+                    ...f,
+                    cacheStatus: "error" as const,
+                    cacheError: "上传失败",
+                  }
+                : f,
+            ),
+          );
+        }
+      }),
+    );
   };
 
   // 删除文件
@@ -86,26 +102,27 @@ export function ChatPage({ agentId }: ChatPageProps) {
     setPendingFiles((prev) => prev.filter(item => item.id !== id));
   };
 
-  // 统一的发送处理函数
   const handleSendWithFiles = async () => {
-    // 构建发送负载
+    if (pendingFiles.some((f) => f.cacheStatus === "uploading")) {
+      return;
+    }
+    const attachmentPaths = pendingFiles
+      .map((f) => f.cachedPath)
+      .filter((p): p is string => Boolean(p));
+    if (pendingFiles.length > 0 && attachmentPaths.length === 0) {
+      return;
+    }
+
     const payload = {
       text: input.trim() || undefined,
       mentions: mentions.length > 0 ? mentions : undefined,
-      attachments: pendingFiles.length > 0 
-        ? pendingFiles.map(item => item.file) 
-        : undefined,
-      meta: {
-        clientMessageId: `${Date.now()}-${Math.random()}`,
-      },
+      attachmentPaths: attachmentPaths.length > 0 ? attachmentPaths : undefined,
     };
 
-    // 立即清空输入、提及和文件列表（用户体验更好）
     setInput("");
     setMentions([]);
     setPendingFiles([]);
 
-    // 调用 useChat 的 handleSend
     await handleSend(payload);
   };
 
