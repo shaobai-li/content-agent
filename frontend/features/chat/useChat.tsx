@@ -14,6 +14,9 @@ interface UseChatProps {
 export type SendPayload = {
   text?: string;
   mentions?: MentionItem[];
+  /** 已持久化到服务端 local_data/cache 的绝对路径列表 */
+  attachmentPaths?: string[];
+  /** 旧逻辑：随 chat/stream  multipart 上传（未预缓存时） */
   attachments?: File[];
 };
 
@@ -26,19 +29,22 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   const streamEndpoint = `${apiEndpoint}/stream`;
 
   const handleSend = useCallback(async (payload: SendPayload) => {
-    const { text, mentions, attachments } = payload;
+    const { text, mentions, attachments, attachmentPaths } = payload;
 
     const hasContent =
       text?.trim() ||
       (mentions && mentions.length > 0) ||
+      (attachmentPaths && attachmentPaths.length > 0) ||
       (attachments && attachments.length > 0);
     if (!hasContent) {
       return;
     }
 
-    const hasFiles = attachments && attachments.length > 0;
+    const hasPreCached = attachmentPaths && attachmentPaths.length > 0;
+    const hasLegacyFiles = attachments && attachments.length > 0;
+    const hasFiles = Boolean(hasPreCached || hasLegacyFiles);
 
-    const fileMessageIds: string[] = hasFiles
+    const fileMessageIds: string[] = hasLegacyFiles
       ? attachments!.map(() => crypto.randomUUID())
       : [];
 
@@ -55,7 +61,16 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
         });
       }
 
-      if (hasFiles && attachments) {
+      if (hasPreCached && attachmentPaths) {
+        const names = attachmentPaths
+          .map((p) => p.replace(/\\/g, "/").split("/").pop() || p)
+          .join(", ");
+        newMessages.push({
+          id: crypto.randomUUID(),
+          role: "user",
+          content: names ? `附件: ${names}` : "附件",
+        });
+      } else if (hasLegacyFiles && attachments) {
         const fileNames = attachments.map((f) => f.name).join(", ");
         newMessages.push({
           id: crypto.randomUUID(),
@@ -100,7 +115,10 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     if (mentions && mentions.length > 0) {
       formData.append("mentions", JSON.stringify(mentions));
     }
-    if (attachments) {
+    if (attachmentPaths && attachmentPaths.length > 0) {
+      formData.append("attachment_paths", JSON.stringify(attachmentPaths));
+    }
+    if (attachments && !attachmentPaths?.length) {
       attachments.forEach((file) => formData.append("attachments", file));
     }
     formData.append("agent_id", agentId);

@@ -12,10 +12,14 @@ import { AgentId } from "@/entities/agent/model";
 
 // 文件项类型
 export type FileItem = {
-  file: File; // 保存浏览器原生 File 对象
+  file: File;
   fileName: string;
-  fileType: keyof typeof FileTypeIconMap; // 支持其他类型
-  id: string; // 唯一标识，用于删除
+  fileType: keyof typeof FileTypeIconMap;
+  id: string;
+  /** 后端持久化后的绝对路径（写入 local_data/cache 后返回） */
+  cachedPath?: string;
+  cacheStatus?: "uploading" | "ready" | "error";
+  cacheError?: string;
 };
 
 interface ChatInputProps {
@@ -108,7 +112,14 @@ export function ChatInput({
   const hasText: boolean = value.trim().length > 0;
   const hasMentions: boolean = mentions.length > 0;
   const hasContent: boolean = hasText || hasMentions;
-  const isSendDisabled: boolean = isSending || (!hasFiles && !hasContent);
+  const filesBlockSend =
+    files?.some(
+      (f) =>
+        f.cacheStatus === "uploading" ||
+        (f.cacheStatus === "error" && !f.cachedPath),
+    ) ?? false;
+  const isSendDisabled: boolean =
+    isSending || filesBlockSend || (!hasFiles && !hasContent);
 
   const extractMentionsFromState = (state: EditorState): MentionItem[] => {
     const json = state.toJSON() as {
@@ -176,6 +187,8 @@ export function ChatInput({
               key={file.id}
               fileName={file.fileName}
               fileType={file.fileType}
+              cacheStatus={file.cacheStatus}
+              cacheError={file.cacheError}
               onRemove={() => onFileRemove?.(file.id)}
             />
           ))}

@@ -50,6 +50,24 @@ def parse_mentions(mentions_str: Optional[str]) -> List[dict]:
         return []
 
 
+def append_attachments_to_user_text(user_text: str, absolute_paths: List[str]) -> str:
+    """
+    将已持久化附件的绝对路径追加到用户可见文本末尾，供模型与会话存档使用。
+
+    格式示例::
+
+        [Attached files — server cache]
+        - D:/.../workspace/local_data/cache/doc.pdf
+    """
+    if not absolute_paths:
+        return user_text
+    lines = "\n".join(f"- {p}" for p in absolute_paths)
+    block = f"[Attached files — server cache]\n{lines}"
+    if not user_text.strip():
+        return block
+    return f"{user_text.rstrip()}\n\n{block}"
+
+
 def build_user_message_with_mentions(text: str, mentions: List[dict]) -> str:
     """
     构建包含@mention名称的用户消息
