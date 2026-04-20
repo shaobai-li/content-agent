@@ -94,7 +94,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
   }
 
   return (
-    <div className="-mx-6 -my-6 flex h-full flex-col overflow-auto">
+    <div className="flex h-full flex-col overflow-auto">
       {visibleDatabases.map((database) => {
         const isActive = database.id === databaseId;
 
@@ -111,7 +111,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
               }
             }}
             className={cn(
-              "group cursor-pointer gap-0 rounded-none border-0 border-b border-neutral-200 px-4 py-4 shadow-none transition-colors",
+              "group cursor-pointer gap-0 rounded-none border-0 border-b border-neutral-200 px-3 py-4 shadow-none transition-colors",
               isActive ? "bg-muted" : "bg-neutral-50 hover:bg-muted",
             )}
           >
