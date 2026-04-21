@@ -21,9 +21,9 @@ function renderParts(parts: MessagePart[]) {
     }
     if (part.type === "text" && part.content) {
       return (
-        <span key={i} className="whitespace-pre-wrap">
+        <div key={i} className="min-w-0 whitespace-pre-wrap break-words">
           {part.content}
-        </span>
+        </div>
       );
     }
     return null;
@@ -40,7 +40,7 @@ export function ChatMessage({ messages }: ChatMessageProps) {
         return (
           <div
             key={msg.id}
-            className={`p-3 rounded-lg max-w-[90%] text-sm ${
+            className={`min-w-0 max-w-[90%] rounded-lg p-3 text-sm break-words ${
               msg.role === "user"
                 ? "bg-slate-100 text-slate-800 self-end"
                 : "bg-white text-slate-800 self-start"
@@ -48,7 +48,11 @@ export function ChatMessage({ messages }: ChatMessageProps) {
           >
             {msg.role === "assistant" && msg.parts
               ? renderParts(msg.parts)
-              : msg.content && <span className="whitespace-pre-wrap">{msg.content}</span>}
+              : msg.content && (
+                  <div className="min-w-0 whitespace-pre-wrap break-words">
+                    {msg.content}
+                  </div>
+                )}
           </div>
         );
       })}
