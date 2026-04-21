@@ -108,7 +108,7 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
   return (
     <DataHeader
       agentId={agentId}
-      title={selectedDatabase.name}
+      title="KNOWLEDG BASE"
       databaseId={selectedDatabase.id}
       onBack={clearDatabase}
       onCreateData={handleCreateData}
