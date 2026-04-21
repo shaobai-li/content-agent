@@ -90,7 +90,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
 
   if (databases.length === 0) {
     return (
-      <div className="px-3 py-4 text-sm text-muted-foreground">
+      <div className="flex h-full items-center justify-center text-gray-400">
         暂无数据库
       </div>
     );
