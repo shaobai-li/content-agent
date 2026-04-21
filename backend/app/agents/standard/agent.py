@@ -32,6 +32,40 @@ _MAX_TOOL_ROUNDS = 20
 USER_SYSTEM_PROMPT_REL = Path("prompts") / "system_prompt.md"
 
 
+def _standard_agent_tool_guard(workspace: Path) -> str:
+    """发往 LLM 的 system 尾部：工具与工作目录说明。"""
+    skills_dir = (workspace.resolve().parent / "skills").resolve()
+    return (
+        "\n\n你可以使用提供的工具。"
+        "\nrun_command 默认 cwd=workspace；注意！调用技能中的脚本时，必须设置 cwd=skills，同时必须要提供 skill_name，目录为 agent_id/skills/<skill_name>/。"
+        "\n命令中可使用环境变量: AGENT_WORKSPACE / AGENT_SKILLS。"
+        f"\nAGENT_WORKSPACE={workspace.resolve()}"
+        f"\nAGENT_SKILLS（skills 根目录）={skills_dir}"
+    )
+
+
+def build_standard_agent_system_prompt_for_llm(agent_id: str, workspace: Path) -> str:
+    """
+    标准 Agent 发往 LLM 的完整 system：技能 XML + 用户/默认正文 + 工具 guard。
+    仅此一处拼装，避免分散在 skill_loader 与 loop 内。
+    """
+    from app.utils.skill_loader import discover_skills_xml_for_agent
+
+    xml_block = discover_skills_xml_for_agent(agent_id).strip()
+    base = resolve_standard_agent_base_system_prompt(agent_id).strip()
+    guard = _standard_agent_tool_guard(workspace)
+
+    head_parts: List[str] = []
+    if xml_block:
+        head_parts.append(xml_block)
+    if base:
+        head_parts.append(base)
+    head = "\n\n".join(head_parts)
+    if not head:
+        return guard.strip()
+    return f"{head}{guard}"
+
+
 def load_default_system_prompt() -> str:
     path = _PROMPTS_DIR / "system.md"
     return path.read_text(encoding="utf-8").strip()
@@ -139,16 +173,14 @@ async def _yield_box_call_then_result(
 
 
 class StandardAgent(BaseAgent):
-    """带标准 tool-use loop；工具仅作用于该 agent 数据目录下的 `workspace` 子目录。"""
+    """带标准 tool-use loop；工具默认在 workspace，可切换到 skills 目录。"""
 
     def __init__(self, agent_id: str):
         super().__init__(agent_id=agent_id, system_prompt="")
 
     def get_system_prompt_for_llm(self) -> str:
-        from app.utils.skill_loader import prepend_skill_catalog_xml_to_system_prompt
-
-        base = resolve_standard_agent_base_system_prompt(self.agent_id)
-        return prepend_skill_catalog_xml_to_system_prompt(base, self.agent_id)
+        ws = get_agent_workspace_dir(self.agent_id)
+        return build_standard_agent_system_prompt_for_llm(self.agent_id, ws)
 
     def get_config_dict(self) -> dict:
         return {
@@ -160,12 +192,9 @@ class StandardAgent(BaseAgent):
         return get_agent_workspace_dir(self.agent_id)
 
     def _build_loop_messages(self, ctx: AgentTurnContext, workspace: Path) -> List[Dict[str, Any]]:
-        guard = (
-            f"\n\n你可以使用提供的工具。所有文件路径与 shell 中的相对路径均相对于工作区根目录。"
-            f"\n工作区绝对路径: {workspace.resolve()}\n禁止访问工作区外的路径。"
-        )
+        system_content = build_standard_agent_system_prompt_for_llm(self.agent_id, workspace)
         messages: List[Dict[str, Any]] = [
-            {"role": "system", "content": self.get_system_prompt_for_llm() + guard},
+            {"role": "system", "content": system_content},
         ]
         messages.extend(_history_llm_turns(ctx.history_messages))
         messages.extend(get_article_context_messages(ctx.mentions))

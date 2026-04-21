@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any, Callable, Dict, List
@@ -14,11 +15,25 @@ STANDARD_AGENT_TOOLS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "run_command",
-            "description": "在工作区内执行 shell 命令（如 ls、python script.py）。相对路径相对于工作区根目录。",
+            "description": (
+                "执行 shell 命令（如 ls、python script.py）。"
+                "可选 cwd: workspace|skills。"
+                "当 cwd=skills 时需提供 skill_name。"
+                "命令可使用环境变量 AGENT_WORKSPACE、AGENT_SKILLS。"
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "command": {"type": "string", "description": "要执行的 shell 命令。"}
+                    "command": {"type": "string", "description": "要执行的 shell 命令。"},
+                    "cwd": {
+                        "type": "string",
+                        "description": "命令工作目录：workspace(默认) | skills",
+                        "enum": ["workspace", "skills"],
+                    },
+                    "skill_name": {
+                        "type": "string",
+                        "description": "当 cwd=skills 时，指定技能目录名（agent_id/skills/<skill_name>/）。",
+                    },
                 },
                 "required": ["command"],
             },
@@ -103,12 +118,46 @@ def write_file(workspace: Path, path: str, content: str) -> str:
         return f"Error writing file: {e}"
 
 
-def run_command(workspace: Path, command: str) -> str:
+def _resolve_run_cwd(workspace: Path, cwd_mode: str, skill_name: str = "") -> Path:
+    ws = workspace.resolve()
+    if cwd_mode == "skills":
+        skills_root = (ws.parent / "skills").resolve()
+        raw = (skill_name or "").strip()
+        if not raw:
+            raise ValueError("skill_name is required when cwd=skills")
+        safe = Path(raw).name
+        if safe in ("", ".", ".."):
+            raise ValueError("invalid skill_name")
+        skill_dir = (skills_root / safe).resolve()
+        if not skill_dir.is_relative_to(skills_root):
+            raise ValueError("skill_name resolves outside skills root")
+        skill_dir.mkdir(parents=True, exist_ok=True)
+        return skill_dir
+    return ws
+
+
+def run_command(
+    workspace: Path,
+    command: str,
+    cwd_mode: str = "workspace",
+    skill_name: str = "",
+) -> str:
     try:
+        run_cwd = _resolve_run_cwd(
+            workspace,
+            (cwd_mode or "workspace").strip().lower(),
+            skill_name,
+        )
+        env = {
+            **dict(os.environ),
+            "AGENT_WORKSPACE": str(workspace.resolve()),
+            "AGENT_SKILLS": str(run_cwd if (cwd_mode or "").strip().lower() == "skills" else (workspace.resolve().parent / "skills").resolve()),
+        }
         result = subprocess.run(
             command,
             shell=True,
-            cwd=str(workspace.resolve()),
+            cwd=str(run_cwd),
+            env=env,
             capture_output=True,
             text=True,
             timeout=30,
@@ -117,7 +166,7 @@ def run_command(workspace: Path, command: str) -> str:
         if result.stderr:
             output += f"\n[stderr]\n{result.stderr}"
         if not output.strip():
-            return "Command executed successfully (no output)."
+            return f"Command executed successfully (cwd={run_cwd}, no output)."
         return output
     except subprocess.TimeoutExpired:
         return "Error: Command timed out after 30 seconds."
@@ -138,7 +187,12 @@ def make_tool_executor(workspace: Path, agent_id: str) -> Callable[[str, str], s
         if name == "write_file":
             return write_file(workspace, str(args.get("path", "")), str(args.get("content", "")))
         if name == "run_command":
-            return run_command(workspace, str(args.get("command", "")))
+            return run_command(
+                workspace,
+                str(args.get("command", "")),
+                str(args.get("cwd", "workspace")),
+                str(args.get("skill_name", "")),
+            )
         if name == "invoke_skill":
             return invoke_skill_service(agent_id, str(args.get("skill_id", "")))
         return f"Error: unknown tool {name!r}"

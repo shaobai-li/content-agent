@@ -22,6 +22,8 @@ _deepseek_async_client = AsyncOpenAI(
 
 # 避免 tool 多轮中对同一条 system 重复刷满屏日志
 _last_logged_system_prompt: Optional[str] = None
+# 同上：多轮 tool 调用时 messages 仍包含同一轮 user，避免重复打印
+_last_logged_user_message: Optional[str] = None
 
 
 def _log_system_prompt_sent_to_llm(messages: List[Dict[str, Any]]) -> None:
@@ -44,9 +46,34 @@ def _log_system_prompt_sent_to_llm(messages: List[Dict[str, Any]]) -> None:
     )
 
 
+def _log_last_user_message_sent_to_llm(messages: List[Dict[str, Any]]) -> None:
+    """记录发往 LLM 的最后一条 string 类型 user 内容（通常为本轮用户输入，含 mention/附件块）。"""
+    global _last_logged_user_message
+    last: Optional[str] = None
+    user_str_count = 0
+    for m in messages:
+        if m.get("role") != "user":
+            continue
+        c = m.get("content")
+        if isinstance(c, str):
+            user_str_count += 1
+            last = c
+    if last is None:
+        return
+    if last == _last_logged_user_message:
+        return
+    _last_logged_user_message = last
+    extra = f" user_role_str_msgs={user_str_count}" if user_str_count > 1 else ""
+    print(
+        f"[llm_user_message] full_len={len(last)}{extra}\n{last}\n[llm_user_message] ---",
+        flush=True,
+    )
+
+
 def deepseek_chat(messages: List[Dict[str, Any]], model: str = "deepseek-chat") -> str:
     """同步、无 tools：底层统一走流式接口，聚合为完整正文。"""
     _log_system_prompt_sent_to_llm(messages)
+    _log_last_user_message_sent_to_llm(messages)
     stream = _deepseek_client.chat.completions.create(
         model=model,
         messages=messages,
@@ -105,6 +132,7 @@ async def deepseek_chat_stream(
         kwargs["tools"] = tools
 
     _log_system_prompt_sent_to_llm(messages)
+    _log_last_user_message_sent_to_llm(messages)
     stream = await _deepseek_async_client.chat.completions.create(**kwargs)
 
     if not tools:
