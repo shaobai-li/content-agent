@@ -27,7 +27,7 @@ export const createKnowledgeBasePanelConfig = (agentId: AgentId, databaseId: str
     deleteData: (recordId: string) => deleteKbRecord(agentId, recordId, databaseId),
     rowKeyField: "id",
     dataKey: "nodes",
-    emptyMessage: "No knowledge base data available",
+    emptyMessage: "暂无数据",
     refreshEvent: "kb-data-refresh",
     columnOrder: ["name", "file_ext", "size_bytes", "created_at"],
     columnLabels: {
