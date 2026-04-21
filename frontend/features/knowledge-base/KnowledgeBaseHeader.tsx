@@ -90,7 +90,7 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
                   onSelect={() => setIsNewDataModalOpen(true)}
                 >
                   <BookOpen className="size-4" strokeWidth={3} />
-                  <span>New DATA</span>
+                  <span>New Knowledg Base</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
