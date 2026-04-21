@@ -79,22 +79,10 @@ export function DataHeader({
     <>
       <div className="flex flex-row items-center w-full">
         <div className="flex items-center gap-2">
-          {onBack ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Back to database list"
-              className="border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-              onClick={onBack}
-            >
-              <ArrowLeft className="size-4" />
-            </Button>
-          ) : null}
           <h2 className="text-sm font-semibold text-foreground">{title}</h2>
         </div>
 
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex items-center gap-2">
           <div className="flex items-center bg-muted rounded-md focus-visible:ring-2 px-4 py-0 text-xs">
             <Search className="w-4 h-4 text-muted-foreground" />
             <Input
@@ -138,6 +126,18 @@ export function DataHeader({
               ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
+          {onBack ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Back to database list"
+              className="border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              onClick={onBack}
+            >
+              <ArrowLeft className="size-4" />
+            </Button>
+          ) : null}
         </div>
       </div>
       <NewFolderModal
