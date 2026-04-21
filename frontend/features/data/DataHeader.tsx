@@ -84,7 +84,7 @@ export function DataHeader({
 
         <div className="ml-auto flex items-center gap-2">
           <div className="flex items-center bg-muted rounded-md focus-visible:ring-2 px-4 py-0 text-xs">
-            <Search className="w-4 h-4 text-muted-foreground" />
+            <Search className="w-4 h-4 shrink-0 text-muted-foreground" />
             <Input
               placeholder="Search"
               className="h-8 text-xs w-full border-none focus-visible:ring-0 placeholder:text-muted-foreground shadow-none"
