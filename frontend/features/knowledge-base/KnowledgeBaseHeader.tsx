@@ -63,7 +63,7 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
       <>
         <div className="flex w-full flex-row items-center">
           <h2 className="text-sm font-semibold text-foreground">KNOWLEDG BASE</h2>
-          <div className="ml-auto flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center rounded-md bg-muted px-4 py-0 text-xs focus-visible:ring-2">
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
