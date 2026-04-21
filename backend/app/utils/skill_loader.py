@@ -155,32 +155,13 @@ def prepend_skill_catalog_xml_to_system_prompt(base_system_prompt: str, agent_id
     """
     将技能目录 XML 动态置于 system prompt 最前；无可用 skill 时等价于 base_system_prompt。
     """
-    heads = discover_skills_for_agent(agent_id)
-    xml_block = format_skills_discovery_xml(heads)
-
-    print(
-        f"[skill_catalog] agent_id={agent_id!r} heads={len(heads)} "
-        f"xml_len={len(xml_block)} base_prompt_len={len(base_system_prompt)}",
-        flush=True,
-    )
-    for h in heads:
-        print(
-            f"[skill_catalog]   skill_id={h.skill_id!r} source={h.source!r} path={h.skill_md_path!s}",
-            flush=True,
-        )
-    if xml_block.strip():
-        preview = xml_block[:600] + ("…" if len(xml_block) > 600 else "")
-        print(f"[skill_catalog] xml_preview:\n{preview}\n[skill_catalog] ---", flush=True)
-    else:
-        print("[skill_catalog] xml_block empty -> return base_system_prompt unchanged", flush=True)
-
-    if not xml_block.strip():
-        return base_system_prompt
-    if not base_system_prompt.strip():
+    xml_block = discover_skills_xml_for_agent(agent_id).strip()
+    base = (base_system_prompt or "").strip()
+    if not xml_block:
+        return base_system_prompt if base_system_prompt else ""
+    if not base:
         return xml_block
-    out = f"{xml_block}\n\n{base_system_prompt}"
-    print(f"[skill_catalog] combined_len={len(out)}", flush=True)
-    return out
+    return f"{xml_block}\n\n{base}"
 
 
 def format_skill_catalog_lines(heads: List[SkillHead]) -> str:
