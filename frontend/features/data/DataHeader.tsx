@@ -104,6 +104,15 @@ export function DataHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-36">
+              {onCreateData ? (
+                <DropdownMenuItem
+                  className="gap-2.5"
+                  onSelect={() => setIsNewDataModalOpen(true)}
+                >
+                  <BookOpen className="size-4" strokeWidth={3} />
+                  <span>New Knowledg Base</span>
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem
                 className="gap-2.5"
                 onSelect={() => setIsNewFolderModalOpen(true)}
@@ -111,19 +120,6 @@ export function DataHeader({
                 <FolderPlus className="size-4" strokeWidth={3} />
                 <span>New Folder</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2.5">
-                <Plus className="size-4" strokeWidth={3} />
-                <span>Add File</span>
-              </DropdownMenuItem>
-              {onCreateData ? (
-                <DropdownMenuItem
-                  className="gap-2.5"
-                  onSelect={() => setIsNewDataModalOpen(true)}
-                >
-                  <BookOpen className="size-4" strokeWidth={3} />
-                  <span>New DATA</span>
-                </DropdownMenuItem>
-              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
           {onBack ? (

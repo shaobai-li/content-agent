@@ -56,7 +56,7 @@ export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalP
         className="sm:max-w-sm min-h-[220px] p-4 flex flex-col"
       >
         <DialogHeader className="text-left">
-          <DialogTitle>New DATA</DialogTitle>
+          <DialogTitle>New Knowledg Base</DialogTitle>
         </DialogHeader>
         <Input
           value={dataName}
