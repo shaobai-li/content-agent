@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Plus, Search } from "lucide-react";
+import { BookOpen, FolderPlus, Plus, Search } from "lucide-react";
 import type { AgentId } from "@/entities/agent/model";
 import { createKnowledgeBase } from "@/shared/api/records";
 import { Button } from "@/shared/ui/button";
@@ -91,6 +91,10 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
                 >
                   <BookOpen className="size-4" strokeWidth={3} />
                   <span>New Knowledg Base</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled className="gap-2.5">
+                  <FolderPlus className="size-4" strokeWidth={3} />
+                  <span>New Folder</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
