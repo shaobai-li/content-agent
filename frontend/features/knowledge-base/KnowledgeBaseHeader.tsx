@@ -26,7 +26,7 @@ interface KnowledgeBaseHeaderProps {
 
 export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
   const { databases } = useKnowledgeBases(agentId);
-  const { databaseId, selectDatabase, clearDatabase } = useKnowledgeBaseSelection();
+  const { databaseId, clearDatabase } = useKnowledgeBaseSelection();
   const selectedDatabase = useMemo(
     () => databases.find((database) => database.id === databaseId) ?? null,
     [databaseId, databases],
@@ -55,7 +55,6 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
     }
 
     window.dispatchEvent(new Event(KNOWLEDGE_BASES_REFRESH_EVENT));
-    selectDatabase(response.database.id);
   };
 
   if (!selectedDatabase) {
