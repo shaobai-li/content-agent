@@ -69,11 +69,13 @@ def get_agent_messages_path(agent_id: str) -> Path:
     return base_dir / messages_file
 
 
-def get_agent_knowledge_base_path(agent_id: str) -> Path:
-    base_dir = get_agent_base_dir(agent_id)
-    agent_config = get_agent_config(agent_id)
-    knowledge_base_file = agent_config.get("knowledge_base_file", "knowledge_base.jsonl")
-    return base_dir / knowledge_base_file
+def get_agent_knowledge_base_path(agent_id: str, kb_id: str) -> Path:
+    """
+    获取 Agent 知识库路径（已废弃，仅保留用于向后兼容）
+    建议直接使用 knowledge_base_registry_service.get_database_nodes_path(agent_id, kb_id)
+    """
+    from app.service.knowledge_base_registry_service import get_database_nodes_path
+    return get_database_nodes_path(agent_id, kb_id)
 
 
 def get_agent_skill_ids(agent_id: str) -> List[str]:

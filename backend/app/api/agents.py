@@ -27,8 +27,12 @@ async def get_session_messages(agent_id: str, session_id: str):
 async def delete_session_endpoint(agent_id: str, session_id: str):
     return delete_session(agent_id, session_id)
 @router.get("/res/{res_name}")
-async def get_resources(agent_id: str, res_name: str, kb_id: Optional[str] = None):
-    """获取指定 Agent 的资源列表（nodes.json 为 nodes）"""
+async def get_resources(agent_id: str, res_name: str, kb_id: str):
+    """获取指定 Agent 的资源列表（nodes.json 为 nodes）
+    
+    Args:
+        kb_id: 必须指定知识库ID
+    """
     if res_name == "nodes":
         from app.service.records_service import get_all_records
         nodes = get_all_records(agent_id, kb_id)
@@ -37,21 +41,29 @@ async def get_resources(agent_id: str, res_name: str, kb_id: Optional[str] = Non
 
 
 @router.post("/res/{res_name}")
-async def create_resource(agent_id: str, res_name: str, payload: dict = Body(...), kb_id: Optional[str] = None):
-    """创建指定 Agent 的资源节点"""
+async def create_resource(agent_id: str, res_name: str, kb_id: str, payload: dict = Body(...)):
+    """创建指定 Agent 的资源节点
+    
+    Args:
+        kb_id: 必须指定知识库ID
+    """
     if res_name == "nodes":
         from app.service.records_service import create_folder
         return create_folder(
             payload.get("name", ""),
             agent_id,
-            payload.get("parent_id", "fld_root"),
             kb_id,
+            payload.get("parent_id", "fld_root"),
         )
     return {"error": f"Unknown resource type: {res_name}"}
 
 @router.delete("/res/{res_name}/{node_id}")
-async def delete_resource(agent_id: str, res_name: str, node_id: str, kb_id: Optional[str] = None):
-    """删除指定 Agent 的资源节点"""
+async def delete_resource(agent_id: str, res_name: str, node_id: str, kb_id: str):
+    """删除指定 Agent 的资源节点
+    
+    Args:
+        kb_id: 必须指定知识库ID
+    """
     if res_name == "nodes":
         from app.service.records_service import delete_node
         return delete_node(node_id, agent_id, kb_id)
@@ -62,10 +74,14 @@ async def update_resource(
     agent_id: str,
     res_name: str,
     node_id: str,
+    kb_id: str,
     payload: dict = Body(...),
-    kb_id: Optional[str] = None,
 ):
-    """更新指定 Agent 的资源节点"""
+    """更新指定 Agent 的资源节点
+    
+    Args:
+        kb_id: 必须指定知识库ID
+    """
     if res_name == "nodes":
         from app.service.records_service import move_node, rename_node
 
