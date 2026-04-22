@@ -110,12 +110,37 @@ def _assistant_message_as_dict(msg: ChatCompletionMessage) -> Dict[str, Any]:
 
 
 def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """从持久化历史中提取 LLM 所需的完整多轮对话（包含 tool_calls 和 tool 消息）。"""
     out: List[Dict[str, Any]] = []
     for hm in history_messages:
         role = hm.get("role")
         content = hm.get("content")
-        if role in ("user", "assistant") and isinstance(content, str):
-            out.append({"role": role, "content": content})
+        
+        # user/assistant: 保留 content 和可选的 tool_calls
+        if role in ("user", "assistant"):
+            msg = {"role": role, "content": content}
+            if "tool_calls" in hm:
+                msg["tool_calls"] = hm["tool_calls"]
+            out.append(msg)
+        
+        # tool: 保留 content 和 tool_call_id
+        elif role == "tool":
+            msg = {"role": "tool", "content": content or ""}
+            if "tool_call_id" in hm:
+                msg["tool_call_id"] = hm["tool_call_id"]
+            out.append(msg)
+
+    print("--- history_llm_turns ---")
+    for m in out:
+        c = m.get("content", "")
+        preview = c[:500] if isinstance(c, str) else str(c)[:500]
+        truncated = "…" if isinstance(c, str) and len(c) > 500 else ""
+        print(f"{m['role']}: {preview}{truncated}")
+        if "tool_calls" in m:
+            print(f"  └─ tool_calls: {len(m['tool_calls'])} calls")
+        if "tool_call_id" in m:
+            print(f"  └─ tool_call_id: {m['tool_call_id']}")
+    print("--- end ---")
     return out
 
 
@@ -206,10 +231,20 @@ class StandardAgent(BaseAgent):
         self,
         ctx: AgentTurnContext,
     ) -> AsyncGenerator[str, None]:
+        from app.core.ids import new_uuid
+        from app.service.messages_service import save_message
+        from app.service.sessions_service import save_session_if_new
+        
         workspace = self._workspace_dir()
         execute_tool = make_tool_executor(workspace, self.agent_id)
         messages = self._build_loop_messages(ctx, workspace)
         final_reply_text = ""
+        
+        # 确定 session_id 并保存用户消息
+        session_id = ctx.session_id or new_uuid()
+        if ctx.user_text:
+            save_session_if_new(ctx.agent_id, session_id, ctx.user_text)
+            save_message(ctx.agent_id, session_id, "user", ctx.user_text)
 
         rounds = 0
         while rounds < _MAX_TOOL_ROUNDS:
@@ -225,9 +260,20 @@ class StandardAgent(BaseAgent):
                     assistant_msg = part
             if assistant_msg is None:
                 break
-            messages.append(_assistant_message_as_dict(assistant_msg))
+            
+            assistant_dict = _assistant_message_as_dict(assistant_msg)
+            messages.append(assistant_dict)
 
             if assistant_msg.tool_calls:
+                # 保存带 tool_calls 的 assistant 消息
+                save_message(
+                    ctx.agent_id,
+                    session_id,
+                    "assistant",
+                    assistant_msg.content or "",
+                    tool_calls=assistant_dict.get("tool_calls")
+                )
+                
                 for tc in assistant_msg.tool_calls:
                     name = tc.function.name
                     raw_args = tc.function.arguments or "{}"
@@ -263,12 +309,20 @@ class StandardAgent(BaseAgent):
                     ):
                         yield line
                     result = result_box[0]
-                    messages.append(
-                        {
-                            "role": "tool",
-                            "tool_call_id": tc.id,
-                            "content": result,
-                        }
+                    tool_msg = {
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "content": result,
+                    }
+                    messages.append(tool_msg)
+                    
+                    # 保存 tool 消息
+                    save_message(
+                        ctx.agent_id,
+                        session_id,
+                        "tool",
+                        result,
+                        tool_call_id=tc.id
                     )
                 continue
 
@@ -278,7 +332,8 @@ class StandardAgent(BaseAgent):
             final_reply_text = "已达到工具调用轮数上限，请简化任务或分步提问。"
             yield build_stream_chunk(final_reply_text)
 
-        session_id = save_chat_session(
-            ctx.agent_id, ctx.session_id, ctx.user_text, final_reply_text
-        )
+        # 保存最终回复
+        if final_reply_text:
+            save_message(ctx.agent_id, session_id, "assistant", final_reply_text)
+        
         yield build_stream_done(session_id=session_id)
