@@ -100,7 +100,7 @@ export function DataHeader({
                 aria-label="Create new item"
                 className="border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
-                <Plus className="size-4" strokeWidth={3} />
+                <Plus className="size-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-36">
@@ -110,7 +110,7 @@ export function DataHeader({
                   onSelect={() => setIsNewDataModalOpen(true)}
                 >
                   <BookOpen className="size-4" strokeWidth={3} />
-                  <span>New Knowledg Base</span>
+                  <span>New Knowledge Base</span>
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuItem
