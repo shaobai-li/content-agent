@@ -15,7 +15,7 @@ def load_messages(agent_id: str, session_id: str) -> list:
     return [m for m in all_messages if m.get("session_id") == session_id]
 
 
-def save_message(agent_id: str, session_id: str, role: str, content: str):
+def save_message(agent_id: str, session_id: str, role: str, content: str, tool_calls=None, tool_call_id=None):
     """向指定会话追加一条消息"""
     messages_path = get_agent_messages_path(agent_id)
 
@@ -32,6 +32,11 @@ def save_message(agent_id: str, session_id: str, role: str, content: str):
         "content": content,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
+    
+    if tool_calls is not None:
+        message["tool_calls"] = tool_calls
+    if tool_call_id is not None:
+        message["tool_call_id"] = tool_call_id
     
     all_messages.append(message)
 
