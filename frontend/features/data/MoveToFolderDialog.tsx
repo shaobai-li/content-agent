@@ -260,9 +260,9 @@ export function MoveToFolderDialog({
                     )}
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                     <Button onClick={handleMove} disabled={!canSubmit}>
-                        {submitting ? "移动中..." : "移动"}
+                        Move
                     </Button>
                 </DialogFooter>
             </DialogContent>

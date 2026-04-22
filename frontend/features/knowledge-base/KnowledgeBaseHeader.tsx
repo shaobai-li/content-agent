@@ -61,7 +61,7 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
     return (
       <>
         <div className="flex w-full flex-row items-center">
-          <h2 className="text-sm font-semibold text-foreground">KNOWLEDG BASE</h2>
+          <h2 className="text-sm font-semibold text-foreground">KNOWLEDGE BASE</h2>
           <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center rounded-md bg-muted px-4 py-0 text-xs focus-visible:ring-2">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -80,7 +80,7 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
                   aria-label="Create new item"
                   className="border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
-                  <Plus className="size-4" strokeWidth={3} />
+                  <Plus className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-36">
@@ -89,7 +89,7 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
                   onSelect={() => setIsNewDataModalOpen(true)}
                 >
                   <BookOpen className="size-4" strokeWidth={3} />
-                  <span>New Knowledg Base</span>
+                  <span>New Knowledge Base</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem disabled className="gap-2.5">
                   <FolderPlus className="size-4" strokeWidth={3} />
@@ -111,7 +111,7 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
   return (
     <DataHeader
       agentId={agentId}
-      title="KNOWLEDG BASE"
+      title="KNOWLEDGE BASE"
       databaseId={selectedDatabase.id}
       onBack={clearDatabase}
       onCreateData={handleCreateData}

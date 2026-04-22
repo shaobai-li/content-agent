@@ -74,16 +74,16 @@ export function RenameModal({ open, onOpenChange, record, onRename }: RenameModa
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="New name"
-          className="mt-3 h-10"
+          className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
           autoFocus
           disabled={isSubmitting}
         />
         <DialogFooter className="mt-auto flex-row justify-end">
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-            取消
+            Cancel
           </Button>
           <Button onClick={handleRename} disabled={!name.trim() || isSubmitting}>
-            {isSubmitting ? "重命名中..." : "确定"}
+            Enter
           </Button>
         </DialogFooter>
       </DialogContent>

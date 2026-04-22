@@ -71,10 +71,10 @@ export function NewFolderModal({
         />
         <DialogFooter className="mt-auto flex-row justify-end">
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-            取消
+            Cancel
           </Button>
           <Button onClick={handleCreate} disabled={!folderName.trim() || isSubmitting}>
-            {isSubmitting ? "新建中..." : "新建"}
+            Enter
           </Button>
         </DialogFooter>
       </DialogContent>

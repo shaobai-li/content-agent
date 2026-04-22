@@ -138,7 +138,7 @@ export function DataTable({
                                 onClick: () => handleRenameOpen(record),
                             },
                             {
-                                label: "Remove",
+                                label: "Delete",
                                 icon: <Trash2 className="size-4 text-red-600" />,
                                 destructive: true,
                                 onClick: () => onRemove?.(record),
