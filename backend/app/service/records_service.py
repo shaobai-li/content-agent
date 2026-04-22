@@ -13,7 +13,7 @@ from app.service.knowledge_base_registry_service import (
 )
 
 
-def ensure_kb_initialized(agent_id: str, kb_id: Optional[str] = None) -> Dict[str, Any]:
+def ensure_kb_initialized(agent_id: str, kb_id: str) -> Dict[str, Any]:
     """
     幂等初始化指定 Agent 的 nodes.json：
     - 文件不存在：创建默认结构
@@ -23,7 +23,7 @@ def ensure_kb_initialized(agent_id: str, kb_id: Optional[str] = None) -> Dict[st
     return ensure_kb_document(agent_id, kb_id)
 
 
-def get_all_records(agent_id: str, kb_id: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_all_records(agent_id: str, kb_id: str) -> List[Dict[str, Any]]:
     """获取指定 Agent 知识库 nodes.json 中的完整节点列表（含 folder 与 record）"""
     path = get_database_nodes_path(agent_id, kb_id)
     if not path.exists():
@@ -57,8 +57,8 @@ def _root_folder_node() -> Dict[str, Any]:
 def create_folder(
     name: str,
     agent_id: str,
+    kb_id: str,
     parent_id: str = "fld_root",
-    kb_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """在 nodes.json 中创建 folder 节点"""
     folder_name = name.strip()
@@ -104,7 +104,7 @@ def create_folder(
     return {"success": True, "folder": folder_node}
 
 
-def rename_node(node_id: str, name: str, agent_id: str, kb_id: Optional[str] = None) -> Dict[str, Any]:
+def rename_node(node_id: str, name: str, agent_id: str, kb_id: str) -> Dict[str, Any]:
     """根据节点标识更新 nodes.json 中对应节点的名称"""
     node_name = name.strip()
     if not node_name:
@@ -160,7 +160,7 @@ def move_node(
     node_id: str,
     parent_id: str,
     agent_id: str,
-    kb_id: Optional[str] = None,
+    kb_id: str,
 ) -> Dict[str, Any]:
     """根据节点标识更新 nodes.json 中对应节点的父目录"""
     target_parent_id = parent_id.strip() or "fld_root"
@@ -255,7 +255,7 @@ def move_node(
     return {"success": True, "node": target_node}
 
 
-def delete_node(node_id: str, agent_id: str, kb_id: Optional[str] = None) -> Dict[str, Any]:
+def delete_node(node_id: str, agent_id: str, kb_id: str) -> Dict[str, Any]:
     """根据节点标识从 nodes.json 中删除对应节点，文件夹会级联删除子节点"""
     path = get_database_nodes_path(agent_id, kb_id)
     if not path.exists():

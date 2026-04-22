@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 from typing import Any, Dict, List, Optional
 
-from app.core.config import get_agent_knowledge_base_path, get_agent_local_data_dir
+from app.core.config import get_agent_local_data_dir
 from app.core.ids import new_uuid
 
 
@@ -36,15 +36,6 @@ def _root_folder_node() -> Dict[str, Any]:
     }
 
 
-def _legacy_kb_id(agent_id: str) -> str:
-    default_path = get_agent_knowledge_base_path(agent_id)
-    if default_path.parent.name == "view":
-        candidate = default_path.parent.parent.name
-        if candidate:
-            return candidate
-    return f"{agent_id}_default"
-
-
 def _default_database_meta(agent_id: str) -> Dict[str, str]:
     return DEFAULT_DATABASE_META.get(
         agent_id,
@@ -59,10 +50,10 @@ def get_database_registry_path(agent_id: str) -> Path:
     return get_agent_local_data_dir(agent_id) / "databases.json"
 
 
-def get_database_nodes_path(agent_id: str, kb_id: Optional[str] = None) -> Path:
-    legacy_kb_id = _legacy_kb_id(agent_id)
-    if not kb_id or kb_id == legacy_kb_id:
-        return get_agent_knowledge_base_path(agent_id)
+def get_database_nodes_path(agent_id: str, kb_id: str) -> Path:
+    """获取指定知识库的 nodes.json 文件路径"""
+    if not kb_id or not kb_id.strip():
+        raise ValueError(f"kb_id 不能为空，agent_id={agent_id}")
     return get_agent_local_data_dir(agent_id) / kb_id / "view" / "nodes.json"
 
 
@@ -74,14 +65,16 @@ def _default_kb_document(kb_id: str) -> Dict[str, Any]:
     }
 
 
-def ensure_kb_document(agent_id: str, kb_id: Optional[str] = None) -> Dict[str, Any]:
-    resolved_kb_id = kb_id or _legacy_kb_id(agent_id)
-    path = get_database_nodes_path(agent_id, resolved_kb_id)
+def ensure_kb_document(agent_id: str, kb_id: str) -> Dict[str, Any]:
+    """确保知识库文档存在并初始化"""
+    if not kb_id or not kb_id.strip():
+        raise ValueError(f"kb_id 不能为空，agent_id={agent_id}")
+    path = get_database_nodes_path(agent_id, kb_id)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     data: Dict[str, Any]
     if not path.exists():
-        data = _default_kb_document(resolved_kb_id)
+        data = _default_kb_document(kb_id)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return data
@@ -89,13 +82,13 @@ def ensure_kb_document(agent_id: str, kb_id: Optional[str] = None) -> Dict[str, 
     try:
         with open(path, "r", encoding="utf-8") as f:
             loaded = json.load(f)
-        data = loaded if isinstance(loaded, dict) else _default_kb_document(resolved_kb_id)
+        data = loaded if isinstance(loaded, dict) else _default_kb_document(kb_id)
     except (json.JSONDecodeError, OSError, TypeError):
-        data = _default_kb_document(resolved_kb_id)
+        data = _default_kb_document(kb_id)
 
     changed = False
-    if data.get("kb_id") != resolved_kb_id:
-        data["kb_id"] = resolved_kb_id
+    if data.get("kb_id") != kb_id:
+        data["kb_id"] = kb_id
         changed = True
     if not isinstance(data.get("version"), int):
         data["version"] = 1
@@ -163,25 +156,6 @@ def ensure_database_registry(agent_id: str) -> List[Dict[str, Any]]:
         except (json.JSONDecodeError, OSError, TypeError):
             loaded_entries = []
 
-    legacy_kb_id = _legacy_kb_id(agent_id)
-    legacy_path = get_agent_knowledge_base_path(agent_id)
-    has_legacy_entry = any(entry["id"] == legacy_kb_id for entry in loaded_entries)
-    if legacy_path.exists():
-        ensure_kb_document(agent_id, legacy_kb_id)
-
-    if legacy_path.exists() and not has_legacy_entry:
-        now = _utc_iso()
-        default_meta = _default_database_meta(agent_id)
-        loaded_entries.append(
-            {
-                "id": legacy_kb_id,
-                "name": default_meta["name"],
-                "description": default_meta["description"],
-                "created_at": now,
-                "updated_at": now,
-            },
-        )
-
     _save_database_registry(agent_id, loaded_entries)
     return loaded_entries
 
@@ -233,14 +207,8 @@ def delete_knowledge_base(agent_id: str, kb_id: str) -> Dict[str, Any]:
     remaining_databases = [entry for entry in databases if entry["id"] != database_id]
     _save_database_registry(agent_id, remaining_databases)
 
-    legacy_kb_id = _legacy_kb_id(agent_id)
-    if database_id == legacy_kb_id:
-        database_path = get_agent_knowledge_base_path(agent_id)
-        if database_path.exists():
-            database_path.unlink()
-    else:
-        database_dir = get_agent_local_data_dir(agent_id) / database_id
-        if database_dir.exists():
-            shutil.rmtree(database_dir, ignore_errors=True)
+    database_dir = get_agent_local_data_dir(agent_id) / database_id
+    if database_dir.exists():
+        shutil.rmtree(database_dir, ignore_errors=True)
 
     return {"success": True, "database": database}
