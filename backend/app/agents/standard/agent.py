@@ -8,7 +8,7 @@ from typing import Any, AsyncGenerator, Callable, Dict, List
 from openai.types.chat import ChatCompletionMessage
 
 from app.agents.base_agent import BaseAgent
-from app.core.config import get_agent_base_dir, get_agent_workspace_dir
+from app.core.config import get_agent_base_dir, get_agent_local_data_dir, get_agent_workspace_dir
 from app.runtime.agent_turn_context import AgentTurnContext
 from app.service.agent_chat_service import save_chat_session
 from app.service.stream_service import (
@@ -32,15 +32,29 @@ _MAX_TOOL_ROUNDS = 20
 USER_SYSTEM_PROMPT_REL = Path("prompts") / "system_prompt.md"
 
 
-def _standard_agent_tool_guard(workspace: Path) -> str:
+def _standard_agent_tool_guard(workspace: Path, agent_id: str) -> str:
     """发往 LLM 的 system 尾部：工具与工作目录说明。"""
+    from app.service.knowledge_base_registry_service import list_knowledge_bases
+    
     skills_dir = (workspace.resolve().parent / "skills").resolve()
+    
+    # 获取默认知识库路径
+    databases = list_knowledge_bases(agent_id)
+    if databases:
+        first_kb = databases[0]
+        kb_id = first_kb.get("id", "")
+        default_kb_path = get_agent_local_data_dir(agent_id) / kb_id
+        kb_env_line = f"\nAGENT_DEFAULT_KB（默认知识库路径）={default_kb_path.resolve()}"
+    else:
+        kb_env_line = "\nAGENT_DEFAULT_KB（默认知识库路径）=无"
+    
     return (
         "\n\n你可以使用提供的工具。"
         "\nrun_command 默认 cwd=workspace；注意！调用技能中的脚本时，必须设置 cwd=skills，同时必须要提供 skill_name，目录为 agent_id/skills/<skill_name>/。"
-        "\n命令中可使用环境变量: AGENT_WORKSPACE / AGENT_SKILLS。"
+        "\n命令中可使用环境变量: AGENT_WORKSPACE / AGENT_SKILLS / AGENT_DEFAULT_KB。"
         f"\nAGENT_WORKSPACE={workspace.resolve()}"
         f"\nAGENT_SKILLS（skills 根目录）={skills_dir}"
+        f"{kb_env_line}"
     )
 
 
@@ -53,7 +67,7 @@ def build_standard_agent_system_prompt_for_llm(agent_id: str, workspace: Path) -
 
     xml_block = discover_skills_xml_for_agent(agent_id).strip()
     base = resolve_standard_agent_base_system_prompt(agent_id).strip()
-    guard = _standard_agent_tool_guard(workspace)
+    guard = _standard_agent_tool_guard(workspace, agent_id)
 
     head_parts: List[str] = []
     if xml_block:
