@@ -61,14 +61,14 @@ export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalP
         <Input
           value={dataName}
           onChange={(event) => setDataName(event.target.value)}
-          placeholder="Knowledge Base name"
+          placeholder="knowledge name"
           className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
           autoFocus
         />
         <Input
           value={dataDescription}
           onChange={(event) => setDataDescription(event.target.value)}
-          placeholder="Description"
+          placeholder="description"
           className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
         />
         <DialogFooter className="mt-auto flex-row justify-end">
