@@ -80,7 +80,7 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
                   aria-label="Create new item"
                   className="border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
-                  <Plus className="size-4" />
+                  <Plus className="size-4" strokeWidth={3} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-36">
