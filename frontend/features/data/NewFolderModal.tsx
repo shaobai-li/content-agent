@@ -64,7 +64,7 @@ export function NewFolderModal({
         <Input
           value={folderName}
           onChange={(event) => setFolderName(event.target.value)}
-          placeholder="Folder name"
+          placeholder="folder name"
           className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
           autoFocus
           disabled={isSubmitting}
