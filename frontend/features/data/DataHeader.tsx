@@ -100,7 +100,7 @@ export function DataHeader({
                 aria-label="Create new item"
                 className="border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
-                <Plus className="size-4" />
+                <Plus className="size-4" strokeWidth={3} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-36">
@@ -131,7 +131,7 @@ export function DataHeader({
               className="border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
               onClick={onBack}
             >
-              <ArrowLeft className="size-4" />
+              <ArrowLeft className="size-4" strokeWidth={3} />
             </Button>
           ) : null}
         </div>
