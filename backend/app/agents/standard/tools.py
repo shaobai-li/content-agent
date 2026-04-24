@@ -35,7 +35,7 @@ STANDARD_AGENT_TOOLS: List[Dict[str, Any]] = [
                         "description": "当 cwd=skills 时，指定技能目录名（agent_id/skills/<skill_name>/）。",
                     },
                 },
-                "required": ["command"],
+                "required": ["command", "cwd"],
             },
         },
     },
@@ -121,18 +121,29 @@ def write_file(workspace: Path, path: str, content: str) -> str:
 def _resolve_run_cwd(workspace: Path, cwd_mode: str, skill_name: str = "") -> Path:
     ws = workspace.resolve()
     if cwd_mode == "skills":
-        skills_root = (ws.parent / "skills").resolve()
         raw = (skill_name or "").strip()
         if not raw:
             raise ValueError("skill_name is required when cwd=skills")
         safe = Path(raw).name
         if safe in ("", ".", ".."):
             raise ValueError("invalid skill_name")
-        skill_dir = (skills_root / safe).resolve()
-        if not skill_dir.is_relative_to(skills_root):
-            raise ValueError("skill_name resolves outside skills root")
-        skill_dir.mkdir(parents=True, exist_ok=True)
-        return skill_dir
+
+        # 优先：user skills（同名覆盖语义，与 discover_skills_for_agent 一致）
+        user_root = (ws.parent / "skills").resolve()
+        user_dir = (user_root / safe).resolve()
+        if user_dir.is_relative_to(user_root) and user_dir.is_dir():
+            return user_dir
+
+        # 其次：bundled skills（复用 skill_loader 的路径解析）
+        from app.utils.skill_loader import bundled_skills_dir
+        bundled_dir = (bundled_skills_dir() / safe).resolve()
+        if bundled_dir.is_dir():
+            return bundled_dir
+
+        # 都不存在 → 在 user skills 下创建（兼容原有行为）
+        user_dir.parent.mkdir(parents=True, exist_ok=True)
+        user_dir.mkdir(parents=True, exist_ok=True)
+        return user_dir
     return ws
 
 

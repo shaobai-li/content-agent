@@ -1,0 +1,80 @@
+from __future__ import annotations
+
+import argparse
+import json
+import shutil
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Copy an attachment to target directory and rename it as "
+            "file-<uuid>.<original_ext>"
+        )
+    )
+    parser.add_argument(
+        "--attachment",
+        required=True,
+        help="Source attachment file path.",
+    )
+    parser.add_argument(
+        "--target-dir",
+        required=True,
+        help="Target directory path to store the copied file.",
+    )
+    parser.add_argument(
+        "--file-name",
+        required=True,
+        help="Original file name for deriving extension.",
+    )
+    return parser
+
+
+def import_attachment(attachment: str, target_dir: str, file_name: str) -> dict:
+    src = Path(attachment).expanduser().resolve()
+    if not src.exists() or not src.is_file():
+        raise FileNotFoundError(f"Attachment not found: {src}")
+
+    dst_dir = Path(target_dir).expanduser().resolve()
+    dst_dir.mkdir(parents=True, exist_ok=True)
+
+    file_ext = Path(file_name).suffix
+    file_id = str(uuid.uuid4())
+    new_name = f"file-{file_id}{file_ext}"
+    dst_path = dst_dir / new_name
+
+    shutil.copy2(src, dst_path)
+    meta = {
+        "id": file_id,
+        "imported_at": datetime.now(timezone.utc).isoformat(),
+        "original_name": file_name,
+        "stored_name": new_name,
+        "size_bytes": dst_path.stat().st_size,
+    }
+    meta_path = dst_dir / f"file-{file_id}.meta.json"
+    meta_path.write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "source_path": str(src),
+        "target_path": str(dst_path),
+        "filename": new_name,
+        "ext": file_ext,
+        "meta_path": str(meta_path),
+    }
+
+
+def main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
+    out = import_attachment(args.attachment, args.target_dir, args.file_name)
+    print(json.dumps(out, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
