@@ -1,0 +1,62 @@
+[
+  {
+    "id": "memo-20260423-173230-PbJ2",
+    "title": "整理文件",
+    "content": "今天晚上整理文件",
+    "excerpt": "今天晚上整理文件",
+    "tags": [],
+    "category": null,
+    "isPinned": false,
+    "isDone": false,
+    "createdAt": "2026-04-23T17:32:30+08:00",
+    "updatedAt": "2026-04-23T17:32:30+08:00"
+  },
+  {
+    "id": "memo-20260423-173230-f4dm",
+    "title": "出差",
+    "content": "大后天出差",
+    "excerpt": "大后天出差",
+    "tags": [],
+    "category": null,
+    "isPinned": false,
+    "isDone": false,
+    "createdAt": "2026-04-23T17:32:30+08:00",
+    "updatedAt": "2026-04-23T17:34:05+08:00"
+  },
+  {
+    "id": "memo-20260423-174834-r7qi",
+    "title": "AI培训",
+    "content": "明天上午，新区党校AI培训",
+    "excerpt": "明天上午，新区党校AI培训",
+    "tags": [],
+    "category": null,
+    "isPinned": false,
+    "isDone": false,
+    "createdAt": "2026-04-23T17:48:34+08:00",
+    "updatedAt": "2026-04-23T17:48:34+08:00"
+  },
+  {
+    "id": "memo-20260423-174834-E0uW",
+    "title": "AI方案审核",
+    "content": "明天下午，园区独墅湖科教AI方案审核",
+    "excerpt": "明天下午，园区独墅湖科教AI方案审核",
+    "tags": [],
+    "category": null,
+    "isPinned": false,
+    "isDone": false,
+    "createdAt": "2026-04-23T17:48:34+08:00",
+    "updatedAt": "2026-04-23T17:48:34+08:00"
+  },
+  {
+    "id": "memo-20260423-174834-Af00",
+    "title": "提交DeepSeek课纲",
+    "content": "后天提交DeepSeek课程课纲，需包含智能体内容",
+    "excerpt": "后天提交DeepSeek课程课纲，需包含智能体内容",
+    "tags": [],
+    "category": null,
+    "isPinned": false,
+    "isDone": false,
+    "createdAt": "2026-04-23T17:48:34+08:00",
+    "updatedAt": "2026-04-23T17:49:36+08:00"
+  }
+]

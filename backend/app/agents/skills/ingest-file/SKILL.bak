@@ -1,0 +1,34 @@
+## 功能概述
+
+该技能用于完成从原始文件到知识库的标准化入库流程，包括：
+
+- 识别校验和导入原始文件
+- 解析原始文件，提取文字和图片，如果有声音和视频，则把它们转录成文字
+- 调用 LLM 对解析后的文字进行理解，生成 wiki 的组件
+
+## 工作流程
+
+**重要**：除非用户的提示词包含特殊要求，否则必须严格按顺序执行
+
+### Step 1：文件识别校验和导入
+
+运行下面的命令
+```
+python scripts/import.py 
+```
+
+### Step 2：解析导入的原始文件
+```
+python scripts/parse.py
+```
+
+### Step 3：理解解析后的文字(和图片)
+```
+python scripts/ingest.py
+```
+
+运行下面的命令
+```
+python scripts/import.py --input-file path/to/file --knowledge-base path/to/knowledge-base
+```
+**注意**：`path/to/knowledge-base` 是用户指明导入的知识库的路径，如果用户未指明，则是默认知识库的路径

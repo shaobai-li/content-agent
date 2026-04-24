@@ -19,3 +19,4 @@ agents:
     messages_file: "messages.json"
     skills:
       - say-german
+      - ingest-file
