@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from parsers import get_parser_for_path
+
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -73,7 +75,7 @@ def new_m_id() -> str:
 
 
 def material_dir(kb_root: Path, m_id: str) -> Path:
-    return kb_root / f"m_{m_id}"
+    return kb_root / "raw" / f"m_{m_id}"
 
 
 def build_record(
@@ -188,11 +190,27 @@ def run_import(input_path: Path, kb_root: Path) -> dict[str, Any]:
     m_dir = material_dir(kb, m_id)
 
     try:
+        parser = get_parser_for_path(src)
+        parsed: dict[str, Any] | None = None
+        record_path: Path
+
+        if parser:
+            parsing_record = build_record(
+                m_id=m_id,
+                input_path=src,
+                sha256_hex=sha256_hex,
+                status="parsing",
+            )
+            record_path = save_record_json(m_dir, parsing_record)
+            parsed = parser.parse(src, m_dir)
+
         record = build_record(m_id=m_id, input_path=src, sha256_hex=sha256_hex, status="imported")
+        if parsed:
+            record["parsed"] = parsed
         record_path = save_record_json(m_dir, record)
         updated = append_import_to_metadata(metadata, m_id, sha256_hex, src)
         save_metadata(kb, updated)
-        return {
+        result: dict[str, Any] = {
             "ok": True,
             "status": "imported",
             "m_id": m_id,
@@ -200,6 +218,9 @@ def run_import(input_path: Path, kb_root: Path) -> dict[str, Any]:
             "sha256": sha256_hex,
             "kb_root": str(kb),
         }
+        if parsed:
+            result["parsed"] = parsed
+        return result
     except Exception as exc:
         error_msg = str(exc)
         failure_record = build_record(
