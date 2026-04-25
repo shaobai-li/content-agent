@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 # 导入各个 agent 模块（导入即注册）
 import app.agents.standard
 import app.agents.write_agent
-import app.agents.knowledge_base
 # 导入统一 API 路由
 from app.api.agents import router as agents_router
 from app.core.config import AGENTS_CONFIG
@@ -50,7 +49,7 @@ async def root():
     return {
         "status": "running",
         "version": "0.0.1",
-        "agents": ["kb", "std", "w"]
+        "agents": ["std", "w"]
     }
 
 if __name__ == "__main__":
