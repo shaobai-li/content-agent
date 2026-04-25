@@ -310,6 +310,8 @@ class StandardAgent(BaseAgent):
                         "read_file": "tool-read",
                         "write_file": "tool-write",
                         "run_command": "tool-command",
+                        "web_search": "tool-search",
+                        "web_fetch": "tool-read",
                         "invoke_skill": "tool-skill",
                     }.get(name, "tool-command")
                     async for line in _yield_box_call_then_result(
