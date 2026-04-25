@@ -1,16 +1,6 @@
 import { Agent } from "./model";
 
 export const agentRegistry: Record<Agent["id"], Agent> = {
-    kb: {
-        id: "kb",
-        name: "知识库Agent",
-        layout: {
-            left: ["history", "knowledgebase"],
-            defaultLeft: "knowledgebase",
-            right: ["chat"],
-            defaultRight: "chat",
-        },
-    },
     std: {
         id: "std",
         name: "标准 Agent",

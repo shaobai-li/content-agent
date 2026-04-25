@@ -7,11 +7,6 @@ agents:
     skills:
       - article-draft-generator
       - article-critic-refiner
-  
-  kb:    
-    base_dir: "agents/agent_kb"
-    sessions_file: "sessions.json"
-    messages_file: "messages.json"
 
   std:
     base_dir: "agents/agent_std"
