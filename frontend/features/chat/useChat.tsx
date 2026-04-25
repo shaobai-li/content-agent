@@ -228,7 +228,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
               );
             }
 
-            if (hasFiles && (agentId === "kb" || agentId === "std")) {
+            if (hasFiles && agentId === "std") {
               console.log("触发知识库数据刷新事件");
               window.dispatchEvent(new CustomEvent("kb-data-refresh"));
             }
