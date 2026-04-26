@@ -1,8 +1,5 @@
 import "./globals.css";
-import { Sidebar } from "@/app-shell/Sidebar";
-import { getSidebarRoutes } from "@/app-shell/navigation";
-
-const routes = getSidebarRoutes();
+import { ClientShell } from "./client-shell";
 
 export default function RootLayout({
   children,
@@ -12,11 +9,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="font-sans antialiased bg-background">
-        <div className="flex h-screen">
-          <Sidebar routes={routes} />
-
-          <div className="flex-1 flex flex-col">{children}</div>
-        </div>
+        <ClientShell>{children}</ClientShell>
       </body>
     </html>
   );

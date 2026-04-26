@@ -17,11 +17,8 @@ export default function AgentPage() {
 
   if (!agent) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Agent 不存在</h1>
-          <p className="text-muted-foreground">找不到 ID 为 &quot;{agentId}&quot; 的 Agent</p>
-        </div>
+      <div className="flex h-full items-center justify-center text-gray-400">
+        Agent not found
       </div>
     );
   }

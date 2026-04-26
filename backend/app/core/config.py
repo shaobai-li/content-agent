@@ -9,14 +9,42 @@ load_dotenv()
 # 绝对路径：从 .env 读取
 DATA_DIR = Path(os.getenv("DATA_DIR", ".")).resolve()
 
-# 与包相对：避免进程工作目录不在 backend 时读不到 config.yaml
-CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+
+# ── 全局 config.yaml（顶级全局配置） ──────────────────────────────
+CONFIG_PATH = _PROJECT_ROOT / "config.yaml"
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-    config = yaml.safe_load(f)
+    config = yaml.safe_load(f) or {}
 
 RECORDS_FILE = DATA_DIR / "records.jsonl"
 
-AGENTS_CONFIG: Dict[str, Dict[str, Any]] = config.get("agents", {})
+
+# ── 加载 per‑agent YAML（config/agents/<agent_id>.yaml） ─────────
+def _load_agent_yamls() -> Dict[str, Dict[str, Any]]:
+    """扫描 config/agents/*.yaml，文件名（不含扩展名）即为 agent_id。"""
+    agents_dir = _PROJECT_ROOT / "config" / "agents"
+    result: Dict[str, Dict[str, Any]] = {}
+    if not agents_dir.is_dir():
+        return result
+    for yaml_path in sorted(agents_dir.glob("*.yaml")):
+        agent_id = yaml_path.stem  # e.g. "std", "w"
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        if not isinstance(data, dict):
+            continue
+        data.pop("agent_id", None)   # 以文件名为准
+        result[agent_id] = data
+    return result
+
+
+# ── 合并：per-agent YAML 优先，旧的 config.yaml agents 作为降级 ──
+_agent_yamls = _load_agent_yamls()
+_old_agents = config.get("agents", {}) or {}
+
+AGENTS_CONFIG: Dict[str, Dict[str, Any]] = {
+    **_old_agents,
+    **_agent_yamls,           # 同名覆盖，per-agent YAML 优先
+}
 
 def get_agent_config(agent_id: str) -> Dict[str, Any]:
     agent_config = AGENTS_CONFIG.get(agent_id, {})
