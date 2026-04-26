@@ -11,6 +11,33 @@ from app.service.stream_service import (
 from app.runtime.agent_registry import get_agent_config
 from app.runtime.agent_turn_context import build_agent_turn_context
 
+# ── Agent 列表（不含 agent_id 路径参数） ─────────────────────────
+list_router = APIRouter(prefix="/api", tags=["agents"])
+
+
+@list_router.get("/agents")
+async def list_agents():
+    """返回所有注册 agent 的元信息（供前端动态渲染）。"""
+    from app.core.config import AGENTS_CONFIG
+
+    result = []
+    for agent_id, cfg in AGENTS_CONFIG.items():
+        if not isinstance(cfg, dict):
+            continue
+        result.append({
+            "id": agent_id,
+            "name": cfg.get("name", agent_id),
+            "layout": cfg.get("layout", {
+                "left": ["history", "knowledgebase", "document"],
+                "defaultLeft": "knowledgebase",
+                "right": ["chat"],
+                "defaultRight": "chat",
+            }),
+        })
+    return {"agents": result}
+
+
+# ── 单个 Agent 操作（含 agent_id 路径参数） ─────────────────────
 router = APIRouter(prefix="/api/agents/{agent_id}", tags=["agents"])
 
 
