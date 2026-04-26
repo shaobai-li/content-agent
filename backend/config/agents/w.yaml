@@ -1,0 +1,16 @@
+name: 写作助手Agent
+class: app.agents.write_agent.agent.WriteAgent
+base_dir: agents/agent_w
+sessions_file: sessions.json
+messages_file: messages.json
+skills:
+  - article-draft-generator
+  - article-critic-refiner
+layout:
+  left:
+    - history
+    - document
+  defaultLeft: document
+  right:
+    - chat
+  defaultRight: chat

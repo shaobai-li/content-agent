@@ -1,17 +1,5 @@
-# 各个 Agent 的独立配置
-agents:
-  w:
-    base_dir: "agents/agent_w"
-    sessions_file: "sessions.json"
-    messages_file: "messages.json"
-    skills:
-      - article-draft-generator
-      - article-critic-refiner
-
-  std:
-    base_dir: "agents/agent_std"
-    sessions_file: "sessions.json"
-    messages_file: "messages.json"
-    skills:
-      - say-german
-      - ingest-file
+# Agent 配置已迁移至 config/agents/*.yaml
+# 文件名（不含 .yaml）即为 agent_id。
+#
+# 新增强制：在 config/agents/ 下新建 *.yaml 文件即可自动注册，
+# 无需修改任何 Python/TypeScript 代码。

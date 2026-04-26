@@ -1,6 +1,6 @@
 // entities/agent/model.ts
 
-export type AgentId = "std" | "w";
+export type AgentId = string;
 
 export interface Agent {
     id: AgentId;
