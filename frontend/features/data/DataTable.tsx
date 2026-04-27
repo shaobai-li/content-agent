@@ -10,9 +10,11 @@ import {
     TableRow,
 } from "@/shared/ui/table";
 import { RowActions } from "./RowActions";
-import { Eye, FolderInput, Pencil, Trash2 } from "lucide-react";
+import { Eye, FolderInput, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { MoveToFolderDialog } from "./MoveToFolderDialog";
 import { RenameModal } from "./RenameModal";
+import type { KnowledgeBaseDragData } from "@/shared/lib/dragData";
+import { writeKnowledgeBaseDragData } from "@/shared/lib/dragData";
 
 interface InferredColumn {
     key: string;
@@ -33,6 +35,7 @@ interface DataTableProps {
     columnMinWidths?: Record<string, string>;
     tableMinWidth?: string;
     columnOrder?: string[];
+    getDragData?: (row: any) => KnowledgeBaseDragData | null;
     loading?: boolean;
     emptyMessage?: string;
     onView?: (item: any) => void;
@@ -51,6 +54,7 @@ export function DataTable({
     columnMinWidths = {},
     tableMinWidth,
     columnOrder,
+    getDragData,
     loading = false,
     emptyMessage = "暂无数据",
     onView,
@@ -84,6 +88,15 @@ export function DataTable({
         if (!open) {
             setMoveTargetRecord(null);
         }
+    };
+
+    const handleDragStart = (event: React.DragEvent<HTMLElement>, item: any) => {
+        const payload = getDragData?.(item);
+        if (!payload) {
+            return;
+        }
+
+        writeKnowledgeBaseDragData(event.dataTransfer, payload);
     };
 
     const columns = useMemo<InferredColumn[]>(() => {
@@ -149,6 +162,7 @@ export function DataTable({
             ),
         },
     ];
+    const firstColumnKey = finalColumns[0]?.key;
 
     if (loading) {
         return (
@@ -188,14 +202,34 @@ export function DataTable({
                     </TableHeader>
                     <TableBody>
                         {data.map((item, index) => (
-                            <TableRow key={getRowKey(item, index)} className="group">
+                            <TableRow
+                                key={getRowKey(item, index)}
+                                className="group"
+                            >
                                 {finalColumns.map((col) => (
                                     <TableCell
                                         key={col.key}
                                         className={`px-6 py-4 ${col.className || ''}`}
                                         style={col.width || col.minWidth ? { width: col.width, minWidth: col.minWidth } : undefined}
                                     >
-                                        {col.render(item)}
+                                        {col.key === firstColumnKey && getDragData?.(item) ? (
+                                            <div className="flex items-center gap-2">
+                                                <span
+                                                    draggable
+                                                    onDragStart={(event) => handleDragStart(event, item)}
+                                                    className="cursor-grab text-muted-foreground hover:text-foreground"
+                                                    aria-label="拖拽到聊天框"
+                                                    title="拖拽到聊天框"
+                                                >
+                                                    <GripVertical className="size-4" />
+                                                </span>
+                                                <div className="min-w-0 flex-1">
+                                                    {col.render(item)}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            col.render(item)
+                                        )}
                                     </TableCell>
                                 ))}
                             </TableRow>

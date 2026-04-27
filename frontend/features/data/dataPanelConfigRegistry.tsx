@@ -43,6 +43,36 @@ export const createKnowledgeBasePanelConfig = (agentId: AgentId, databaseId: str
         created_at: "180px",
     },
     tableMinWidth: "720px",
+    getDragData: (row) => {
+        if (row.node_type === "folder" && typeof row.id === "string" && typeof row.name === "string") {
+            return {
+                kind: "folder",
+                id: row.id,
+                name: row.name,
+                kbId: databaseId,
+                nodeId: row.id,
+            };
+        }
+
+        if (
+            row.node_type === "record" &&
+            typeof row.id === "string" &&
+            typeof row.record_id === "string" &&
+            typeof row.name === "string"
+        ) {
+            return {
+                kind: "record",
+                id: row.record_id,
+                name: row.name,
+                kbId: databaseId,
+                nodeId: row.id,
+                recordId: row.record_id,
+                ...(typeof row.parsed_path === "string" ? { parsed_path: row.parsed_path } : {}),
+            };
+        }
+
+        return null;
+    },
     customRenderers: {
         name: (row) => {
             const depth = typeof row._depth === "number" ? row._depth : 0;
