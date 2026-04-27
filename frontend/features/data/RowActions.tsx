@@ -26,6 +26,10 @@ export function RowActions({ actions }: RowActionsProps) {
         <button
           className="p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-sidebar-accent/50 rounded cursor-pointer"
           onClick={(e) => e.stopPropagation()}
+          onDragStart={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
           <Ellipsis className="size-4" />
         </button>

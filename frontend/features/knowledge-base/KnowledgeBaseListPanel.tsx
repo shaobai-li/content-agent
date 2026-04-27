@@ -6,7 +6,6 @@ import { deleteKnowledgeBase } from "@/shared/api/records";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { usePagination } from "@/shared/lib/usePagination";
-import { GripVertical } from "lucide-react";
 import { HistoryFooter } from "../history/HistoryFooter";
 import { HistoryItemMenu } from "../history/HistoryItemMenu";
 import { KNOWLEDGE_BASES_REFRESH_EVENT } from "./databaseRegistry";
@@ -124,6 +123,15 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
                   selectDatabase(database.id);
                 }
               }}
+              draggable
+              onDragStart={(event) => {
+                writeKnowledgeBaseDragData(event.dataTransfer, {
+                  kind: "database",
+                  id: database.id,
+                  name: database.name,
+                  kbId: database.id,
+                });
+              }}
               className={cn(
                 "group cursor-pointer gap-0 rounded-none border-0 border-b border-neutral-200 px-3 py-4 shadow-none transition-colors",
                 isActive ? "bg-muted" : "bg-neutral-50 hover:bg-muted",
@@ -137,23 +145,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
                   {database.description}
                 </CardDescription>
                 <CardAction>
-                  <div className="flex items-center gap-1">
-                    <span
-                      draggable
-                      onDragStart={(event) => {
-                        writeKnowledgeBaseDragData(event.dataTransfer, {
-                          kind: "database",
-                          id: database.id,
-                          name: database.name,
-                          kbId: database.id,
-                        });
-                      }}
-                      className="cursor-grab text-muted-foreground hover:text-foreground"
-                      aria-label="拖拽到聊天框"
-                      title="拖拽到聊天框"
-                    >
-                      <GripVertical className="size-4" />
-                    </span>
+                  <div onDragStart={(event) => event.stopPropagation()}>
                     <HistoryItemMenu onDelete={() => handleDelete(database.id, database.name)} />
                   </div>
                 </CardAction>
