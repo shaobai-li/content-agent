@@ -168,6 +168,62 @@ def append_failure_to_metadata(
     return metadata
 
 
+def sync_import_to_nodes(kb_root: Path, m_id: str, input_path: Path, sha256_hex: str) -> None:
+    """将导入的记录同步到 view/nodes.json，使前端能展示该文件"""
+    from datetime import datetime, timezone
+
+    nodes_path = kb_root / "view" / "nodes.json"
+    nodes_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if nodes_path.exists():
+        with nodes_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    else:
+        data = {"kb_id": kb_root.name, "version": 1, "nodes": []}
+
+    if not isinstance(data, dict):
+        data = {"kb_id": kb_root.name, "version": 1, "nodes": []}
+
+    nodes = data.get("nodes")
+    if not isinstance(nodes, list):
+        nodes = []
+        data["nodes"] = nodes
+
+    # 幂等：该记录已存在则跳过
+    if any(isinstance(n, dict) and n.get("record_id") == m_id for n in nodes):
+        return
+
+    # 确保根文件夹存在
+    if not any(isinstance(n, dict) and n.get("id") == "fld_root" for n in nodes):
+        now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        nodes.insert(0, {
+            "id": "fld_root",
+            "node_type": "folder",
+            "name": "Root",
+            "parent_id": None,
+            "created_at": now,
+            "updated_at": now,
+        })
+
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    record_node = {
+        "id": f"rec_{m_id}",
+        "node_type": "record",
+        "record_id": m_id,
+        "name": input_path.name,
+        "file_ext": input_path.suffix,
+        "size_bytes": input_path.stat().st_size,
+        "sha256": sha256_hex,
+        "parent_id": "fld_root",
+        "created_at": now,
+        "updated_at": now,
+    }
+    nodes.append(record_node)
+
+    with nodes_path.open("w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
 def run_import(input_path: Path, kb_root: Path) -> dict[str, Any]:
     src = input_path.expanduser().resolve()
     kb = kb_root.expanduser().resolve()
@@ -210,6 +266,13 @@ def run_import(input_path: Path, kb_root: Path) -> dict[str, Any]:
         record_path = save_record_json(m_dir, record)
         updated = append_import_to_metadata(metadata, m_id, sha256_hex, src)
         save_metadata(kb, updated)
+
+        # 同步到 view/nodes.json 供前端展示
+        try:
+            sync_import_to_nodes(kb, m_id, src, sha256_hex)
+        except Exception:
+            pass  # nodes.json 为非关键路径，不影响导入结果
+
         result: dict[str, Any] = {
             "ok": True,
             "status": "imported",
