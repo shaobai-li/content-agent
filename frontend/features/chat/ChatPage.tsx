@@ -127,13 +127,15 @@ export function ChatPage({ agentId }: ChatPageProps) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
       <ChatHeader />
-      <div className="flex-1 min-h-0 flex flex-col">
-        <ScrollArea className="flex-1 min-h-0 border p-4 bg-neutral-50">
-          <ChatMessage messages={messages} />
+      <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+        <ScrollArea className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
+          <div className="w-full min-w-0 max-w-full p-4">
+            <ChatMessage messages={messages} />
+          </div>
         </ScrollArea>
-        <div className="flex flex-col border p-4 bg-background">
+        <div className="flex min-w-0 flex-col border p-4 bg-background">
           <ChatInput
             value={input}
             onChange={setInput}

@@ -36,12 +36,12 @@ export function CollapsibleSection({
   const BoxIcon = icon ? (iconMap[icon] || FileText) : FileText;
 
   return (
-    <div className="mb-2 border border-slate-200 rounded-lg overflow-hidden bg-slate-50/50">
+    <div className="mb-2 min-w-0 border border-slate-200 rounded-lg overflow-hidden bg-slate-50/50">
       <button
         type="button"
         onClick={toggleExpanded}
         className={cn(
-          "w-full flex items-center gap-2 px-3 py-2 text-sm font-medium",
+          "w-full min-w-0 flex items-center gap-2 px-3 py-2 text-sm font-medium",
           "hover:bg-slate-100 transition-colors",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
         )}
@@ -52,7 +52,7 @@ export function CollapsibleSection({
           <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
         )}
         <BoxIcon className="w-4 h-4 text-slate-500 shrink-0" />
-        <span className="flex-1 text-left text-slate-700">{title}</span>
+        <span className="min-w-0 max-w-full flex-1 break-all text-left text-slate-700">{title}</span>
         {isStreaming && (
           <span className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
@@ -64,7 +64,7 @@ export function CollapsibleSection({
 
       {isExpanded && (
         <div className="px-3 pb-3">
-          <div className="text-sm text-slate-600 whitespace-pre-wrap">
+          <div className="min-w-0 max-w-full whitespace-pre-wrap break-all text-sm text-slate-600">
             {hasContent ? (
               content
             ) : (

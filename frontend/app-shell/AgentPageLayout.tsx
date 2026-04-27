@@ -22,9 +22,12 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody }: AgentPageLayo
 
     return (
         <div
-            className="h-full flex-grow grid transition-[grid-template-columns] duration-300 ease-in-out"
+            className="h-full min-w-0 flex-grow grid transition-[grid-template-columns] duration-300 ease-in-out"
             style={{
-                gridTemplateColumns: isCollapsed ? "0fr 1fr" : "1fr 25rem",
+                // minmax(0, 1fr) 避免「内容最小宽度」把轨道撑出视口，导致右侧聊天气泡被裁切
+                gridTemplateColumns: isCollapsed
+                    ? "0fr minmax(0, 1fr)"
+                    : "minmax(0, 1fr) minmax(0, 25rem)",
             }}
         >
             {/* 左侧面板 */}
@@ -37,8 +40,10 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody }: AgentPageLayo
                 </div>
             </div>
 
-            {/* 右侧面板 */}
-            {rightBody}
+            {/* 右侧面板：grid 子项需可收缩，否则长内容会撑开列宽 */}
+            <div className="min-h-0 min-w-0 flex flex-col overflow-hidden">
+                {rightBody}
+            </div>
         </div>
     );
 }

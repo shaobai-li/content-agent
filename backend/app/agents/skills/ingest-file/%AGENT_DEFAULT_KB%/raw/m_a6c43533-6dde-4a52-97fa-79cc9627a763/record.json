@@ -1,0 +1,14 @@
+{
+  "m_id": "a6c43533-6dde-4a52-97fa-79cc9627a763",
+  "status": "imported",
+  "created_at": "2026-04-27T13:08:19.453133+00:00",
+  "source": {
+    "path": "D:\\inbox\\content-agent-data\\agents\\agent_std\\workspace\\local_data\\cache\\Quantum AIDD Benchmark for FIC Drug Discovery.docx",
+    "name": "Quantum AIDD Benchmark for FIC Drug Discovery.docx",
+    "size_bytes": 199487,
+    "sha256": "d7951653664a88ecc06e3c6d3b0c602a843047391e0f57432efc5cb58de498bc"
+  },
+  "parsed": {
+    "markdown_path": "D:\\proj\\诺思拓界\\code\\new_media_agent\\4.9\\content-agent\\backend\\app\\agents\\skills\\ingest-file\\%AGENT_DEFAULT_KB%\\raw\\m_a6c43533-6dde-4a52-97fa-79cc9627a763\\parsed.md"
+  }
+}
