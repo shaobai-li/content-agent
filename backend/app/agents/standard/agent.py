@@ -248,108 +248,112 @@ class StandardAgent(BaseAgent):
         from app.core.ids import new_uuid
         from app.service.messages_service import save_message
         from app.service.sessions_service import save_session_if_new
-        
-        workspace = self._workspace_dir()
-        execute_tool = make_tool_executor(workspace, self.agent_id)
-        messages = self._build_loop_messages(ctx, workspace)
-        final_reply_text = ""
-        
-        # 确定 session_id 并保存用户消息
+
         session_id = ctx.session_id or new_uuid()
-        if ctx.user_text:
-            save_session_if_new(ctx.agent_id, session_id, ctx.user_text)
-            save_message(ctx.agent_id, session_id, "user", ctx.user_text)
+        try:
+            workspace = self._workspace_dir()
+            execute_tool = make_tool_executor(workspace, self.agent_id)
+            messages = self._build_loop_messages(ctx, workspace)
+            final_reply_text = ""
 
-        rounds = 0
-        while rounds < _MAX_TOOL_ROUNDS:
-            rounds += 1
-            assistant_msg: ChatCompletionMessage | None = None
-            async for part in deepseek_chat_stream(
-                messages,
-                tools=STANDARD_AGENT_TOOLS,
-            ):
-                if isinstance(part, str):
-                    yield build_stream_chunk(part)
-                else:
-                    assistant_msg = part
-            if assistant_msg is None:
-                break
-            
-            assistant_dict = _assistant_message_as_dict(assistant_msg)
-            messages.append(assistant_dict)
+            # 确定 session_id 并保存用户消息
+            if ctx.user_text:
+                save_session_if_new(ctx.agent_id, session_id, ctx.user_text)
+                save_message(ctx.agent_id, session_id, "user", ctx.user_text)
 
-            if assistant_msg.tool_calls:
-                # 保存带 tool_calls 的 assistant 消息
-                save_message(
-                    ctx.agent_id,
-                    session_id,
-                    "assistant",
-                    assistant_msg.content or "",
-                    tool_calls=assistant_dict.get("tool_calls")
-                )
-                
-                for tc in assistant_msg.tool_calls:
-                    name = tc.function.name
-                    raw_args = tc.function.arguments or "{}"
-                    try:
-                        preview = json.dumps(json.loads(raw_args), ensure_ascii=False)[:600]
-                    except json.JSONDecodeError:
-                        preview = raw_args[:600]
-                    # 同一 collapse：一对 box_start/end；先推送调用信息，再执行工具，再推送输出。
-                    # tool_calls 在本轮流式结束后才完整，故「调用意图」无法早于本轮流结束展示。
-                    call_summary = f"参数: {preview}"
-                    result_box: list[str] = []
+            rounds = 0
+            while rounds < _MAX_TOOL_ROUNDS:
+                rounds += 1
+                assistant_msg: ChatCompletionMessage | None = None
+                async for part in deepseek_chat_stream(
+                    messages,
+                    tools=STANDARD_AGENT_TOOLS,
+                ):
+                    if isinstance(part, str):
+                        yield build_stream_chunk(part)
+                    else:
+                        assistant_msg = part
+                if assistant_msg is None:
+                    break
 
-                    def _run_tool() -> str:
-                        r = execute_tool(name, raw_args)
-                        result_box.append(r)
-                        return r
+                assistant_dict = _assistant_message_as_dict(assistant_msg)
+                messages.append(assistant_dict)
 
-                    box_title = f"调用工具 {name} ..."
-                    icon = {
-                        "read_file": "tool-read",
-                        "write_file": "tool-write",
-                        "run_command": "tool-command",
-                        "web_search": "tool-search",
-                        "web_fetch": "tool-read",
-                        "invoke_skill": "tool-skill",
-                    }.get(name, "tool-command")
-                    async for line in _yield_box_call_then_result(
-                        box_title,
-                        icon,
-                        call_summary,
-                        _run_tool,
-                        tool_name=name,
-                        raw_args=raw_args,
-                        agent_id=self.agent_id,
-                    ):
-                        yield line
-                    result = result_box[0]
-                    tool_msg = {
-                        "role": "tool",
-                        "tool_call_id": tc.id,
-                        "content": result,
-                    }
-                    messages.append(tool_msg)
-                    
-                    # 保存 tool 消息
+                if assistant_msg.tool_calls:
+                    # 保存带 tool_calls 的 assistant 消息
                     save_message(
                         ctx.agent_id,
                         session_id,
-                        "tool",
-                        result,
-                        tool_call_id=tc.id
+                        "assistant",
+                        assistant_msg.content or "",
+                        tool_calls=assistant_dict.get("tool_calls")
                     )
-                continue
 
-            final_reply_text = (assistant_msg.content or "").strip()
-            break
-        else:
-            final_reply_text = "已达到工具调用轮数上限，请简化任务或分步提问。"
-            yield build_stream_chunk(final_reply_text)
+                    for tc in assistant_msg.tool_calls:
+                        name = tc.function.name
+                        raw_args = tc.function.arguments or "{}"
+                        try:
+                            preview = json.dumps(json.loads(raw_args), ensure_ascii=False)[:600]
+                        except json.JSONDecodeError:
+                            preview = raw_args[:600]
+                        call_summary = f"参数: {preview}"
+                        result_box: list[str] = []
 
-        # 保存最终回复
-        if final_reply_text:
-            save_message(ctx.agent_id, session_id, "assistant", final_reply_text)
-        
+                        def _run_tool() -> str:
+                            r = execute_tool(name, raw_args)
+                            result_box.append(r)
+                            return r
+
+                        box_title = f"调用工具 {name} ..."
+                        icon = {
+                            "read_file": "tool-read",
+                            "write_file": "tool-write",
+                            "run_command": "tool-command",
+                            "web_search": "tool-search",
+                            "web_fetch": "tool-read",
+                            "invoke_skill": "tool-skill",
+                        }.get(name, "tool-command")
+                        async for line in _yield_box_call_then_result(
+                            box_title,
+                            icon,
+                            call_summary,
+                            _run_tool,
+                            tool_name=name,
+                            raw_args=raw_args,
+                            agent_id=self.agent_id,
+                        ):
+                            yield line
+                        result = result_box[0]
+                        tool_msg = {
+                            "role": "tool",
+                            "tool_call_id": tc.id,
+                            "content": result,
+                        }
+                        messages.append(tool_msg)
+
+                        # 保存 tool 消息
+                        save_message(
+                            ctx.agent_id,
+                            session_id,
+                            "tool",
+                            result,
+                            tool_call_id=tc.id
+                        )
+                    continue
+
+                final_reply_text = (assistant_msg.content or "").strip()
+                break
+            else:
+                final_reply_text = "已达到工具调用轮数上限，请简化任务或分步提问。"
+                yield build_stream_chunk(final_reply_text)
+
+            # 保存最终回复
+            if final_reply_text:
+                save_message(ctx.agent_id, session_id, "assistant", final_reply_text)
+        except Exception as e:
+            import traceback
+            print(f"[handle_chat_stream] 异常: {e}", flush=True)
+            traceback.print_exc()
+            yield build_stream_chunk(f"出错了: {e}")
+
         yield build_stream_done(session_id=session_id)
