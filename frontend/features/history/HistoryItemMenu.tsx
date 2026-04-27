@@ -19,6 +19,10 @@ export function HistoryItemMenu({ onDelete }: HistoryItemMenuProps) {
         <button
           className="border-none px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/5 rounded shrink-0"
           onClick={(e) => e.stopPropagation()}
+          onDragStart={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
         >
           <Ellipsis className="size-4" />
         </button>
