@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect } from "react";
+import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
@@ -19,6 +19,7 @@ import {
 import {
   BeautifulMentionNode,
   BeautifulMentionsPlugin,
+  useBeautifulMentions,
   type BeautifulMentionsMenuItemProps,
   type BeautifulMentionsMenuProps,
   type BeautifulMentionsTheme,
@@ -26,6 +27,7 @@ import {
 import { fetchKbRecords } from "@/shared/api/records";
 import { cn } from "@/shared/lib/cn";
 import { BookOpen } from "lucide-react";
+import type { MentionItem } from "./MentionChip";
 
 const beautifulMentionsTheme: BeautifulMentionsTheme = {
   "@": "px-1.5 py-0.5 mx-px rounded bg-primary/10 text-primary text-[11px] font-medium",
@@ -92,6 +94,11 @@ export interface LexicalEditorProps {
   agentId: string;
 }
 
+export interface LexicalEditorHandle {
+  insertMention: (mention: MentionItem) => void;
+  hasMention: (mention: MentionItem) => boolean;
+}
+
 function SyncExternalValuePlugin({ value }: { value: string }) {
   const [editor] = useLexicalComposerContext();
 
@@ -140,7 +147,78 @@ function EnterSendPlugin({ onEnter }: { onEnter?: () => void }) {
   return null;
 }
 
-export function LexicalEditor({
+function MentionBridgePlugin({
+  refHandle,
+}: {
+  refHandle: React.ForwardedRef<LexicalEditorHandle>;
+}) {
+  const [editor] = useLexicalComposerContext();
+  const { insertMention } = useBeautifulMentions();
+
+  useImperativeHandle(
+    refHandle,
+    () => ({
+      insertMention: (mention) => {
+        editor.focus();
+        editor.update(() => {
+          $getRoot().selectEnd();
+        });
+        insertMention({
+          trigger: "@",
+          value: mention.name,
+          kind: mention.kind,
+          id: mention.id,
+          kbId: mention.kbId,
+          nodeId: mention.nodeId,
+          recordId: mention.recordId,
+          ...(mention.parsed_path ? { parsed_path: mention.parsed_path } : {}),
+        });
+      },
+      hasMention: (mention) => {
+        const editorState = editor.getEditorState().toJSON() as {
+          root?: { children?: unknown[] };
+        };
+        const nodes = Array.isArray(editorState.root?.children) ? editorState.root.children : [];
+        const targetKind = mention.kind || "record";
+
+        const visit = (items: unknown[]): boolean => {
+          for (const item of items) {
+            if (!item || typeof item !== "object") {
+              continue;
+            }
+
+            const node = item as {
+              type?: string;
+              data?: { id?: string; kind?: "database" | "folder" | "record" };
+              children?: unknown[];
+            };
+
+            if (
+              node.type === "beautifulMention" &&
+              node.data?.id === mention.id &&
+              (node.data?.kind || "record") === targetKind
+            ) {
+              return true;
+            }
+
+            if (Array.isArray(node.children) && visit(node.children)) {
+              return true;
+            }
+          }
+
+          return false;
+        };
+
+        return visit(nodes);
+      },
+    }),
+    [editor, insertMention],
+  );
+
+  return null;
+}
+
+export const LexicalEditor = forwardRef<LexicalEditorHandle, LexicalEditorProps>(function LexicalEditor({
   className,
   placeholder = "Type messages ...",
   onChange,
@@ -148,7 +226,7 @@ export function LexicalEditor({
   onEnter,
   editable = true,
   agentId,
-}: LexicalEditorProps) {
+}, ref) {
   const initialConfig = {
     namespace: "ChatLexicalEditor",
     theme: editorTheme,
@@ -160,17 +238,22 @@ export function LexicalEditor({
   const handleSearch = async (_trigger: string, query?: string | null) => {
     try {
       const response = await fetchKbRecords(agentId);
-      const records = (response as { nodes?: Array<{ record_id: string; name: string; parsed_path?: string }> })
+      const records = (response as {
+        nodes?: Array<{ id?: string; record_id?: string; name?: string; parsed_path?: string }>;
+      })
         .nodes || [];
       const q = (query || "").toLowerCase().trim();
       const filtered = q
         ? records.filter((r) => r.name?.toLowerCase().includes(q))
         : records;
       return filtered.map((record) => ({
-        value: record.name,
-        id: record.record_id,
+        value: String(record.name || ""),
+        kind: "record" as const,
+        id: String(record.record_id || record.id || ""),
+        ...(record.id ? { nodeId: record.id } : {}),
+        ...(record.record_id ? { recordId: record.record_id } : {}),
         ...(record.parsed_path ? { parsed_path: record.parsed_path } : {}),
-      }));
+      })).filter((record) => record.value && record.id);
     } catch (err) {
       console.error("Failed to fetch mention options:", err);
       return [];
@@ -198,6 +281,7 @@ export function LexicalEditor({
         {onChange && <OnChangePlugin onChange={onChange} />}
         <SyncExternalValuePlugin value={value} />
         <EnterSendPlugin onEnter={onEnter} />
+        <MentionBridgePlugin refHandle={ref} />
         <BeautifulMentionsPlugin
           triggers={["@"]}
           onSearch={handleSearch}
@@ -210,4 +294,4 @@ export function LexicalEditor({
       </div>
     </LexicalComposer>
   );
-}
+});
