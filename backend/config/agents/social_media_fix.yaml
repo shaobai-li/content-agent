@@ -1,0 +1,14 @@
+name: 测试智能体
+base_dir: agents/agent_social_media_fix
+sessions_file: sessions.json
+messages_file: messages.json
+skills:
+    - ingest-file
+layout:
+  left:
+    - history
+    - knowledgebase
+  defaultLeft: history
+  right:
+    - chat
+  defaultRight: chat
