@@ -21,7 +21,10 @@ function renderParts(parts: MessagePart[]) {
     }
     if (part.type === "text" && part.content) {
       return (
-        <div key={i} className="min-w-0 whitespace-pre-wrap break-words">
+        <div
+          key={i}
+          className="min-w-0 max-w-full whitespace-pre-wrap break-all"
+        >
           {part.content}
         </div>
       );
@@ -32,7 +35,7 @@ function renderParts(parts: MessagePart[]) {
 
 export function ChatMessage({ messages }: ChatMessageProps) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-4">
       {messages.map((msg) => {
         if (isFileMessage(msg)) {
           return <FileMessageItem key={msg.id} message={msg} />;
@@ -40,7 +43,7 @@ export function ChatMessage({ messages }: ChatMessageProps) {
         return (
           <div
             key={msg.id}
-            className={`min-w-0 max-w-[90%] rounded-lg p-3 text-sm break-words ${
+            className={`min-w-0 max-w-[90%] rounded-lg p-3 text-sm break-all ${
               msg.role === "user"
                 ? "bg-slate-100 text-slate-800 self-end"
                 : "bg-white text-slate-800 self-start"
@@ -49,7 +52,7 @@ export function ChatMessage({ messages }: ChatMessageProps) {
             {msg.role === "assistant" && msg.parts
               ? renderParts(msg.parts)
               : msg.content && (
-                  <div className="min-w-0 whitespace-pre-wrap break-words">
+                  <div className="min-w-0 max-w-full whitespace-pre-wrap break-all">
                     {msg.content}
                   </div>
                 )}
