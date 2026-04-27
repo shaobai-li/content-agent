@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import type { KnowledgeBaseDragData } from "@/shared/lib/dragData";
 
 export interface DataPanelConfig {
     fetchData: () => Promise<any>;
@@ -15,4 +16,5 @@ export interface DataPanelConfig {
     columnMinWidths?: Record<string, string>;
     tableMinWidth?: string;
     columnOrder?: string[];
+    getDragData?: (row: any) => KnowledgeBaseDragData | null;
 }

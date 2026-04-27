@@ -45,6 +45,7 @@ export function DataPanel({
   columnMinWidths,
   tableMinWidth,
   columnOrder,
+  getDragData,
   onView,
   onRemove,
 }: DataPanelProps) {
@@ -433,6 +434,7 @@ export function DataPanel({
         columnMinWidths={columnMinWidths}
         tableMinWidth={tableMinWidth}
         columnOrder={columnOrder}
+        getDragData={getDragData}
         loading={loading}
         emptyMessage={resolvedEmptyMessage}
         onView={handleView}
