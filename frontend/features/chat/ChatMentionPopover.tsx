@@ -25,6 +25,13 @@ interface ChatMentionPopoverProps {
   agentId: AgentId;
 }
 
+type KnowledgeBaseRecordOption = {
+  id?: string;
+  record_id?: string;
+  name?: string;
+  parsed_path?: string;
+};
+
 export function ChatMentionPopover({
   open,
   onOpenChange,
@@ -39,9 +46,12 @@ export function ChatMentionPopover({
       fetchKbRecords(agentId)
         .then((response) => {
           const nodes = response.nodes || [];
-          const options = nodes.map((record: any) => ({
+          const options = (nodes as KnowledgeBaseRecordOption[]).map((record) => ({
             id: record.record_id,
-            label: record.name,
+            name: record.name,
+            kind: "record" as const,
+            recordId: record.record_id,
+            ...(record.id ? { nodeId: record.id } : {}),
             parsed_path: record.parsed_path,
           }));
           setMentionOptions(options);
@@ -78,13 +88,13 @@ export function ChatMentionPopover({
                 mentionOptions.map((item) => (
                   <CommandItem
                     key={item.id}
-                    value={item.label}
+                    value={item.name}
                     onSelect={() => handleSelect(item)}
                     className="gap-2"
                   >
                     <BookOpen className="size-4 text-muted-foreground flex-shrink-0" />
-                    <span className="truncate" title={item.label}>
-                      {item.label}
+                    <span className="truncate" title={item.name}>
+                      {item.name}
                     </span>
                   </CommandItem>
                 ))
