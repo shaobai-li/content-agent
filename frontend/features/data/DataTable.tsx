@@ -10,7 +10,7 @@ import {
     TableRow,
 } from "@/shared/ui/table";
 import { RowActions } from "./RowActions";
-import { Eye, FolderInput, GripVertical, Pencil, Trash2 } from "lucide-react";
+import { Eye, FolderInput, Pencil, Trash2 } from "lucide-react";
 import { MoveToFolderDialog } from "./MoveToFolderDialog";
 import { RenameModal } from "./RenameModal";
 import type { KnowledgeBaseDragData } from "@/shared/lib/dragData";
@@ -129,7 +129,7 @@ export function DataTable({
             width: "50px",
             className: "",
             render: (record: any) => (
-                <div className="flex justify-end">
+                <div className="flex justify-end" onDragStart={(event) => event.stopPropagation()}>
                     <RowActions
                         actions={[
                             {
@@ -162,7 +162,6 @@ export function DataTable({
             ),
         },
     ];
-    const firstColumnKey = finalColumns[0]?.key;
 
     if (loading) {
         return (
@@ -205,6 +204,8 @@ export function DataTable({
                             <TableRow
                                 key={getRowKey(item, index)}
                                 className="group"
+                                draggable={Boolean(getDragData?.(item))}
+                                onDragStart={(event) => handleDragStart(event, item)}
                             >
                                 {finalColumns.map((col) => (
                                     <TableCell
@@ -212,24 +213,7 @@ export function DataTable({
                                         className={`px-6 py-4 ${col.className || ''}`}
                                         style={col.width || col.minWidth ? { width: col.width, minWidth: col.minWidth } : undefined}
                                     >
-                                        {col.key === firstColumnKey && getDragData?.(item) ? (
-                                            <div className="flex items-center gap-2">
-                                                <span
-                                                    draggable
-                                                    onDragStart={(event) => handleDragStart(event, item)}
-                                                    className="cursor-grab text-muted-foreground hover:text-foreground"
-                                                    aria-label="拖拽到聊天框"
-                                                    title="拖拽到聊天框"
-                                                >
-                                                    <GripVertical className="size-4" />
-                                                </span>
-                                                <div className="min-w-0 flex-1">
-                                                    {col.render(item)}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            col.render(item)
-                                        )}
+                                        {col.render(item)}
                                     </TableCell>
                                 ))}
                             </TableRow>
