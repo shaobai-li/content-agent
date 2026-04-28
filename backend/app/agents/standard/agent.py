@@ -27,7 +27,7 @@ from .tools import STANDARD_AGENT_TOOLS, make_tool_executor
 
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
-_MAX_TOOL_ROUNDS = 20
+_MAX_TOOL_ROUNDS = 30
 
 
 USER_SYSTEM_PROMPT_REL = Path("prompts") / "system_prompt.md"
