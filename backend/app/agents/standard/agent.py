@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncGenerator, Callable, Dict, List
 
@@ -32,6 +33,11 @@ _MAX_TOOL_ROUNDS = 20
 USER_SYSTEM_PROMPT_REL = Path("prompts") / "system_prompt.md"
 
 
+def _current_datetime_prompt_line() -> str:
+    now = datetime.now().astimezone()
+    return f"当前本地时间（请以此为准处理所有与日期/时间相关的问题）：{now.strftime('%Y-%m-%d %H:%M:%S %z')}"
+
+
 def _standard_agent_tool_guard(workspace: Path, agent_id: str) -> str:
     """发往 LLM 的 system 尾部：工具与工作目录说明。"""
     from app.service.knowledge_base_registry_service import list_knowledge_bases
@@ -60,7 +66,7 @@ def _standard_agent_tool_guard(workspace: Path, agent_id: str) -> str:
 
 def build_standard_agent_system_prompt_for_llm(agent_id: str, workspace: Path) -> str:
     """
-    标准 Agent 发往 LLM 的完整 system：技能 XML + 用户/默认正文 + 工具 guard。
+    标准 Agent 发往 LLM 的完整 system：技能 XML + 用户/默认正文 + 工具 guard + 当前时间。
     仅此一处拼装，避免分散在 skill_loader 与 loop 内。
     """
     from app.utils.skill_loader import discover_skills_xml_for_agent
@@ -68,12 +74,15 @@ def build_standard_agent_system_prompt_for_llm(agent_id: str, workspace: Path) -
     xml_block = discover_skills_xml_for_agent(agent_id).strip()
     base = resolve_standard_agent_base_system_prompt(agent_id).strip()
     guard = _standard_agent_tool_guard(workspace, agent_id)
+    current_time = _current_datetime_prompt_line().strip()
 
     head_parts: List[str] = []
     if xml_block:
         head_parts.append(xml_block)
     if base:
         head_parts.append(base)
+    if current_time:
+        head_parts.append(current_time)
     head = "\n\n".join(head_parts)
     if not head:
         return guard.strip()
