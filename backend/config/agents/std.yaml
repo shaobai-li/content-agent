@@ -4,6 +4,7 @@ sessions_file: sessions.json
 messages_file: messages.json
 skills:
   - ingest-file
+  - wiki-query
 layout:
   left:
     - history
