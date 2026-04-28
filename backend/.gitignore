@@ -2,3 +2,6 @@
 __pycache__
 test
 downloads
+agents
+.pytest_cache
+pr_harness
