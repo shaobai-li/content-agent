@@ -1,13 +1,14 @@
-"""标准 Agent：多轮 tool loop + 流式输出最终回复（与 temp/pi_agent.py 思路对齐）。"""
+"""标准 Agent：多轮 tool loop + 流式输出最终回复。"""
 from __future__ import annotations
 
+import asyncio
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncGenerator, Callable, Dict, List
 
 from loguru import logger
-from openai.types.chat import ChatCompletionMessage
 
 from app.agents.base_agent import BaseAgent
 from app.core.config import get_agent_base_dir, get_agent_local_data_dir, get_agent_workspace_dir
@@ -21,7 +22,6 @@ from app.service.stream_service import (
     build_stream_done,
 )
 from app.utils.context_utils import get_article_context_messages
-from app.utils.llm_client import deepseek_chat_stream
 from app.utils.skill_loader import discover_skills_for_agent
 
 from .tools import STANDARD_AGENT_TOOLS, make_tool_executor
@@ -29,6 +29,17 @@ from .tools import STANDARD_AGENT_TOOLS, make_tool_executor
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 _MAX_TOOL_ROUNDS = 30
+
+
+def _get_provider():
+    """Get the shared OpenAI-compatible provider instance."""
+    from app.providers.openai_compat_provider import OpenAICompatProvider
+    from app.providers.registry import find_by_name
+
+    return OpenAICompatProvider(
+        api_key=os.getenv("DEEPSEEK_API_KEY"),
+        spec=find_by_name("deepseek"),
+    )
 
 
 USER_SYSTEM_PROMPT_REL = Path("prompts") / "system_prompt.md"
@@ -110,27 +121,6 @@ def resolve_standard_agent_base_system_prompt(agent_id: str) -> str:
     if not text:
         return load_default_system_prompt()
     return text
-
-
-def _assistant_message_as_dict(msg: ChatCompletionMessage) -> Dict[str, Any]:
-    entry: Dict[str, Any] = {"role": "assistant"}
-    if msg.content is not None:
-        entry["content"] = msg.content
-    if msg.tool_calls:
-        entry["tool_calls"] = [
-            {
-                "id": tc.id,
-                "type": getattr(tc, "type", None) or "function",
-                "function": {
-                    "name": tc.function.name,
-                    "arguments": tc.function.arguments or "{}",
-                },
-            }
-            for tc in msg.tool_calls
-        ]
-    if "content" not in entry:
-        entry["content"] = None
-    return entry
 
 
 def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -277,41 +267,61 @@ class StandardAgent(BaseAgent):
             while rounds < _MAX_TOOL_ROUNDS:
                 rounds += 1
                 logger.debug("tool round {}/{}", rounds, _MAX_TOOL_ROUNDS)
-                assistant_msg: ChatCompletionMessage | None = None
-                async for part in deepseek_chat_stream(
-                    messages,
-                    tools=STANDARD_AGENT_TOOLS,
-                ):
-                    if isinstance(part, str):
-                        yield build_stream_chunk(part)
-                    else:
-                        assistant_msg = part
-                if assistant_msg is None:
-                    logger.debug("no assistant message, break")
+
+                # 队列桥接：Provider 的 on_content_delta 回调 → generator yield
+                queue: asyncio.Queue[str | None] = asyncio.Queue()
+                _sentinel: str | None = None
+
+                async def _run_provider():
+                    try:
+                        return await _get_provider().chat_stream_with_retry(
+                            messages,
+                            tools=STANDARD_AGENT_TOOLS,
+                            on_content_delta=lambda t: queue.put(t),
+                        )
+                    finally:
+                        await queue.put(_sentinel)
+
+                provider_task = asyncio.create_task(_run_provider())
+                while True:
+                    chunk = await queue.get()
+                    if chunk is _sentinel:
+                        break
+                    yield build_stream_chunk(chunk)
+
+                response = await provider_task
+
+                if response is None:
+                    logger.debug("no response, break")
                     break
 
-                assistant_dict = _assistant_message_as_dict(assistant_msg)
+                # 构建 assistant dict 追加到 messages
+                assistant_dict: Dict[str, Any] = {
+                    "role": "assistant",
+                    "content": response.content,
+                }
+                if response.has_tool_calls:
+                    assistant_dict["tool_calls"] = [
+                        tc.to_openai_tool_call() for tc in response.tool_calls
+                    ]
                 messages.append(assistant_dict)
 
-                if assistant_msg.tool_calls:
-                    logger.debug("tool calls: {}", len(assistant_msg.tool_calls))
+                if response.has_tool_calls:
+                    logger.debug("tool calls: {}", len(response.tool_calls))
                     # 保存带 tool_calls 的 assistant 消息
                     save_message(
                         ctx.agent_id,
                         session_id,
                         "assistant",
-                        assistant_msg.content or "",
+                        response.content or "",
                         tool_calls=assistant_dict.get("tool_calls")
                     )
 
-                    for tc in assistant_msg.tool_calls:
-                        name = tc.function.name
-                        raw_args = tc.function.arguments or "{}"
+                    for tc in response.tool_calls:
+                        name = tc.name
+                        raw_args = json.dumps(tc.arguments, ensure_ascii=False)
                         logger.debug("  execute tool: {} args_len={}", name, len(raw_args))
-                        try:
-                            preview = json.dumps(json.loads(raw_args), ensure_ascii=False)[:600]
-                        except json.JSONDecodeError:
-                            preview = raw_args[:600]
+                        preview = raw_args[:600]
                         call_summary = f"参数: {preview}"
                         result_box: list[str] = []
 
@@ -357,7 +367,7 @@ class StandardAgent(BaseAgent):
                         )
                     continue
 
-                final_reply_text = (assistant_msg.content or "").strip()
+                final_reply_text = (response.content or "").strip()
                 break
             else:
                 final_reply_text = "已达到工具调用轮数上限，请简化任务或分步提问。"
