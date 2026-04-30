@@ -16,6 +16,9 @@ requests>=2.32.0
 yt-dlp>=2024.0.0
 crawl4ai>=0.3.0
 
+# 日志
+loguru>=0.7.3
+
 # 文档解析依赖
 mammoth>=1.0.0
 markdownify>=0.11.0
