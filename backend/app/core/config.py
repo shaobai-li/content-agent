@@ -4,6 +4,7 @@ import yaml
 from typing import Dict, Any, List
 
 from dotenv import load_dotenv
+from loguru import logger
 load_dotenv()
 
 # 绝对路径：从 .env 读取
@@ -58,7 +59,7 @@ def get_agent_base_dir(agent_id: str) -> Path:
     # base_dir 在 yaml 中为相对 DATA_DIR 的路径
     base_dir = (DATA_DIR / agent_config["base_dir"]).resolve()
     base_dir.mkdir(parents=True, exist_ok=True)
-    print(base_dir)
+    logger.debug("agent base_dir: {}", base_dir)
     return base_dir
 
 

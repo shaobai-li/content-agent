@@ -5,6 +5,7 @@ Agent 注册中心
 from typing import Optional, Dict, Any, Callable
 from dataclasses import dataclass
 from fastapi import UploadFile
+from loguru import logger
 
 
 @dataclass
@@ -28,7 +29,7 @@ def register_agent(agent_instance):
     Args:
         agent_instance: BaseAgent 的实例
     """
-    print("register_agent", agent_instance.agent_id)
+    logger.info("register_agent {}", agent_instance.agent_id)
     config = AgentConfig(
         agent_id=agent_instance.agent_id,
         system_prompt=agent_instance.system_prompt,

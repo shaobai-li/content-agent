@@ -1,5 +1,6 @@
 import json
 
+from loguru import logger
 from app.core.config import get_agent_sessions_path
 from app.service.messages_service import delete_session_messages
 
@@ -24,7 +25,7 @@ def save_session_if_new(agent_id: str, session_id: str, first_message: str):
     """
     sessions_path = get_agent_sessions_path(agent_id)
 
-    print("in save_session_if_new", sessions_path)
+    logger.debug("in save_session_if_new {}", sessions_path)
     if sessions_path.exists():
         with open(sessions_path, "r", encoding="utf-8") as f:
             sessions = json.load(f)

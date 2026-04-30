@@ -1,6 +1,16 @@
+import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
+
+from loguru import logger
+
+# ── 日志开关（对标 nanobot 的 logger.enable/disable("nanobot")） ──
+if os.getenv("APP_VERBOSE", "").lower() in ("1", "true", "yes"):
+    logger.enable("app")
+else:
+    logger.disable("app")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,11 +53,12 @@ def _register_agents_from_yaml_config():
             instance = StandardAgent(agent_id=agent_id)
 
         register_agent(instance)
-        print(f"  [auto-register] {agent_id} → StandardAgent")
+        logger.info("auto-register {} → StandardAgent", agent_id)
 
 
 _register_agents_from_yaml_config()
 
+logger.info("app started, agents={}", list(AGENTS_CONFIG.keys()))
 
 app = FastAPI(
     title="OmniAge System",
