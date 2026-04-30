@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 
 from dotenv import load_dotenv
 
@@ -7,11 +8,28 @@ load_dotenv()
 
 from loguru import logger
 
+
+# ── 桥接：stdlib logging → loguru ──
+class _InterceptHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        logger_opt = logger.opt(depth=6, exception=record.exc_info)
+        logger_opt.log(record.levelname, record.getMessage())
+
+
+def _setup_loguru(level: str) -> None:
+    logger.remove()
+    logger.add(sys.stderr, level=level)
+    # 替换 uvicorn 命名 logger 的 handler（必须在 uvicorn.run 之前）
+    for log_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        log = logging.getLogger(log_name)
+        log.handlers = [_InterceptHandler()]
+        log.propagate = False
+
+
 # ── 日志等级控制 ──
 # 默认显示 INFO 及以上；APP_VERBOSE=1 时显示 DEBUG 及以上
 _log_level = "DEBUG" if os.getenv("APP_VERBOSE", "").lower() in ("1", "true", "yes") else "INFO"
-logger.remove()
-logger.add(sys.stderr, level=_log_level)
+_setup_loguru(_log_level)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -102,4 +120,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)
