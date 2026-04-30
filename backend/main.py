@@ -1,4 +1,5 @@
 import os
+import sys
 
 from dotenv import load_dotenv
 
@@ -6,11 +7,11 @@ load_dotenv()
 
 from loguru import logger
 
-# ── 日志开关（对标 nanobot 的 logger.enable/disable("nanobot")） ──
-if os.getenv("APP_VERBOSE", "").lower() in ("1", "true", "yes"):
-    logger.enable("app")
-else:
-    logger.disable("app")
+# ── 日志等级控制 ──
+# 默认显示 INFO 及以上；APP_VERBOSE=1 时显示 DEBUG 及以上
+_log_level = "DEBUG" if os.getenv("APP_VERBOSE", "").lower() in ("1", "true", "yes") else "INFO"
+logger.remove()
+logger.add(sys.stderr, level=_log_level)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

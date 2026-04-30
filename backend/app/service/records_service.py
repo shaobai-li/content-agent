@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 import json
 
+from loguru import logger
 from app.core.ids import new_uuid
 from app.service.knowledge_base_registry_service import (
     ensure_kb_document,
@@ -25,6 +26,7 @@ def ensure_kb_initialized(agent_id: str, kb_id: str) -> Dict[str, Any]:
 
 def get_all_records(agent_id: str, kb_id: str) -> List[Dict[str, Any]]:
     """获取指定 Agent 知识库 nodes.json 中的完整节点列表（含 folder 与 record）"""
+    logger.debug("get all records: {} / {}", agent_id, kb_id)
     path = get_database_nodes_path(agent_id, kb_id)
     if not path.exists():
         ensure_kb_initialized(agent_id, kb_id)
@@ -61,6 +63,7 @@ def create_folder(
     parent_id: str = "fld_root",
 ) -> Dict[str, Any]:
     """在 nodes.json 中创建 folder 节点"""
+    logger.info("create folder: {} / {} name={}", agent_id, kb_id, name)
     folder_name = name.strip()
     if not folder_name:
         return {"success": False, "message": "文件夹名称不能为空"}
@@ -106,6 +109,7 @@ def create_folder(
 
 def rename_node(node_id: str, name: str, agent_id: str, kb_id: str) -> Dict[str, Any]:
     """根据节点标识更新 nodes.json 中对应节点的名称"""
+    logger.info("rename node: {} / {} node={} name={}", agent_id, kb_id, node_id, name)
     node_name = name.strip()
     if not node_name:
         return {"success": False, "message": "名称不能为空"}
@@ -163,6 +167,7 @@ def move_node(
     kb_id: str,
 ) -> Dict[str, Any]:
     """根据节点标识更新 nodes.json 中对应节点的父目录"""
+    logger.info("move node: {} / {} node={} to parent={}", agent_id, kb_id, node_id, parent_id)
     target_parent_id = parent_id.strip() or "fld_root"
 
     path = get_database_nodes_path(agent_id, kb_id)
@@ -257,6 +262,7 @@ def move_node(
 
 def delete_node(node_id: str, agent_id: str, kb_id: str) -> Dict[str, Any]:
     """根据节点标识从 nodes.json 中删除对应节点，文件夹会级联删除子节点"""
+    logger.info("delete node: {} / {} node={}", agent_id, kb_id, node_id)
     path = get_database_nodes_path(agent_id, kb_id)
     if not path.exists():
         return {"success": False, "message": "记录文件不存在"}

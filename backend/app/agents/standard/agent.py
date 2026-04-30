@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncGenerator, Callable, Dict, List
 
+from loguru import logger
 from openai.types.chat import ChatCompletionMessage
 
 from app.agents.base_agent import BaseAgent
@@ -153,17 +154,16 @@ def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str,
                 msg["tool_call_id"] = hm["tool_call_id"]
             out.append(msg)
 
-    print("--- history_llm_turns ---")
+    logger.debug("history_llm_turns: {} turns", len(out))
     for m in out:
         c = m.get("content", "")
         preview = c[:500] if isinstance(c, str) else str(c)[:500]
         truncated = "…" if isinstance(c, str) and len(c) > 500 else ""
-        print(f"{m['role']}: {preview}{truncated}")
+        logger.debug("  {}: {}{}", m['role'], preview, truncated)
         if "tool_calls" in m:
-            print(f"  └─ tool_calls: {len(m['tool_calls'])} calls")
+            logger.debug("    └─ tool_calls: {} calls", len(m['tool_calls']))
         if "tool_call_id" in m:
-            print(f"  └─ tool_call_id: {m['tool_call_id']}")
-    print("--- end ---")
+            logger.debug("    └─ tool_call_id: {}", m['tool_call_id'])
     return out
 
 
@@ -265,6 +265,9 @@ class StandardAgent(BaseAgent):
             messages = self._build_loop_messages(ctx, workspace)
             final_reply_text = ""
 
+            text_preview = (ctx.user_text or "")[:100]
+            logger.info("handle_chat_stream: {} session={} text={}", ctx.agent_id, session_id, text_preview)
+
             # 确定 session_id 并保存用户消息
             if ctx.user_text:
                 save_session_if_new(ctx.agent_id, session_id, ctx.user_text)
@@ -273,6 +276,7 @@ class StandardAgent(BaseAgent):
             rounds = 0
             while rounds < _MAX_TOOL_ROUNDS:
                 rounds += 1
+                logger.debug("tool round {}/{}", rounds, _MAX_TOOL_ROUNDS)
                 assistant_msg: ChatCompletionMessage | None = None
                 async for part in deepseek_chat_stream(
                     messages,
@@ -283,12 +287,14 @@ class StandardAgent(BaseAgent):
                     else:
                         assistant_msg = part
                 if assistant_msg is None:
+                    logger.debug("no assistant message, break")
                     break
 
                 assistant_dict = _assistant_message_as_dict(assistant_msg)
                 messages.append(assistant_dict)
 
                 if assistant_msg.tool_calls:
+                    logger.debug("tool calls: {}", len(assistant_msg.tool_calls))
                     # 保存带 tool_calls 的 assistant 消息
                     save_message(
                         ctx.agent_id,
@@ -301,6 +307,7 @@ class StandardAgent(BaseAgent):
                     for tc in assistant_msg.tool_calls:
                         name = tc.function.name
                         raw_args = tc.function.arguments or "{}"
+                        logger.debug("  execute tool: {} args_len={}", name, len(raw_args))
                         try:
                             preview = json.dumps(json.loads(raw_args), ensure_ascii=False)[:600]
                         except json.JSONDecodeError:
@@ -359,10 +366,8 @@ class StandardAgent(BaseAgent):
             # 保存最终回复
             if final_reply_text:
                 save_message(ctx.agent_id, session_id, "assistant", final_reply_text)
-        except Exception as e:
-            import traceback
-            print(f"[handle_chat_stream] 异常: {e}", flush=True)
-            traceback.print_exc()
-            yield build_stream_chunk(f"出错了: {e}")
+        except Exception:
+            logger.exception("handle_chat_stream error")
+            yield build_stream_chunk(f"出错了，请稍后重试")
 
         yield build_stream_done(session_id=session_id)

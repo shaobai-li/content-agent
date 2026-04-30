@@ -1,5 +1,6 @@
 from typing import AsyncGenerator, List, Optional, Dict, Any
 
+from loguru import logger
 from app.service.messages_service import save_message
 from app.service.sessions_service import save_session_if_new
 from app.utils.llm_client import deepseek_chat, deepseek_chat_stream
@@ -12,6 +13,7 @@ from app.utils.context_utils import get_article_context_messages
 
 def build_standard_llm_messages(system_prompt: str, ctx: AgentTurnContext) -> List[Dict[str, Any]]:
     """由单轮上下文拼装发给模型的 messages（system + 历史 + 文章 mention + 本轮 user）。"""
+    logger.debug("build llm messages: {} history={} mentions={}", ctx.agent_id, len(ctx.history_messages), len(ctx.mentions))
     messages: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt}]
     messages.extend(ctx.history_messages)
     messages.extend(get_article_context_messages(ctx.mentions))
@@ -24,12 +26,13 @@ def save_chat_session(agent_id: str, session_id: Optional[str], user_text: str, 
     """保存聊天会话，如果 session_id 为 None 则自动生成"""
     if not session_id:
         session_id = new_uuid()
-    
+
     if user_text:
         save_session_if_new(agent_id, session_id, user_text)
         save_message(agent_id, session_id, "user", user_text)
         save_message(agent_id, session_id, "assistant", assistant_reply)
-    
+        logger.debug("chat session saved: {} / {}", agent_id, session_id)
+
     return session_id
 
 
@@ -38,6 +41,7 @@ async def standard_chat_from_context(
     system_prompt: str,
     extra_response: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
+    logger.debug("standard chat: {} session={}", ctx.agent_id, ctx.session_id)
     messages = build_standard_llm_messages(system_prompt, ctx)
     reply = deepseek_chat(messages=messages)
     session_id = save_chat_session(ctx.agent_id, ctx.session_id, ctx.user_text, reply)
@@ -55,6 +59,7 @@ async def standard_chat_stream_from_context(
     extra_done: Optional[Dict[str, Any]] = None,
 ) -> AsyncGenerator[str, None]:
     """流式聊天：逐 token yield chunk，结束后保存会话并 yield done"""
+    logger.debug("standard chat stream: {} session={}", ctx.agent_id, ctx.session_id)
     messages = build_standard_llm_messages(system_prompt, ctx)
 
     full_reply: list[str] = []

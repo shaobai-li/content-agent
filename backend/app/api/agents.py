@@ -1,6 +1,7 @@
 from typing import Optional, List
 from fastapi import APIRouter, Body, Form, File, UploadFile
 from fastapi.responses import StreamingResponse
+from loguru import logger
 
 from app.service.sessions_service import load_sessions, delete_session
 from app.service.messages_service import load_messages
@@ -20,6 +21,7 @@ async def list_agents():
     """返回所有注册 agent 的元信息（供前端动态渲染）。"""
     from app.core.config import AGENTS_CONFIG
 
+    logger.info("list agents")
     result = []
     for agent_id, cfg in AGENTS_CONFIG.items():
         if not isinstance(cfg, dict):
@@ -43,15 +45,18 @@ router = APIRouter(prefix="/api/agents/{agent_id}", tags=["agents"])
 
 @router.get("/sessions")
 async def get_sessions(agent_id: str):
+    logger.debug("get sessions: {}", agent_id)
     return load_sessions(agent_id)
 
 
 @router.get("/sessions/{session_id}/messages")
 async def get_session_messages(agent_id: str, session_id: str):
+    logger.debug("get messages: {} / {}", agent_id, session_id)
     return load_messages(agent_id, session_id)
 
 @router.delete("/sessions/{session_id}")
 async def delete_session_endpoint(agent_id: str, session_id: str):
+    logger.info("delete session: {} / {}", agent_id, session_id)
     return delete_session(agent_id, session_id)
 @router.get("/res/{res_name}")
 async def get_resources(agent_id: str, res_name: str, kb_id: str):
@@ -162,9 +167,12 @@ async def chat_stream(
     attachment_paths: Optional[str] = Form(None),
     attachments: Optional[List[UploadFile]] = File(None),
 ):
+    logger.info("chat stream: {} session={}", agent_id, session_id)
+
     agent_config = get_agent_config(agent_id)
 
     if not agent_config:
+        logger.warning("unknown agent: {}", agent_id)
         async def _unknown():
             yield build_stream_chunk(f"Unknown agent: {agent_id}")
             yield build_stream_done(session_id="")
