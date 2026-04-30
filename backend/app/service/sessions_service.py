@@ -9,9 +9,11 @@ TITLE_MAX_LENGTH = 30
 def load_sessions(agent_id: str):
     sessions_path = get_agent_sessions_path(agent_id)
     if not sessions_path.exists():
+        logger.debug("sessions file not exists: {}", agent_id)
         return []
     with open(sessions_path, "r", encoding="utf-8") as f:
         chats = json.load(f)
+    logger.debug("load {} sessions for agent {}", len(chats), agent_id)
     return [
         {"session_id": c.get("session_id", ""), "title": c.get("title", ""), "content": c.get("content", "")}
         for c in chats
@@ -54,6 +56,7 @@ def delete_session(agent_id: str, session_id: str) -> None:
     """
     删除指定会话及其消息记录（sessions.json + messages.json）。
     """
+    logger.info("delete session: {} / {}", agent_id, session_id)
     sessions_path = get_agent_sessions_path(agent_id)
     if sessions_path.exists():
         with open(sessions_path, "r", encoding="utf-8") as f:
