@@ -4,6 +4,7 @@ from pathlib import Path
 import shutil
 from typing import Any, Dict, List, Optional
 
+from loguru import logger
 from app.core.config import get_agent_local_data_dir
 from app.core.ids import new_uuid
 
@@ -69,11 +70,13 @@ def ensure_kb_document(agent_id: str, kb_id: str) -> Dict[str, Any]:
     """确保知识库文档存在并初始化"""
     if not kb_id or not kb_id.strip():
         raise ValueError(f"kb_id 不能为空，agent_id={agent_id}")
+    logger.debug("ensure kb document: {} / {}", agent_id, kb_id)
     path = get_database_nodes_path(agent_id, kb_id)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     data: Dict[str, Any]
     if not path.exists():
+        logger.info("create default kb document: {} / {}", agent_id, kb_id)
         data = _default_kb_document(kb_id)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
@@ -161,6 +164,7 @@ def ensure_database_registry(agent_id: str) -> List[Dict[str, Any]]:
 
 
 def list_knowledge_bases(agent_id: str) -> List[Dict[str, Any]]:
+    logger.debug("list knowledge bases: {}", agent_id)
     return ensure_database_registry(agent_id)
 
 
@@ -169,7 +173,10 @@ def create_knowledge_base(name: str, description: str, agent_id: str) -> Dict[st
     database_description = description.strip()
 
     if not database_name:
+        logger.warning("create kb empty name: {}", agent_id)
         return {"success": False, "message": "知识库名称不能为空"}
+
+    logger.info("create knowledge base: {} name={}", agent_id, database_name)
 
     databases = ensure_database_registry(agent_id)
 
@@ -199,9 +206,12 @@ def delete_knowledge_base(agent_id: str, kb_id: str) -> Dict[str, Any]:
     if not database_id:
         return {"success": False, "message": "知识库不存在"}
 
+    logger.info("delete knowledge base: {} / {}", agent_id, database_id)
+
     databases = ensure_database_registry(agent_id)
     database = next((entry for entry in databases if entry["id"] == database_id), None)
     if not database:
+        logger.warning("kb not found: {} / {}", agent_id, database_id)
         return {"success": False, "message": "知识库不存在"}
 
     remaining_databases = [entry for entry in databases if entry["id"] != database_id]

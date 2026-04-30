@@ -4,6 +4,7 @@ from fastapi import UploadFile
 from pathlib import Path
 from datetime import datetime
 
+from loguru import logger
 from app.core.config import get_agent_attachment_cache_dir
 from app.core.ids import new_uuid
 
@@ -96,7 +97,7 @@ class FileInfo:
 
 
 async def save_uploaded_file(
-    file: UploadFile, 
+    file: UploadFile,
     agent_id: str
 ) -> tuple[Path, bytes]:
 
@@ -105,11 +106,13 @@ async def save_uploaded_file(
     file_ext = Path(file.filename).suffix if file.filename else ""
     cached_filename = f"{new_uuid()}{file_ext}"
     cached_path = agent_cache_dir / cached_filename
-    
+
     content = await file.read()
     with open(cached_path, "wb") as f:
         f.write(content)
-    
+
+    logger.debug("upload saved: {} / {} size={}", agent_id, cached_filename, len(content))
+
     return cached_path, content
 
 
@@ -130,6 +133,7 @@ async def save_upload_to_agent_cache_keep_name(file: UploadFile, agent_id: str) 
     dest = agent_cache_dir / safe_name
     content = await file.read()
     dest.write_bytes(content)
+    logger.debug("cache saved: {} / {} size={}", agent_id, safe_name, len(content))
     return dest
 
 
@@ -139,6 +143,7 @@ def resolve_validated_cache_paths(agent_id: str, path_strings: List[Any]) -> Lis
     validated: List[Path] = []
     for item in path_strings:
         if not isinstance(item, str):
+            logger.warning("invalid path type: {} for agent {}", type(item).__name__, agent_id)
             continue
         s = item.strip()
         if not s:
@@ -147,14 +152,18 @@ def resolve_validated_cache_paths(agent_id: str, path_strings: List[Any]) -> Lis
             raw = Path(s)
             p = raw.resolve() if raw.is_absolute() else (cache_root / raw).resolve()
         except OSError:
+            logger.warning("path resolve error: {} for agent {}", s, agent_id)
             continue
         if not p.is_file():
+            logger.warning("path not file: {} for agent {}", s, agent_id)
             continue
         try:
             p.relative_to(cache_root)
         except ValueError:
+            logger.warning("path outside cache: {} for agent {}", s, agent_id)
             continue
         validated.append(p)
+    logger.debug("validated {} cache paths for agent {}", len(validated), agent_id)
     return validated
 
 
@@ -164,6 +173,7 @@ async def process_pre_cached_attachments(
     processor: Optional[Callable[[Path, str, str], Awaitable[Optional[str]]]] = None,
 ) -> List[FileInfo]:
     """对已落在 cache 目录内的文件做解析等处理，等价于 process_attachments 的结果结构。"""
+    logger.debug("process {} pre-cached attachments for agent {}", len(paths), agent_id)
     file_info_list: List[FileInfo] = []
     for path in paths:
         filename = path.name

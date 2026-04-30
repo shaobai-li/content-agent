@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
+from loguru import logger
 from openai import OpenAI, AsyncOpenAI
 from openai.types.chat import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import (
@@ -40,10 +41,7 @@ def _log_system_prompt_sent_to_llm(messages: List[Dict[str, Any]]) -> None:
     if content == _last_logged_system_prompt:
         return
     _last_logged_system_prompt = content
-    print(
-        f"[llm_system_prompt] full_len={len(content)}\n{content}\n[llm_system_prompt] ---",
-        flush=True,
-    )
+    logger.debug("system prompt sent to LLM: full_len={}\n{}\n---", len(content), content)
 
 
 def _log_last_user_message_sent_to_llm(messages: List[Dict[str, Any]]) -> None:
@@ -64,10 +62,7 @@ def _log_last_user_message_sent_to_llm(messages: List[Dict[str, Any]]) -> None:
         return
     _last_logged_user_message = last
     extra = f" user_role_str_msgs={user_str_count}" if user_str_count > 1 else ""
-    print(
-        f"[llm_user_message] full_len={len(last)}{extra}\n{last}\n[llm_user_message] ---",
-        flush=True,
-    )
+    logger.debug("user message sent to LLM: full_len={}{}\n{}\n---", len(last), extra, last)
 
 
 def deepseek_chat(messages: List[Dict[str, Any]], model: str = "deepseek-chat") -> str:

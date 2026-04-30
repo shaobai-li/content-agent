@@ -20,6 +20,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import UploadFile
 
+from loguru import logger
+
 from app.service.messages_service import load_messages
 from app.service.file_service import resolve_validated_cache_paths
 from app.utils.context_utils import (
@@ -76,6 +78,9 @@ def build_agent_turn_context(
     path_strings = tuple(str(p.resolve()) for p in validated_paths)
     user_text = append_attachments_to_user_text(user_text, list(path_strings))
     history = load_messages(agent_id, session_id) if session_id else []
+
+    logger.debug("build context: {} session={} mentions={} attachments={} history={}",
+                 agent_id, session_id, len(mentions_list), len(path_strings), len(history))
 
     return AgentTurnContext(
         agent_id=agent_id,
