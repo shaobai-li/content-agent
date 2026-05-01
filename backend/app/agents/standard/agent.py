@@ -6,7 +6,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncGenerator, Callable, Dict, List
+from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List
 
 from loguru import logger
 
@@ -24,7 +24,7 @@ from app.service.stream_service import (
 from app.utils.context_utils import get_article_context_messages
 from app.utils.skill_loader import discover_skills_for_agent
 
-from .tools import STANDARD_AGENT_TOOLS, make_tool_executor
+from app.agents.tools import create_tool_registry
 
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
@@ -176,7 +176,7 @@ async def _yield_box_call_then_result(
     title: str,
     icon: str,
     call_summary: str,
-    run_tool: Callable[[], str],
+    run_tool: Callable[[], Awaitable[str]],
     *,
     result_max_len: int = 4000,
     tool_name: str = "",
@@ -196,13 +196,13 @@ async def _yield_box_call_then_result(
         yield build_box_start(box_title, icon=icon)
         for i in range(0, len(pre_body), step):
             yield build_box_chunk(pre_body[i : i + step])
-        run_tool()
+        await run_tool()
     else:
         yield build_box_start(title, icon=icon)
         for i in range(0, len(call_summary), step):
             yield build_box_chunk(call_summary[i : i + step])
         yield build_box_chunk("\n\n")
-        raw = run_tool()
+        raw = await run_tool()
         preview = raw if len(raw) <= result_max_len else raw[:result_max_len] + "\n…(truncated)"
         result_summary = f"工具输出:\n{preview}"
         for i in range(0, len(result_summary), step):
@@ -251,7 +251,7 @@ class StandardAgent(BaseAgent):
         session_id = ctx.session_id or new_uuid()
         try:
             workspace = self._workspace_dir()
-            execute_tool = make_tool_executor(workspace, self.agent_id)
+            registry = create_tool_registry(workspace, self.agent_id)
             messages = self._build_loop_messages(ctx, workspace)
             final_reply_text = ""
 
@@ -276,7 +276,7 @@ class StandardAgent(BaseAgent):
                     try:
                         return await _get_provider().chat_stream_with_retry(
                             messages,
-                            tools=STANDARD_AGENT_TOOLS,
+                            tools=registry.get_definitions(),
                             on_content_delta=lambda t: queue.put(t),
                         )
                     finally:
@@ -325,8 +325,8 @@ class StandardAgent(BaseAgent):
                         call_summary = f"参数: {preview}"
                         result_box: list[str] = []
 
-                        def _run_tool() -> str:
-                            r = execute_tool(name, raw_args)
+                        async def _run_tool() -> str:
+                            r = await registry.execute(name, tc.arguments)
                             result_box.append(r)
                             return r
 
