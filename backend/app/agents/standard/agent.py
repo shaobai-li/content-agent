@@ -2,27 +2,21 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List
+from typing import Any, AsyncGenerator, Dict, List
 
 from loguru import logger
 
 from app.agents.base_agent import BaseAgent
 from app.core.config import get_agent_base_dir, get_agent_local_data_dir, get_agent_workspace_dir
 from app.runtime.agent_turn_context import AgentTurnContext
-from app.service.agent_chat_service import save_chat_session
 from app.service.stream_service import (
-    build_box_chunk,
-    build_box_end,
-    build_box_start,
     build_stream_chunk,
     build_stream_done,
 )
 from app.utils.context_utils import get_article_context_messages
-from app.utils.skill_loader import discover_skills_for_agent
 
 from app.agents.tools import create_tool_registry
 
@@ -157,59 +151,6 @@ def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str,
     return out
 
 
-def _invoke_skill_name_description_block(agent_id: str, raw_args: str) -> str:
-    """供 UI 展示：仅技能的 name 与 description。"""
-    sid = ""
-    try:
-        sid = str((json.loads(raw_args or "{}") or {}).get("skill_id", "") or "").strip()
-    except json.JSONDecodeError:
-        sid = ""
-    if not sid:
-        return "name\n（未提供 skill_id）\n\ndescription\n—"
-    for head in discover_skills_for_agent(agent_id):
-        if head.skill_id == sid:
-            return f"name : {head.name}\ndescription : {head.description}"
-    return f"name\n（未找到技能 {sid!r}）\n\ndescription\n—"
-
-
-async def _yield_box_call_then_result(
-    title: str,
-    icon: str,
-    call_summary: str,
-    run_tool: Callable[[], Awaitable[str]],
-    *,
-    result_max_len: int = 4000,
-    tool_name: str = "",
-    raw_args: str = "{}",
-    agent_id: str = "",
-) -> AsyncGenerator[str, None]:
-    """
-    单次 box 会话（一对 box_start / box_end）：
-    先流式推送调用说明（invoke_skill 时仅 name/description），再执行 run_tool()，再按需推送输出摘要。
-    """
-    step = 800
-    is_invoke_skill = tool_name == "invoke_skill" and bool(agent_id)
-
-    if is_invoke_skill:
-        box_title = "技能加载 ..."
-        pre_body = _invoke_skill_name_description_block(agent_id, raw_args)
-        yield build_box_start(box_title, icon=icon)
-        for i in range(0, len(pre_body), step):
-            yield build_box_chunk(pre_body[i : i + step])
-        await run_tool()
-    else:
-        yield build_box_start(title, icon=icon)
-        for i in range(0, len(call_summary), step):
-            yield build_box_chunk(call_summary[i : i + step])
-        yield build_box_chunk("\n\n")
-        raw = await run_tool()
-        preview = raw if len(raw) <= result_max_len else raw[:result_max_len] + "\n…(truncated)"
-        result_summary = f"工具输出:\n{preview}"
-        for i in range(0, len(result_summary), step):
-            yield build_box_chunk(result_summary[i : i + step])
-    yield build_box_end()
-
-
 class StandardAgent(BaseAgent):
     """带标准 tool-use loop；工具默认在 workspace，可切换到 skills 目录。"""
 
@@ -253,7 +194,6 @@ class StandardAgent(BaseAgent):
             workspace = self._workspace_dir()
             registry = create_tool_registry(workspace, self.agent_id)
             messages = self._build_loop_messages(ctx, workspace)
-            final_reply_text = ""
 
             text_preview = (ctx.user_text or "")[:100]
             logger.info("handle_chat_stream: {} session={} text={}", ctx.agent_id, session_id, text_preview)
@@ -263,119 +203,59 @@ class StandardAgent(BaseAgent):
                 save_session_if_new(ctx.agent_id, session_id, ctx.user_text)
                 save_message(ctx.agent_id, session_id, "user", ctx.user_text)
 
-            rounds = 0
-            while rounds < _MAX_TOOL_ROUNDS:
-                rounds += 1
-                logger.debug("tool round {}/{}", rounds, _MAX_TOOL_ROUNDS)
+            from app.agents.runner import AgentRunner, AgentRunSpec
+            from app.agents.standard.streaming_hook import StreamingHook
 
-                # 队列桥接：Provider 的 on_content_delta 回调 → generator yield
-                queue: asyncio.Queue[str | None] = asyncio.Queue()
-                _sentinel: str | None = None
+            provider = _get_provider()
+            queue: asyncio.Queue = asyncio.Queue()
+            hook = StreamingHook(queue)
 
-                async def _run_provider():
-                    try:
-                        return await _get_provider().chat_stream_with_retry(
-                            messages,
-                            tools=registry.get_definitions(),
-                            on_content_delta=lambda t: queue.put(t),
-                        )
-                    finally:
-                        await queue.put(_sentinel)
+            spec = AgentRunSpec(
+                initial_messages=messages,
+                tools=registry,
+                model=provider.default_model,
+                max_iterations=_MAX_TOOL_ROUNDS,
+                max_tool_result_chars=100000,
+                max_tokens=provider.generation.max_tokens,
+                temperature=provider.generation.temperature,
+                hook=hook,
+                session_key=session_id,
+                context_window_tokens=65536,
+            )
 
-                provider_task = asyncio.create_task(_run_provider())
-                while True:
-                    chunk = await queue.get()
-                    if chunk is _sentinel:
-                        break
-                    yield build_stream_chunk(chunk)
+            runner = AgentRunner(provider)
 
-                response = await provider_task
+            async def run_and_signal():
+                try:
+                    return await runner.run(spec)
+                finally:
+                    await queue.put(None)
 
-                if response is None:
-                    logger.debug("no response, break")
+            runner_task = asyncio.create_task(run_and_signal())
+
+            while True:
+                line = await queue.get()
+                if line is None:
                     break
+                yield line
 
-                # 构建 assistant dict 追加到 messages
-                assistant_dict: Dict[str, Any] = {
-                    "role": "assistant",
-                    "content": response.content,
-                }
-                if response.has_tool_calls:
-                    assistant_dict["tool_calls"] = [
-                        tc.to_openai_tool_call() for tc in response.tool_calls
-                    ]
-                messages.append(assistant_dict)
+            result = await runner_task
 
-                if response.has_tool_calls:
-                    logger.debug("tool calls: {}", len(response.tool_calls))
-                    # 保存带 tool_calls 的 assistant 消息
+            # 保存本次运行产生的所有新消息
+            initial_len = len(messages)
+            for msg in result.messages[initial_len:]:
+                role = msg.get("role")
+                content = msg.get("content", "") or ""
+                if role == "assistant":
                     save_message(
-                        ctx.agent_id,
-                        session_id,
-                        "assistant",
-                        response.content or "",
-                        tool_calls=assistant_dict.get("tool_calls")
+                        ctx.agent_id, session_id, "assistant", content,
+                        tool_calls=msg.get("tool_calls"),
                     )
-
-                    for tc in response.tool_calls:
-                        name = tc.name
-                        raw_args = json.dumps(tc.arguments, ensure_ascii=False)
-                        logger.debug("  execute tool: {} args_len={}", name, len(raw_args))
-                        preview = raw_args[:600]
-                        call_summary = f"参数: {preview}"
-                        result_box: list[str] = []
-
-                        async def _run_tool() -> str:
-                            r = await registry.execute(name, tc.arguments)
-                            result_box.append(r)
-                            return r
-
-                        box_title = f"调用工具 {name} ..."
-                        icon = {
-                            "read_file": "tool-read",
-                            "write_file": "tool-write",
-                            "run_command": "tool-command",
-                            "web_search": "tool-search",
-                            "web_fetch": "tool-read",
-                            "invoke_skill": "tool-skill",
-                        }.get(name, "tool-command")
-                        async for line in _yield_box_call_then_result(
-                            box_title,
-                            icon,
-                            call_summary,
-                            _run_tool,
-                            tool_name=name,
-                            raw_args=raw_args,
-                            agent_id=self.agent_id,
-                        ):
-                            yield line
-                        result = result_box[0]
-                        tool_msg = {
-                            "role": "tool",
-                            "tool_call_id": tc.id,
-                            "content": result,
-                        }
-                        messages.append(tool_msg)
-
-                        # 保存 tool 消息
-                        save_message(
-                            ctx.agent_id,
-                            session_id,
-                            "tool",
-                            result,
-                            tool_call_id=tc.id
-                        )
-                    continue
-
-                final_reply_text = (response.content or "").strip()
-                break
-            else:
-                final_reply_text = "已达到工具调用轮数上限，请简化任务或分步提问。"
-                yield build_stream_chunk(final_reply_text)
-
-            # 保存最终回复
-            if final_reply_text:
-                save_message(ctx.agent_id, session_id, "assistant", final_reply_text)
+                elif role == "tool":
+                    save_message(
+                        ctx.agent_id, session_id, "tool", content,
+                        tool_call_id=msg.get("tool_call_id"),
+                    )
         except Exception:
             logger.exception("handle_chat_stream error")
             yield build_stream_chunk(f"出错了，请稍后重试")
