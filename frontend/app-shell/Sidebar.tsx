@@ -19,7 +19,7 @@ import {
 export interface MenuItem {
   label: string;
   href?: string;
-  icon?: "history" | "knowledgebase" | "document";
+  icon?: "history" | "knowledgebase" | "document" | "settings";
 }
 
 // 路由项接口
@@ -84,6 +84,7 @@ export function Sidebar({ routes }: SidebarProps) {
                         history: History,
                         knowledgebase: BookOpen,
                         document: FileText,
+                        settings: Settings,
                       };
                       const Icon = item.icon ? IconMap[item.icon] : null;
                       return (
