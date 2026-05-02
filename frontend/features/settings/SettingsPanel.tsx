@@ -1,6 +1,7 @@
 "use client";
 
 import { Combobox } from "@/shared/ui/combobox";
+import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/cn";
 
 import { SkillsFileInput } from "./SkillsFileInput";
@@ -17,7 +18,7 @@ const settingsTextareaClass = cn(
 
 export function SettingsPanel() {
   return (
-    <div className="flex w-full min-w-0 flex-col gap-6">
+    <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6">
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium text-foreground">提示词</span>
         <textarea className={settingsTextareaClass} rows={3} />
@@ -35,6 +36,12 @@ export function SettingsPanel() {
           <span className="text-sm font-medium text-foreground">Skills</span>
           <SkillsFileInput />
         </div>
+      </div>
+      <div className="mt-auto flex w-full justify-end gap-2">
+        <Button type="button" variant="outline">
+          Cancel
+        </Button>
+        <Button type="button">Enter</Button>
       </div>
     </div>
   );
