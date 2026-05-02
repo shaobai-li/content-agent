@@ -25,8 +25,10 @@ export default function AgentPage() {
 
   // URL ?left= 优先，否则用 defaultLeft
   const leftParam = searchParams.get("left") as UIModule | null;
-  const leftModule =
-    leftParam && agent.layout.left.includes(leftParam) ? leftParam : agent.layout.defaultLeft;
+  const leftAllowed =
+    leftParam === "settings" ||
+    (!!leftParam && agent.layout.left.includes(leftParam));
+  const leftModule = leftAllowed && leftParam ? leftParam : agent.layout.defaultLeft;
 
   const renderModule = uiModuleRegistry[leftModule];
 

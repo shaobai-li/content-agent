@@ -12,7 +12,8 @@ export type UIModule =
     | "chat"
     | "history"
     | "knowledgebase"
-    | "document";
+    | "document"
+    | "settings";
 
 export type LayoutType = {
     left: UIModule[];

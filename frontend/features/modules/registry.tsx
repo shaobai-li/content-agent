@@ -7,6 +7,9 @@ import { DocumentPanel } from "../document/DocumentPanel";
 import { KnowledgeBaseHeader } from "../knowledge-base/KnowledgeBaseHeader";
 import { KnowledgeBasePanel } from "../knowledge-base/KnowledgeBasePanel";
 
+import { SettingsHeader } from "../settings/SettingsHeader";
+import { SettingsPanel } from "../settings/SettingsPanel";
+
 import { AgentId } from "@/entities/agent/model";
 
 export type ModuleRenderResult = {
@@ -31,6 +34,11 @@ export const uiModuleRegistry: Record<
   knowledgebase: (agentId) => ({
     header: <KnowledgeBaseHeader agentId={agentId} />,
     body: <KnowledgeBasePanel agentId={agentId} />,
+  }),
+
+  settings: () => ({
+    header: <SettingsHeader />,
+    body: <SettingsPanel />,
   }),
 
   chat: () => ({
