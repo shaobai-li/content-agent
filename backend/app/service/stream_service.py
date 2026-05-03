@@ -1,13 +1,12 @@
 """
-流式响应协议序列化
-单一职责：把业务数据转换成行级 JSON 字符串，供 StreamingResponse 使用
+流式响应协议序列化 — SSE (Server-Sent Events) 格式
 
-协议约定：
-  chunk:      {"event": "chunk", "data": {"content": "..."}}
-  done:       {"event": "done",  "data": {"session_id": "...", ...extra}}
-  box_start:  {"event": "box_start", "data": {"title": "..."}}
-  box_chunk:  {"event": "box_chunk", "data": {"content": "..."}}
-  box_end:    {"event": "box_end", "data": {}}
+协议约定（SSE event + data 行，双换行分隔）：
+  chunk:      event: chunk\ndata: {"content": "..."}\n\n
+  done:       event: done\ndata: {"session_id": "...", ...}\n\n
+  box_start:  event: box_start\ndata: {"title": "..."}\n\n
+  box_chunk:  event: box_chunk\ndata: {"content": "..."}\n\n
+  box_end:    event: box_end\ndata: {}\n\n
 """
 import json
 from typing import Any, AsyncGenerator, Dict, Optional
@@ -16,29 +15,29 @@ from app.service.chat_service import build_chat_response
 
 
 def build_stream_chunk(content: str) -> str:
-    return json.dumps({"event": "chunk", "data": {"content": content}}) + "\n"
+    return f"event: chunk\ndata: {json.dumps({'content': content})}\n\n"
 
 
 def build_stream_done(session_id: str, extra: Optional[Dict[str, Any]] = None) -> str:
     data: Dict[str, Any] = {"session_id": session_id}
     if extra:
         data.update(extra)
-    return json.dumps({"event": "done", "data": data}) + "\n"
+    return f"event: done\ndata: {json.dumps(data)}\n\n"
 
 
 def build_box_start(title: str, icon: Optional[str] = None) -> str:
     data: Dict[str, Any] = {"title": title}
     if icon:
         data["icon"] = icon
-    return json.dumps({"event": "box_start", "data": data}) + "\n"
+    return f"event: box_start\ndata: {json.dumps(data)}\n\n"
 
 
 def build_box_chunk(content: str) -> str:
-    return json.dumps({"event": "box_chunk", "data": {"content": content}}) + "\n"
+    return f"event: box_chunk\ndata: {json.dumps({'content': content})}\n\n"
 
 
 def build_box_end() -> str:
-    return json.dumps({"event": "box_end", "data": {}}) + "\n"
+    return "event: box_end\ndata: {}\n\n"
 
 
 async def aggregate_stream_to_chat_response(
@@ -51,17 +50,26 @@ async def aggregate_stream_to_chat_response(
 
     async for piece in stream:
         buffer += piece
-        while "\n" in buffer:
-            line, buffer = buffer.split("\n", 1)
-            line = line.strip()
-            if not line:
+        while "\n\n" in buffer:
+            block, buffer = buffer.split("\n\n", 1)
+            block = block.strip()
+            if not block:
                 continue
-            obj = json.loads(line)
-            ev = obj.get("event")
-            data = obj.get("data") or {}
-            if ev == "chunk":
-                reply_parts.append(data.get("content", ""))
-            elif ev == "response_chunk":
+            # Parse SSE block
+            ev = ""
+            data_str = ""
+            for line in block.split("\n"):
+                if line.startswith("event: "):
+                    ev = line[7:].strip()
+                elif line.startswith("data: "):
+                    data_str = line[6:].strip()
+            if not data_str:
+                continue
+            try:
+                data = json.loads(data_str)
+            except json.JSONDecodeError:
+                continue
+            if ev in ("chunk", "response_chunk"):
                 reply_parts.append(data.get("content", ""))
             elif ev == "done":
                 last_done = data

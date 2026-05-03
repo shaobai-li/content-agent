@@ -176,7 +176,15 @@ async def chat_stream(
         async def _unknown():
             yield build_stream_chunk(f"Unknown agent: {agent_id}")
             yield build_stream_done(session_id="")
-        return StreamingResponse(_unknown(), media_type="application/json")
+        return StreamingResponse(
+            _unknown(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     ctx = build_agent_turn_context(
         agent_id,
@@ -189,5 +197,10 @@ async def chat_stream(
 
     return StreamingResponse(
         agent_config.handle_chat_stream(ctx),
-        media_type="application/json",
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
