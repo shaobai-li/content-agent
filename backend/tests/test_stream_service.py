@@ -10,107 +10,117 @@ from app.service.stream_service import (
 )
 
 
-def parse_line(line: str) -> dict:
-    """辅助函数：解析单行 JSON 输出"""
-    return json.loads(line.strip())
+def parse_sse_event(sse_text: str) -> dict:
+    """辅助函数：解析单条 SSE 事件为 {event, data} 字典。"""
+    block = sse_text.strip()
+    if "\n\n" in block:
+        block = block.split("\n\n")[0]
+    event = ""
+    data_str = ""
+    for line in block.split("\n"):
+        if line.startswith("event: "):
+            event = line[7:].strip()
+        elif line.startswith("data: "):
+            data_str = line[6:].strip()
+    return {"event": event, "data": json.loads(data_str)}
 
 
 class TestBuildStreamChunk:
     def test_event_is_chunk(self):
-        obj = parse_line(build_stream_chunk("hello"))
+        obj = parse_sse_event(build_stream_chunk("hello"))
         assert obj["event"] == "chunk"
 
     def test_data_contains_content(self):
-        obj = parse_line(build_stream_chunk("hello"))
+        obj = parse_sse_event(build_stream_chunk("hello"))
         assert obj["data"]["content"] == "hello"
 
     def test_ends_with_newline(self):
-        assert build_stream_chunk("hello").endswith("\n")
+        assert build_stream_chunk("hello").endswith("\n\n")
 
     def test_empty_content(self):
-        obj = parse_line(build_stream_chunk(""))
+        obj = parse_sse_event(build_stream_chunk(""))
         assert obj["data"]["content"] == ""
 
     def test_content_with_special_characters(self):
-        obj = parse_line(build_stream_chunk("你好\n世界"))
+        obj = parse_sse_event(build_stream_chunk("你好\n世界"))
         assert obj["data"]["content"] == "你好\n世界"
 
 
 class TestBuildStreamDone:
     def test_event_is_done(self):
-        obj = parse_line(build_stream_done("sess-123"))
+        obj = parse_sse_event(build_stream_done("sess-123"))
         assert obj["event"] == "done"
 
     def test_session_id_in_data(self):
-        obj = parse_line(build_stream_done("sess-123"))
+        obj = parse_sse_event(build_stream_done("sess-123"))
         assert obj["data"]["session_id"] == "sess-123"
 
     def test_ends_with_newline(self):
-        assert build_stream_done("sess-123").endswith("\n")
+        assert build_stream_done("sess-123").endswith("\n\n")
 
     def test_extra_fields_merged_into_data(self):
-        obj = parse_line(build_stream_done("sess-123", extra={"foo": "bar"}))
+        obj = parse_sse_event(build_stream_done("sess-123", extra={"foo": "bar"}))
         assert obj["data"]["foo"] == "bar"
         assert obj["data"]["session_id"] == "sess-123"
 
     def test_no_extra_has_only_session_id(self):
-        obj = parse_line(build_stream_done("sess-123"))
+        obj = parse_sse_event(build_stream_done("sess-123"))
         assert list(obj["data"].keys()) == ["session_id"]
 
     def test_none_extra_ignored(self):
-        obj = parse_line(build_stream_done("sess-123", extra=None))
+        obj = parse_sse_event(build_stream_done("sess-123", extra=None))
         assert "session_id" in obj["data"]
 
 
 class TestBuildBoxStart:
     def test_event_is_box_start(self):
-        obj = parse_line(build_box_start("思考中"))
+        obj = parse_sse_event(build_box_start("思考中"))
         assert obj["event"] == "box_start"
 
     def test_title_in_data(self):
-        obj = parse_line(build_box_start("思考中"))
+        obj = parse_sse_event(build_box_start("思考中"))
         assert obj["data"]["title"] == "思考中"
 
     def test_ends_with_newline(self):
-        assert build_box_start("思考中").endswith("\n")
+        assert build_box_start("思考中").endswith("\n\n")
 
     def test_icon_included_when_provided(self):
-        obj = parse_line(build_box_start("思考中", icon="🔍"))
+        obj = parse_sse_event(build_box_start("思考中", icon="🔍"))
         assert obj["data"]["icon"] == "🔍"
 
     def test_icon_omitted_when_not_provided(self):
-        obj = parse_line(build_box_start("思考中"))
+        obj = parse_sse_event(build_box_start("思考中"))
         assert "icon" not in obj["data"]
 
     def test_icon_omitted_when_none(self):
-        obj = parse_line(build_box_start("思考中", icon=None))
+        obj = parse_sse_event(build_box_start("思考中", icon=None))
         assert "icon" not in obj["data"]
 
 
 class TestBuildBoxChunk:
     def test_event_is_box_chunk(self):
-        obj = parse_line(build_box_chunk("中间内容"))
+        obj = parse_sse_event(build_box_chunk("中间内容"))
         assert obj["event"] == "box_chunk"
 
     def test_data_contains_content(self):
-        obj = parse_line(build_box_chunk("中间内容"))
+        obj = parse_sse_event(build_box_chunk("中间内容"))
         assert obj["data"]["content"] == "中间内容"
 
     def test_ends_with_newline(self):
-        assert build_box_chunk("中间内容").endswith("\n")
+        assert build_box_chunk("中间内容").endswith("\n\n")
 
 
 class TestBuildBoxEnd:
     def test_event_is_box_end(self):
-        obj = parse_line(build_box_end())
+        obj = parse_sse_event(build_box_end())
         assert obj["event"] == "box_end"
 
     def test_data_is_empty_dict(self):
-        obj = parse_line(build_box_end())
+        obj = parse_sse_event(build_box_end())
         assert obj["data"] == {}
 
     def test_ends_with_newline(self):
-        assert build_box_end().endswith("\n")
+        assert build_box_end().endswith("\n\n")
 
 
 class TestAggregateStreamToChatResponse:
