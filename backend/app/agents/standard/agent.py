@@ -241,6 +241,13 @@ class StandardAgent(BaseAgent):
 
             result = await runner_task
 
+            # 兜底流式输出：AgentRunner 内部产生的终端消息（max_iterations / error / empty）
+            # 未经过 StreamingHook 流式输出，需要在此补充
+            if result.final_content and result.stop_reason in (
+                "max_iterations", "empty_final_response", "tool_error", "error",
+            ):
+                yield build_stream_chunk(result.final_content)
+
             # 保存本次运行产生的所有新消息
             initial_len = len(messages)
             for msg in result.messages[initial_len:]:
