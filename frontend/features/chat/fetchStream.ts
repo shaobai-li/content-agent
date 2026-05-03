@@ -1,13 +1,22 @@
 /**
  * 流式响应读取工具
- * 单一职责：将 fetch Response body 解析为行级 JSON 事件流
+ * 单一职责：将 fetch Response body 解析为 SSE 事件流
  *
- * 后端协议约定：
- *   chunk:      { event: "chunk", data: { content: string } }
- *   done:       { event: "done",  data: { session_id: string, ... } }
- *   box_start:  { event: "box_start", data: { title: string } }
- *   box_chunk:  { event: "box_chunk", data: { content: string } }
- *   box_end:    { event: "box_end", data: {} }
+ * 后端协议约定（SSE 格式）：
+ *   event: chunk
+ *   data: {"content": "..."}
+ *
+ *   event: done
+ *   data: {"session_id": "...", ...}
+ *
+ *   event: box_start
+ *   data: {"title": "...", "icon": "..."}
+ *
+ *   event: box_chunk
+ *   data: {"content": "..."}
+ *
+ *   event: box_end
+ *   data: {}
  */
 
 export type StreamChunkEvent = {
@@ -56,17 +65,39 @@ export async function* readStreamLines(
     if (done) break;
 
     buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
 
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      try {
-        yield JSON.parse(trimmed) as StreamEvent;
-      } catch {
-        // 跳过格式异常的行
-      }
+    // SSE delimiter: double newline
+    const blocks = buffer.split("\n\n");
+    buffer = blocks.pop() ?? "";
+
+    for (const block of blocks) {
+      const parsed = parseSSEBlock(block);
+      if (parsed) yield parsed;
     }
+  }
+}
+
+function parseSSEBlock(block: string): StreamEvent | null {
+  const lines = block.split("\n");
+  let eventType = "";
+  let dataStr = "";
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("event: ")) {
+      eventType = trimmed.slice(7);
+    } else if (trimmed.startsWith("data: ")) {
+      dataStr = trimmed.slice(6);
+    }
+  }
+
+  if (!eventType || !dataStr) return null;
+
+  try {
+    return JSON.parse(
+      `{"event":${JSON.stringify(eventType)},"data":${dataStr}}`
+    ) as StreamEvent;
+  } catch {
+    return null;
   }
 }
