@@ -1,36 +1,59 @@
-"""Bridge AgentRunner hook events to SSE protocol via asyncio.Queue."""
+"""Bridge AgentRunner hook events to typed queue objects.
+
+Hook callbacks put typed dataclass instances into an ``asyncio.Queue``.
+The consumer (``handle_chat_stream``) reads from the queue, dispatches
+by type, and serialises each event to the SSE wire format.
+"""
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from typing import Any
 
 from app.agents.hook import AgentHook, AgentHookContext
-from app.service.stream_service import (
-    build_box_chunk,
-    build_box_end,
-    build_box_start,
-    build_stream_chunk,
-)
 
 _STEP = 800
 
-_TOOL_ICONS: dict[str, str] = {
-    "read_file": "tool-read",
-    "write_file": "tool-write",
-    "run_command": "tool-command",
-    "web_search": "tool-search",
-    "web_fetch": "tool-read",
-    "invoke_skill": "tool-skill",
-}
+
+@dataclass
+class TextEvent:
+    """LLM text delta for ``chunk`` SSE events."""
+    content: str
+
+
+@dataclass
+class ToolExecStart:
+    """Tool execution started."""
+    name: str
+    call_id: str
+    arguments: Any
+
+
+@dataclass
+class ToolExecChunk:
+    """Partial tool result content."""
+    call_id: str
+    content: str
+
+
+@dataclass
+class ToolExecEnd:
+    """Tool execution finished."""
+    call_id: str
+
+
+@dataclass
+class StreamSentinel:
+    """Signals end of stream (sentinel, not serialised)."""
+    pass
 
 
 class StreamingHook(AgentHook):
-    """Bridge AgentRunner hook events to SSE protocol.
+    """Bridge AgentRunner hook events to typed queue objects.
 
-    Hook callbacks put SSE lines into an ``asyncio.Queue``. The consumer
-    (``handle_chat_stream``) reads from the queue and yields each line.
-
-    Sentinel (``None``) is placed by the runner wrapper, not by this hook.
+    Hook callbacks put typed dataclass instances into an ``asyncio.Queue``.
+    The consumer (``handle_chat_stream``) reads from the queue, dispatches
+    by type, and serialises each event to the SSE wire format.
     """
 
     def __init__(self, queue: asyncio.Queue) -> None:
@@ -41,22 +64,28 @@ class StreamingHook(AgentHook):
         return True
 
     async def on_stream(self, context: AgentHookContext, delta: str) -> None:
-        """Forward LLM text deltas as ``chunk`` SSE events."""
-        await self._queue.put(build_stream_chunk(delta))
+        """Forward LLM text deltas as ``TextEvent``."""
+        await self._queue.put(TextEvent(content=delta))
 
     async def before_execute_tools(self, context: AgentHookContext) -> None:
-        """Emit ``box_start`` for each tool about to execute."""
+        """Emit ``ToolExecStart`` for each tool about to execute."""
         for tc in context.tool_calls:
-            icon = _TOOL_ICONS.get(tc.name, "tool-command")
-            await self._queue.put(build_box_start(f"调用工具 {tc.name} ...", icon=icon))
+            await self._queue.put(ToolExecStart(
+                name=tc.name,
+                call_id=tc.id,
+                arguments=tc.arguments,
+            ))
 
     async def after_iteration(self, context: AgentHookContext) -> None:
-        """Emit ``box_chunk`` + ``box_end`` for completed tool results."""
+        """Emit ``ToolExecChunk`` + ``ToolExecEnd`` for completed tool results."""
         if not context.tool_results:
             return
         for tc, result in zip(context.tool_calls, context.tool_results):
             content = str(result) if result is not None else ""
             if content:
                 for i in range(0, len(content), _STEP):
-                    await self._queue.put(build_box_chunk(content[i:i + _STEP]))
-            await self._queue.put(build_box_end())
+                    await self._queue.put(ToolExecChunk(
+                        call_id=tc.id,
+                        content=content[i:i + _STEP],
+                    ))
+            await self._queue.put(ToolExecEnd(call_id=tc.id))
