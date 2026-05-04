@@ -2,11 +2,11 @@
 流式响应协议序列化 — SSE (Server-Sent Events) 格式
 
 协议约定（SSE event + data 行，双换行分隔）：
-  chunk:      event: chunk\ndata: {"content": "..."}\n\n
-  done:       event: done\ndata: {"session_id": "...", ...}\n\n
-  box_start:  event: box_start\ndata: {"title": "..."}\n\n
-  box_chunk:  event: box_chunk\ndata: {"content": "..."}\n\n
-  box_end:    event: box_end\ndata: {}\n\n
+  chunk:           event: chunk\ndata: {"content": "..."}\n\n
+  done:            event: done\ndata: {"session_id": "...", ...}\n\n
+  tool_exec_start: event: tool_exec_start\ndata: {"name":"...","call_id":"...","arguments":{...}}\n\n
+  tool_exec_chunk: event: tool_exec_chunk\ndata: {"call_id":"...","content":"..."}\n\n
+  tool_exec_end:   event: tool_exec_end\ndata: {"call_id":"..."}\n\n
 """
 import json
 from typing import Any, AsyncGenerator, Dict, Optional
@@ -25,19 +25,16 @@ def build_stream_done(session_id: str, extra: Optional[Dict[str, Any]] = None) -
     return f"event: done\ndata: {json.dumps(data)}\n\n"
 
 
-def build_box_start(title: str, icon: Optional[str] = None) -> str:
-    data: Dict[str, Any] = {"title": title}
-    if icon:
-        data["icon"] = icon
-    return f"event: box_start\ndata: {json.dumps(data)}\n\n"
+def build_tool_exec_start(name: str, call_id: str, arguments: Any) -> str:
+    return f"event: tool_exec_start\ndata: {json.dumps({'name': name, 'call_id': call_id, 'arguments': arguments})}\n\n"
 
 
-def build_box_chunk(content: str) -> str:
-    return f"event: box_chunk\ndata: {json.dumps({'content': content})}\n\n"
+def build_tool_exec_chunk(call_id: str, content: str) -> str:
+    return f"event: tool_exec_chunk\ndata: {json.dumps({'call_id': call_id, 'content': content})}\n\n"
 
 
-def build_box_end() -> str:
-    return "event: box_end\ndata: {}\n\n"
+def build_tool_exec_end(call_id: str) -> str:
+    return f"event: tool_exec_end\ndata: {json.dumps({'call_id': call_id})}\n\n"
 
 
 async def aggregate_stream_to_chat_response(

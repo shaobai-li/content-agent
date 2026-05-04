@@ -204,7 +204,12 @@ class StandardAgent(BaseAgent):
                 save_message(ctx.agent_id, session_id, "user", ctx.user_text)
 
             from app.agents.runner import AgentRunner, AgentRunSpec
-            from app.agents.standard.streaming_hook import StreamingHook
+            from app.agents.standard.streaming_hook import (
+                StreamingHook, TextEvent, ToolExecStart, ToolExecChunk, ToolExecEnd, StreamSentinel,
+            )
+            from app.service.stream_service import (
+                build_tool_exec_start, build_tool_exec_chunk, build_tool_exec_end,
+            )
 
             provider = _get_provider()
             queue: asyncio.Queue = asyncio.Queue()
@@ -229,15 +234,24 @@ class StandardAgent(BaseAgent):
                 try:
                     return await runner.run(spec)
                 finally:
-                    await queue.put(None)
+                    await queue.put(StreamSentinel())
 
             runner_task = asyncio.create_task(run_and_signal())
 
             while True:
-                line = await queue.get()
-                if line is None:
+                msg = await queue.get()
+                if isinstance(msg, StreamSentinel):
                     break
-                yield line
+                elif isinstance(msg, TextEvent):
+                    yield build_stream_chunk(msg.content)
+                elif isinstance(msg, ToolExecStart):
+                    yield build_tool_exec_start(
+                        name=msg.name, call_id=msg.call_id, arguments=msg.arguments,
+                    )
+                elif isinstance(msg, ToolExecChunk):
+                    yield build_tool_exec_chunk(call_id=msg.call_id, content=msg.content)
+                elif isinstance(msg, ToolExecEnd):
+                    yield build_tool_exec_end(call_id=msg.call_id)
 
             result = await runner_task
 
