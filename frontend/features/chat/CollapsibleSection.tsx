@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, FileText, PenSquare, TerminalSquare, WandSparkles, type LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 
 interface CollapsibleSectionProps {
   title: string;
-  icon?: string;
   content: string;
   isStreaming?: boolean;
   defaultExpanded?: boolean;
@@ -16,7 +15,6 @@ interface CollapsibleSectionProps {
 
 export function CollapsibleSection({
   title,
-  icon,
   content,
   isStreaming = false,
   defaultExpanded = false,
@@ -27,13 +25,6 @@ export function CollapsibleSection({
   const toggleExpanded = () => setIsExpanded(!isExpanded);
 
   const hasContent = content.length > 0;
-  const iconMap: Record<string, LucideIcon> = {
-    "tool-read": FileText,
-    "tool-write": PenSquare,
-    "tool-command": TerminalSquare,
-    "tool-skill": WandSparkles,
-  };
-  const BoxIcon = icon ? (iconMap[icon] || FileText) : FileText;
 
   return (
     <div className="mb-2 min-w-0 border border-slate-200 rounded-lg overflow-hidden bg-slate-50/50">
@@ -51,7 +42,6 @@ export function CollapsibleSection({
         ) : (
           <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
         )}
-        <BoxIcon className="w-4 h-4 text-slate-500 shrink-0" />
         <span className="min-w-0 max-w-full flex-1 break-all text-left text-slate-700">{title}</span>
         {isStreaming && (
           <span className="flex items-center gap-1">
