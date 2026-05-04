@@ -8,12 +8,11 @@ interface ChatMessageProps {
 
 function renderParts(parts: MessagePart[]) {
   return parts.map((part, i) => {
-    if (part.type === "box") {
+    if (part.type === "trace") {
       return (
         <CollapsibleSection
           key={i}
           title={part.title}
-          icon={part.icon}
           content={part.content}
           isStreaming={!part.complete}
         />
