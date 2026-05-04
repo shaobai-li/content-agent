@@ -159,7 +159,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
               })
             );
             break;
-          case "box_start":
+          case "tool_exec_start":
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantMsgId
@@ -168,9 +168,8 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
                       parts: [
                         ...(m.parts || []),
                         {
-                          type: "box",
-                          title: event.data.title || "详情",
-                          icon: event.data.icon,
+                          type: "trace",
+                          title: event.data.name,
                           content: "",
                           complete: false,
                         },
@@ -180,17 +179,16 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
               )
             );
             break;
-          case "box_chunk":
+          case "tool_exec_chunk":
             setMessages((prev) =>
               prev.map((m) => {
                 if (m.id !== assistantMsgId) return m;
                 const parts = [...(m.parts || [])];
                 const lastIdx = parts.length - 1;
-                if (lastIdx >= 0 && parts[lastIdx].type === "box") {
+                if (lastIdx >= 0 && parts[lastIdx].type === "trace") {
                   const p = parts[lastIdx] as {
-                    type: "box";
+                    type: "trace";
                     title: string;
-                    icon?: string;
                     content: string;
                     complete: boolean;
                   };
@@ -200,13 +198,13 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
               })
             );
             break;
-          case "box_end":
+          case "tool_exec_end":
             setMessages((prev) =>
               prev.map((m) => {
                 if (m.id !== assistantMsgId) return m;
                 const parts = [...(m.parts || [])];
                 const lastIdx = parts.length - 1;
-                if (lastIdx >= 0 && parts[lastIdx].type === "box") {
+                if (lastIdx >= 0 && parts[lastIdx].type === "trace") {
                   parts[lastIdx] = { ...parts[lastIdx], complete: true };
                 }
                 return { ...m, parts };
