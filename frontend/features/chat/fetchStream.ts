@@ -9,14 +9,14 @@
  *   event: done
  *   data: {"session_id": "...", ...}
  *
- *   event: box_start
- *   data: {"title": "...", "icon": "..."}
+ *   event: tool_exec_start
+ *   data: {"name": "...", "call_id": "...", "arguments": {...}}
  *
- *   event: box_chunk
- *   data: {"content": "..."}
+ *   event: tool_exec_chunk
+ *   data: {"call_id": "...", "content": "..."}
  *
- *   event: box_end
- *   data: {}
+ *   event: tool_exec_end
+ *   data: {"call_id": "..."}
  */
 
 export type StreamChunkEvent = {
@@ -29,27 +29,27 @@ export type StreamDoneEvent = {
   data: { session_id?: string; [key: string]: unknown };
 };
 
-export type BoxStartEvent = {
-  event: "box_start";
-  data: { title: string; icon?: string };
+export type ToolExecStartEvent = {
+  event: "tool_exec_start";
+  data: { name: string; call_id: string; arguments: Record<string, unknown> };
 };
 
-export type BoxChunkEvent = {
-  event: "box_chunk";
-  data: { content: string };
+export type ToolExecChunkEvent = {
+  event: "tool_exec_chunk";
+  data: { call_id: string; content: string };
 };
 
-export type BoxEndEvent = {
-  event: "box_end";
-  data: Record<string, never>;
+export type ToolExecEndEvent = {
+  event: "tool_exec_end";
+  data: { call_id: string };
 };
 
 export type StreamEvent =
   | StreamChunkEvent
   | StreamDoneEvent
-  | BoxStartEvent
-  | BoxChunkEvent
-  | BoxEndEvent;
+  | ToolExecStartEvent
+  | ToolExecChunkEvent
+  | ToolExecEndEvent;
 
 export async function* readStreamLines(
   response: Response

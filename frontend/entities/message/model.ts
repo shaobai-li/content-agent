@@ -1,9 +1,9 @@
 export type MessageRole = "user" | "assistant";
 
-/** 可折叠块：与后端 box_start / box_chunk / box_end 一一对应 */
+/** 可折叠块：与后端 tool_exec_start / tool_exec_chunk / tool_exec_end 一一对应 */
 export type MessagePart =
   | { type: "text"; content: string }
-  | { type: "box"; title: string; icon?: string; content: string; complete: boolean };
+  | { type: "trace"; title: string; content: string; complete: boolean };
 
 export interface Message {
   id: string;
