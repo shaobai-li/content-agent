@@ -3,9 +3,9 @@ import pytest
 from app.service.stream_service import (
     build_stream_chunk,
     build_stream_done,
-    build_box_start,
-    build_box_chunk,
-    build_box_end,
+    build_tool_exec_start,
+    build_tool_exec_chunk,
+    build_tool_exec_end,
     aggregate_stream_to_chat_response,
 )
 
@@ -72,55 +72,55 @@ class TestBuildStreamDone:
         assert "session_id" in obj["data"]
 
 
-class TestBuildBoxStart:
-    def test_event_is_box_start(self):
-        obj = parse_sse_event(build_box_start("思考中"))
-        assert obj["event"] == "box_start"
+class TestBuildToolExecStart:
+    def test_event_is_tool_exec_start(self):
+        obj = parse_sse_event(build_tool_exec_start("read_file", "call_1", {"path": "/tmp/doc.md"}))
+        assert obj["event"] == "tool_exec_start"
 
-    def test_title_in_data(self):
-        obj = parse_sse_event(build_box_start("思考中"))
-        assert obj["data"]["title"] == "思考中"
+    def test_name_in_data(self):
+        obj = parse_sse_event(build_tool_exec_start("read_file", "call_1", {}))
+        assert obj["data"]["name"] == "read_file"
 
-    def test_ends_with_newline(self):
-        assert build_box_start("思考中").endswith("\n\n")
+    def test_call_id_in_data(self):
+        obj = parse_sse_event(build_tool_exec_start("read_file", "call_1", {}))
+        assert obj["data"]["call_id"] == "call_1"
 
-    def test_icon_included_when_provided(self):
-        obj = parse_sse_event(build_box_start("思考中", icon="🔍"))
-        assert obj["data"]["icon"] == "🔍"
-
-    def test_icon_omitted_when_not_provided(self):
-        obj = parse_sse_event(build_box_start("思考中"))
-        assert "icon" not in obj["data"]
-
-    def test_icon_omitted_when_none(self):
-        obj = parse_sse_event(build_box_start("思考中", icon=None))
-        assert "icon" not in obj["data"]
-
-
-class TestBuildBoxChunk:
-    def test_event_is_box_chunk(self):
-        obj = parse_sse_event(build_box_chunk("中间内容"))
-        assert obj["event"] == "box_chunk"
-
-    def test_data_contains_content(self):
-        obj = parse_sse_event(build_box_chunk("中间内容"))
-        assert obj["data"]["content"] == "中间内容"
+    def test_arguments_in_data(self):
+        obj = parse_sse_event(build_tool_exec_start("read_file", "call_1", {"path": "/tmp/doc.md"}))
+        assert obj["data"]["arguments"] == {"path": "/tmp/doc.md"}
 
     def test_ends_with_newline(self):
-        assert build_box_chunk("中间内容").endswith("\n\n")
+        assert build_tool_exec_start("read_file", "call_1", {}).endswith("\n\n")
 
 
-class TestBuildBoxEnd:
-    def test_event_is_box_end(self):
-        obj = parse_sse_event(build_box_end())
-        assert obj["event"] == "box_end"
+class TestBuildToolExecChunk:
+    def test_event_is_tool_exec_chunk(self):
+        obj = parse_sse_event(build_tool_exec_chunk("call_1", "partial content"))
+        assert obj["event"] == "tool_exec_chunk"
 
-    def test_data_is_empty_dict(self):
-        obj = parse_sse_event(build_box_end())
-        assert obj["data"] == {}
+    def test_call_id_in_data(self):
+        obj = parse_sse_event(build_tool_exec_chunk("call_1", "hello"))
+        assert obj["data"]["call_id"] == "call_1"
+
+    def test_content_in_data(self):
+        obj = parse_sse_event(build_tool_exec_chunk("call_1", "hello"))
+        assert obj["data"]["content"] == "hello"
 
     def test_ends_with_newline(self):
-        assert build_box_end().endswith("\n\n")
+        assert build_tool_exec_chunk("call_1", "").endswith("\n\n")
+
+
+class TestBuildToolExecEnd:
+    def test_event_is_tool_exec_end(self):
+        obj = parse_sse_event(build_tool_exec_end("call_1"))
+        assert obj["event"] == "tool_exec_end"
+
+    def test_call_id_in_data(self):
+        obj = parse_sse_event(build_tool_exec_end("call_1"))
+        assert obj["data"]["call_id"] == "call_1"
+
+    def test_ends_with_newline(self):
+        assert build_tool_exec_end("call_1").endswith("\n\n")
 
 
 class TestAggregateStreamToChatResponse:
@@ -156,11 +156,11 @@ class TestAggregateStreamToChatResponse:
         assert result["foo"] == "bar"
 
     @pytest.mark.asyncio
-    async def test_box_events_not_included_in_reply(self):
+    async def test_tool_events_not_included_in_reply(self):
         stream = self._make_stream([
-            build_box_start("thinking"),
-            build_box_chunk("内部推理内容"),
-            build_box_end(),
+            build_tool_exec_start("read_file", "call_1", {}),
+            build_tool_exec_chunk("call_1", "file content"),
+            build_tool_exec_end("call_1"),
             build_stream_chunk("最终回答"),
             build_stream_done("sess-1"),
         ])
