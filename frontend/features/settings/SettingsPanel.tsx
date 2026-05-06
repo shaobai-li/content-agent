@@ -1,6 +1,6 @@
 "use client";
 
-import { BoltIcon, LightBulbIcon } from "@heroicons/react/24/outline";
+import { BoltIcon, LightBulbIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
@@ -69,6 +69,19 @@ export function SettingsPanel() {
               </CardContent>
             </Card>
           ))}
+          <button
+            type="button"
+            className={cn(
+              "flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-transparent py-6 shadow-none outline-none transition-colors",
+              "hover:border-muted-foreground/50 hover:bg-muted/30",
+              "focus-visible:border-border focus-visible:ring-2 focus-visible:ring-ring/50",
+            )}
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/45 text-muted-foreground">
+              <PlusIcon className="size-5" aria-hidden />
+            </span>
+            <span className="text-sm font-medium text-muted-foreground">New Skill</span>
+          </button>
         </div>
       </div>
       <div className="mt-auto flex w-full justify-end gap-2">
