@@ -1,21 +1,39 @@
 "use client";
 
+import { BoltIcon, LightBulbIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
-
-import { SkillsFileInput } from "./SkillsFileInput";
+import { Switch } from "@/shared/ui/switch";
 
 const systemPromptFieldClass = cn(
   "selection:bg-primary selection:text-primary-foreground border-input w-full min-w-0 rounded-md border bg-muted px-3 py-2 text-base text-foreground shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-base resize-none overflow-y-auto break-words",
   "focus-visible:border-input focus-visible:ring-0 focus-visible:ring-offset-0",
 );
 
+const mockSkills = [
+  {
+    name: "Web Search",
+    description: "检索网页并汇总要点，用于补充实时信息。",
+  },
+  {
+    name: "Code Review",
+    description: "审查代码风格、可读性与常见缺陷。",
+  },
+  {
+    name: "Summarize",
+    description: "将长文或对话压缩为结构化摘要。",
+  },
+] as const;
+
 export function SettingsPanel() {
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium text-foreground">System Prompt</span>
+        <div className="flex items-center gap-2">
+          <LightBulbIcon className="size-4 shrink-0 text-foreground" aria-hidden />
+          <span className="text-sm font-semibold text-foreground">System Prompt</span>
+        </div>
         <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
           <CardContent className="flex flex-col gap-4 px-4">
             <div className="flex flex-col gap-2">
@@ -30,8 +48,28 @@ export function SettingsPanel() {
         </Card>
       </div>
       <div className="flex min-w-0 flex-col gap-2">
-        <span className="text-sm font-medium text-foreground">Skills</span>
-        <SkillsFileInput />
+        <div className="flex items-center gap-2">
+          <BoltIcon className="size-4 shrink-0 text-foreground" aria-hidden />
+          <span className="text-sm font-semibold text-foreground">Skills</span>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {mockSkills.map((skill, index) => (
+            <Card
+              key={skill.name}
+              className="relative min-h-36 gap-0 border-border bg-card py-6 text-card-foreground shadow-sm"
+            >
+              <Switch
+                className="absolute right-4 top-4"
+                defaultChecked={index === 0}
+                aria-label={`启用 ${skill.name}`}
+              />
+              <CardContent className="flex flex-col gap-2 pr-14 pt-0">
+                <span className="text-sm font-medium text-foreground">{skill.name}</span>
+                <p className="text-sm text-muted-foreground">{skill.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
       <div className="mt-auto flex w-full justify-end gap-2">
         <Button type="button" variant="outline">
