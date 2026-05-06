@@ -1,6 +1,6 @@
 "use client";
 
-import { BoltIcon, LightBulbIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { BoltIcon, LightBulbIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
@@ -63,10 +63,21 @@ export function SettingsPanel() {
                 defaultChecked={index === 0}
                 aria-label={`启用 ${skill.name}`}
               />
-              <CardContent className="flex flex-col gap-2 pr-14 pt-0">
+              <CardContent className="flex flex-col gap-2 pb-10 pr-14 pt-0">
                 <span className="text-sm font-medium text-foreground">{skill.name}</span>
                 <p className="text-sm text-muted-foreground">{skill.description}</p>
               </CardContent>
+              <button
+                type="button"
+                className={cn(
+                  "absolute bottom-3 right-3 rounded-md p-1.5 text-destructive outline-none transition-opacity",
+                  "opacity-0 hover:opacity-100 focus-visible:opacity-100",
+                  "hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring/50",
+                )}
+                aria-label={`删除 ${skill.name}`}
+              >
+                <TrashIcon className="size-5" aria-hidden />
+              </button>
             </Card>
           ))}
           <button
