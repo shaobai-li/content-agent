@@ -3,14 +3,13 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List
 
 from loguru import logger
 
 from app.agents.base_agent import BaseAgent
-from app.core.config import get_agent_base_dir, get_agent_local_data_dir, get_agent_workspace_dir
+from app.core.config import get_agent_workspace_dir
 from app.runtime.agent_turn_context import AgentTurnContext
 from app.service.stream_service import (
     build_stream_chunk,
@@ -18,8 +17,6 @@ from app.service.stream_service import (
 )
 from app.agents.context import ContextBuilder
 from app.agents.tools import create_tool_registry
-
-_PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 _MAX_TOOL_ROUNDS = 30
 
@@ -33,87 +30,6 @@ def _get_provider():
         api_key=os.getenv("DEEPSEEK_API_KEY"),
         spec=find_by_name("deepseek"),
     )
-
-
-USER_SYSTEM_PROMPT_REL = Path("prompts") / "system_prompt.md"
-
-
-def _current_datetime_prompt_line() -> str:
-    now = datetime.now().astimezone()
-    return f"当前本地时间（请以此为准处理所有与日期/时间相关的问题）：{now.strftime('%Y-%m-%d %H:%M:%S %z')}"
-
-
-def _standard_agent_tool_guard(workspace: Path, agent_id: str) -> str:
-    """发往 LLM 的 system 尾部：工具与工作目录说明。"""
-    from app.service.knowledge_base_registry_service import list_knowledge_bases
-    
-    skills_dir = (workspace.resolve().parent / "skills").resolve()
-    
-    # 获取默认知识库路径
-    databases = list_knowledge_bases(agent_id)
-    if databases:
-        first_kb = databases[0]
-        kb_id = first_kb.get("id", "")
-        default_kb_path = get_agent_local_data_dir(agent_id) / kb_id
-        kb_env_line = f"\nAGENT_DEFAULT_KB（默认知识库路径）={default_kb_path.resolve()}"
-    else:
-        kb_env_line = "\nAGENT_DEFAULT_KB（默认知识库路径）=无"
-    
-    return (
-        "\n\n你可以使用提供的工具。"
-        "\nrun_command 默认 cwd=workspace；注意！调用技能中的脚本时，必须设置 cwd=skills，同时必须要提供 skill_name，目录为 agent_id/skills/<skill_name>/。"
-        "\n命令中可使用环境变量: AGENT_WORKSPACE / AGENT_SKILLS / AGENT_DEFAULT_KB。"
-        f"\nAGENT_WORKSPACE={workspace.resolve()}"
-        f"\nAGENT_SKILLS（skills 根目录）={skills_dir}"
-        f"{kb_env_line}"
-    )
-
-
-def build_standard_agent_system_prompt_for_llm(agent_id: str, workspace: Path) -> str:
-    """
-    标准 Agent 发往 LLM 的完整 system：技能 XML + 用户/默认正文 + 工具 guard + 当前时间。
-    仅此一处拼装，避免分散在 skill_loader 与 loop 内。
-    """
-    from app.utils.skill_loader import discover_skills_xml_for_agent
-
-    xml_block = discover_skills_xml_for_agent(agent_id).strip()
-    base = resolve_standard_agent_base_system_prompt(agent_id).strip()
-    guard = _standard_agent_tool_guard(workspace, agent_id)
-    current_time = _current_datetime_prompt_line().strip()
-
-    head_parts: List[str] = []
-    if xml_block:
-        head_parts.append(xml_block)
-    if base:
-        head_parts.append(base)
-    if current_time:
-        head_parts.append(current_time)
-    head = "\n\n".join(head_parts)
-    if not head:
-        return guard.strip()
-    return f"{head}{guard}"
-
-
-def load_default_system_prompt() -> str:
-    path = _PROMPTS_DIR / "system.md"
-    return path.read_text(encoding="utf-8").strip()
-
-
-def resolve_standard_agent_base_system_prompt(agent_id: str) -> str:
-    """
-    优先使用 agent 数据目录下 prompts/system_prompt.md（如 {DATA_DIR}/agents/agent_std/prompts/system_prompt.md）；
-    若不存在或正文为空，则使用仓库内置 prompts/system.md。
-    """
-    try:
-        user_path = get_agent_base_dir(agent_id) / USER_SYSTEM_PROMPT_REL
-    except ValueError:
-        return load_default_system_prompt()
-    if not user_path.is_file():
-        return load_default_system_prompt()
-    text = user_path.read_text(encoding="utf-8").strip()
-    if not text:
-        return load_default_system_prompt()
-    return text
 
 
 def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
