@@ -95,6 +95,88 @@ class ContextBuilder:
             f"{kb_line}"
         )
 
+    def resolve_base_prompt(self) -> str:
+        """Public alias of :meth:`_resolve_base_prompt`.
+
+        Used by callers that need only the base prompt text
+        (e.g. ``get_config_dict``).
+        """
+        return self._resolve_base_prompt()
+
+    def build_messages(
+        self,
+        history: list[dict[str, Any]],
+        current_message: str,
+        mentions: list[dict] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Build the complete message list for an LLM call.
+
+        Order:
+          1. System prompt  (via :meth:`build_system_prompt`)
+          2. History        (user / assistant / tool multi-turn)
+          3. References     (mention articles expanded to ``user`` messages)
+          4. User message   (the current turn text)
+        """
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": self.build_system_prompt()},
+        ]
+        messages.extend(history)
+
+        if mentions:
+            refs = self._build_reference_messages(mentions)
+            if refs:
+                if messages[-1].get("role") == refs[0].get("role"):
+                    last = dict(messages[-1])
+                    last["content"] = self._merge_message_content(
+                        last.get("content"), refs[0].get("content"),
+                    )
+                    messages[-1] = last
+                    messages.extend(refs[1:])
+                else:
+                    messages.extend(refs)
+
+        if current_message:
+            messages.append({"role": "user", "content": current_message})
+        return messages
+
+    @staticmethod
+    def _merge_message_content(left: Any, right: Any) -> str | list[dict[str, Any]]:
+        if isinstance(left, str) and isinstance(right, str):
+            return f"{left}\n\n{right}" if left else right
+
+        def _to_blocks(value: Any) -> list[dict[str, Any]]:
+            if isinstance(value, list):
+                return [
+                    item if isinstance(item, dict) else {"type": "text", "text": str(item)}
+                    for item in value
+                ]
+            if value is None:
+                return []
+            return [{"type": "text", "text": str(value)}]
+
+        return _to_blocks(left) + _to_blocks(right)
+
+    def _build_reference_messages(self, mentions: list[dict]) -> list[dict[str, Any]]:
+        """Expand mention article paths into ``user`` messages."""
+        result: list[dict[str, Any]] = []
+        for mention in mentions:
+            path_str = mention.get("parsed_path")
+            if not path_str:
+                continue
+            path = Path(path_str)
+            if not path.exists():
+                continue
+            try:
+                content = path.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            name = mention.get("name", "未命名文章")
+            result.append({
+                "role": "user",
+                "content": f"# 参考文章: {name}\n\n{content}",
+            })
+        return result
+
     def _build_kb_env_line(self) -> str:
         """Build the ``AGENT_DEFAULT_KB`` environment variable line."""
         if not self.agent_id:
