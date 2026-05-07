@@ -16,8 +16,7 @@ from app.service.stream_service import (
     build_stream_chunk,
     build_stream_done,
 )
-from app.utils.context_utils import get_article_context_messages
-
+from app.agents.context import ContextBuilder
 from app.agents.tools import create_tool_registry
 
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
@@ -159,27 +158,25 @@ class StandardAgent(BaseAgent):
 
     def get_system_prompt_for_llm(self) -> str:
         ws = get_agent_workspace_dir(self.agent_id)
-        return build_standard_agent_system_prompt_for_llm(self.agent_id, ws)
+        return ContextBuilder(ws, self.agent_id).build_system_prompt()
 
     def get_config_dict(self) -> dict:
+        ws = get_agent_workspace_dir(self.agent_id)
         return {
             "agent_id": self.agent_id,
-            "system_prompt": resolve_standard_agent_base_system_prompt(self.agent_id),
+            "system_prompt": ContextBuilder(ws, self.agent_id).resolve_base_prompt(),
         }
 
     def _workspace_dir(self) -> Path:
         return get_agent_workspace_dir(self.agent_id)
 
     def _build_loop_messages(self, ctx: AgentTurnContext, workspace: Path) -> List[Dict[str, Any]]:
-        system_content = build_standard_agent_system_prompt_for_llm(self.agent_id, workspace)
-        messages: List[Dict[str, Any]] = [
-            {"role": "system", "content": system_content},
-        ]
-        messages.extend(_history_llm_turns(ctx.history_messages))
-        messages.extend(get_article_context_messages(ctx.mentions))
-        if ctx.user_text:
-            messages.append({"role": "user", "content": ctx.user_text})
-        return messages
+        builder = ContextBuilder(workspace, self.agent_id)
+        return builder.build_messages(
+            history=_history_llm_turns(ctx.history_messages),
+            current_message=ctx.user_text,
+            mentions=ctx.mentions,
+        )
 
     async def handle_chat_stream(
         self,
