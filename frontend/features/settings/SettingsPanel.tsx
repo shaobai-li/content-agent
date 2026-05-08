@@ -5,7 +5,6 @@ import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
-
 const settingsTabs = [
   { id: "personalization" as const, label: "Personalization" },
   { id: "project" as const, label: "Project" },
