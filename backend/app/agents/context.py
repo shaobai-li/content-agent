@@ -18,6 +18,8 @@ class ContextBuilder:
       2. build_messages()       — system + history + reference articles + user message
     """
 
+    BOOTSTRAP_FILES = ["SOUL.md", "USER.md", "IDENTITY.md"]
+
     def __init__(self, workspace: Path, agent_id: str | None = None):
         self.workspace = workspace
         self.agent_id = agent_id
@@ -32,9 +34,10 @@ class ContextBuilder:
 
         Composition (top-to-bottom):
           1. Skills XML catalog (``<skills>…</skills>``)
-          2. Base prompt — user override ``system_prompt.md`` or built-in ``system.md``
-          3. Current local datetime
-          4. Tool guard — workspace / skills / KB environment variables
+          2. Bootstrap files — ``SOUL.md`` / ``USER.md`` / ``IDENTITY.md``
+          3. Base prompt — user override ``system_prompt.md`` or built-in ``system.md``
+          4. Current local datetime
+          5. Tool guard — workspace / skills / KB environment variables
         """
         parts: list[str] = []
 
@@ -42,6 +45,10 @@ class ContextBuilder:
             xml = discover_skills_xml_for_agent(self.agent_id).strip()
             if xml:
                 parts.append(xml)
+
+        bootstrap = self._load_bootstrap_files()
+        if bootstrap:
+            parts.append(bootstrap)
 
         base = self._resolve_base_prompt()
         if base:
@@ -70,6 +77,17 @@ class ContextBuilder:
                     return text
         path = self._prompts_dir / "system.md"
         return path.read_text(encoding="utf-8").strip()
+
+    def _load_bootstrap_files(self) -> str:
+        """Load bootstrap files from workspace (SOUL.md, USER.md, IDENTITY.md)."""
+        parts = []
+        for filename in self.BOOTSTRAP_FILES:
+            file_path = self.workspace / filename
+            if file_path.exists():
+                content = file_path.read_text(encoding="utf-8").strip()
+                if content:
+                    parts.append(f"## {filename}\n\n{content}")
+        return "\n\n".join(parts) if parts else ""
 
     @staticmethod
     def _current_datetime() -> str:
