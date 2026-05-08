@@ -51,7 +51,7 @@ export function SettingsPanel() {
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6">
       <div
-        className="flex min-w-0 gap-8 border-b border-border"
+        className="flex min-w-0 shrink-0 gap-8 border-b border-border"
         role="tablist"
         aria-label="Settings sections"
       >
@@ -79,7 +79,7 @@ export function SettingsPanel() {
       </div>
 
       {activeTab === "personalization" && (
-        <div className="flex flex-col gap-2" role="tabpanel">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
           <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
             <CardContent className="flex flex-col gap-4 px-4">
               {personalizationFields.map((field) => (
@@ -90,7 +90,7 @@ export function SettingsPanel() {
                   <textarea
                     id={`settings-personalization-${field.id}`}
                     className={settingsMultilineFieldClass}
-                    rows={3}
+                    rows={6}
                     autoComplete="off"
                   />
                 </div>
@@ -101,7 +101,7 @@ export function SettingsPanel() {
       )}
 
       {activeTab === "project" && (
-        <div className="flex flex-col gap-2" role="tabpanel">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
           <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
             <CardContent className="flex flex-col gap-4 px-4">
               {projectFields.map((field) => (
@@ -112,7 +112,7 @@ export function SettingsPanel() {
                   <textarea
                     id={`settings-project-${field.id}`}
                     className={settingsMultilineFieldClass}
-                    rows={3}
+                    rows={10}
                     autoComplete="off"
                   />
                 </div>
