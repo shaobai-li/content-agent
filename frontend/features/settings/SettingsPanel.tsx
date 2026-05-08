@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { BoltIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
@@ -173,12 +172,6 @@ export function SettingsPanel() {
           </div>
         </div>
       )}
-      <div className="mt-auto flex w-full justify-end gap-2">
-        <Button type="button" variant="outline">
-          Cancel
-        </Button>
-        <Button type="button">Enter</Button>
-      </div>
     </div>
   );
 }
