@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { BoltIcon, LightBulbIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { Button } from "@/shared/ui/button";
+import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
-
 const settingsTabs = [
   { id: "personalization" as const, label: "Personalization" },
   { id: "project" as const, label: "Project" },
@@ -15,10 +13,21 @@ const settingsTabs = [
 
 type SettingsTabId = (typeof settingsTabs)[number]["id"];
 
-const systemPromptFieldClass = cn(
+const settingsMultilineFieldClass = cn(
   "selection:bg-primary selection:text-primary-foreground border-input w-full min-w-0 rounded-md border bg-muted px-3 py-2 text-base text-foreground shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-base resize-none overflow-y-auto break-words",
   "focus-visible:border-input focus-visible:ring-0 focus-visible:ring-offset-0",
 );
+
+const personalizationFields = [
+  { id: "soul", label: "SOUL" },
+  { id: "identity", label: "IDENTITY" },
+  { id: "user", label: "USER" },
+] as const;
+
+const projectFields = [
+  { id: "agents", label: "AGENTS" },
+  { id: "memory", label: "MEMORY" },
+] as const;
 
 const mockSkills = [
   {
@@ -41,7 +50,7 @@ export function SettingsPanel() {
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6">
       <div
-        className="flex min-w-0 gap-8 border-b border-border"
+        className="flex min-w-0 shrink-0 gap-8 border-b border-border"
         role="tablist"
         aria-label="Settings sections"
       >
@@ -69,38 +78,51 @@ export function SettingsPanel() {
       </div>
 
       {activeTab === "personalization" && (
-        <div className="flex flex-col gap-2" role="tabpanel">
-          <div className="flex items-center gap-2">
-            <LightBulbIcon className="size-4 shrink-0 text-foreground" aria-hidden />
-            <span className="text-sm font-semibold text-foreground">System Prompt</span>
-          </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
           <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
             <CardContent className="flex flex-col gap-4 px-4">
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-foreground">Role</span>
-                <textarea className={systemPromptFieldClass} rows={2} />
-              </div>
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium text-foreground">Content</span>
-                <textarea className={systemPromptFieldClass} rows={2} />
-              </div>
+              {personalizationFields.map((field) => (
+                <div key={field.id} className="flex flex-col gap-2">
+                  <label htmlFor={`settings-personalization-${field.id}`} className="text-sm font-medium text-foreground">
+                    {field.label}
+                  </label>
+                  <textarea
+                    id={`settings-personalization-${field.id}`}
+                    className={settingsMultilineFieldClass}
+                    rows={6}
+                    autoComplete="off"
+                  />
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
       )}
 
       {activeTab === "project" && (
-        <div className="flex flex-col gap-2" role="tabpanel">
-          <p className="text-sm text-muted-foreground">Project</p>
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
+          <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
+            <CardContent className="flex flex-col gap-4 px-4">
+              {projectFields.map((field) => (
+                <div key={field.id} className="flex flex-col gap-2">
+                  <label htmlFor={`settings-project-${field.id}`} className="text-sm font-medium text-foreground">
+                    {field.label}
+                  </label>
+                  <textarea
+                    id={`settings-project-${field.id}`}
+                    className={settingsMultilineFieldClass}
+                    rows={10}
+                    autoComplete="off"
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {activeTab === "skills" && (
         <div className="flex min-w-0 flex-col gap-2" role="tabpanel">
-          <div className="flex items-center gap-2">
-            <BoltIcon className="size-4 shrink-0 text-foreground" aria-hidden />
-            <span className="text-sm font-semibold text-foreground">Skills</span>
-          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {mockSkills.map((skill, index) => (
               <Card
@@ -145,12 +167,6 @@ export function SettingsPanel() {
           </div>
         </div>
       )}
-      <div className="mt-auto flex w-full justify-end gap-2">
-        <Button type="button" variant="outline">
-          Cancel
-        </Button>
-        <Button type="button">Enter</Button>
-      </div>
     </div>
   );
 }
