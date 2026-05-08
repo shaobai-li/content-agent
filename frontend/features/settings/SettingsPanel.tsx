@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BoltIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
@@ -124,10 +124,6 @@ export function SettingsPanel() {
 
       {activeTab === "skills" && (
         <div className="flex min-w-0 flex-col gap-2" role="tabpanel">
-          <div className="flex items-center gap-2">
-            <BoltIcon className="size-4 shrink-0 text-foreground" aria-hidden />
-            <span className="text-sm font-semibold text-foreground">Skills</span>
-          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {mockSkills.map((skill, index) => (
               <Card
