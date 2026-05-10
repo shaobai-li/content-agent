@@ -1,5 +1,6 @@
 mod agent;
 mod core;
+mod service;
 
 use axum::{routing::get, Router};
 use tower_http::cors::CorsLayer;
