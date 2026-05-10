@@ -1,5 +1,6 @@
 mod agent;
 mod core;
+mod provider;
 mod routes;
 mod service;
 
