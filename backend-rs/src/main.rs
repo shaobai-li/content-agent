@@ -20,6 +20,7 @@ async fn main() {
     dotenvy::dotenv().ok();
     core::config::init_config();
     agent::registry::init_registry();
+    agent::registry::init_agent_instances();
 
     let origins = [
         "http://localhost:3000".parse().unwrap(),
