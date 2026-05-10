@@ -164,3 +164,86 @@ fn history_llm_turns(history_messages: &[Value]) -> Vec<Value> {
     }
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn test_empty_input_returns_empty() {
+        let empty: Vec<Value> = vec![];
+        let result = history_llm_turns(&empty);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_user_message_preserved() {
+        let result = history_llm_turns(&[json!({"role": "user", "content": "hello"})]);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].get("content").and_then(|v| v.as_str()), Some("hello"));
+    }
+
+    #[test]
+    fn test_assistant_message_preserved() {
+        let result = history_llm_turns(&[json!({"role": "assistant", "content": "reply"})]);
+        assert_eq!(result[0].get("content").and_then(|v| v.as_str()), Some("reply"));
+    }
+
+    #[test]
+    fn test_assistant_tool_calls_included() {
+        let tc = json!([{"id": "tc1", "function": {"name": "foo"}}]);
+        let result = history_llm_turns(&[json!({"role": "assistant", "content": "", "tool_calls": tc})]);
+        assert!(result[0].get("tool_calls").is_some());
+    }
+
+    #[test]
+    fn test_tool_message_preserved_with_tool_call_id() {
+        let result = history_llm_turns(&[json!({"role": "tool", "content": "result", "tool_call_id": "tc1"})]);
+        assert_eq!(result[0].get("tool_call_id").and_then(|v| v.as_str()), Some("tc1"));
+    }
+
+    #[test]
+    fn test_tool_message_empty_content_defaults_to_empty_string() {
+        let result = history_llm_turns(&[json!({"role": "tool", "content": null})]);
+        assert_eq!(result[0].get("content").and_then(|v| v.as_str()), Some(""));
+    }
+
+    #[test]
+    fn test_unknown_role_is_dropped() {
+        let result = history_llm_turns(&[json!({"role": "system", "content": "ignored"})]);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_extra_fields_stripped_from_user_message() {
+        let result = history_llm_turns(&[json!({"role": "user", "content": "hi", "message_id": "x", "created_at": "t"})]);
+        assert!(result[0].get("message_id").is_none());
+        assert!(result[0].get("created_at").is_none());
+    }
+
+    #[test]
+    fn test_order_preserved() {
+        let history = vec![
+            json!({"role": "user", "content": "q1"}),
+            json!({"role": "assistant", "content": "a1"}),
+            json!({"role": "user", "content": "q2"}),
+        ];
+        let result = history_llm_turns(&history);
+        let contents: Vec<&str> = result.iter().filter_map(|m| m.get("content").and_then(|v| v.as_str())).collect();
+        assert_eq!(contents, vec!["q1", "a1", "q2"]);
+    }
+
+    #[test]
+    fn test_tool_calls_not_included_when_absent() {
+        let result = history_llm_turns(&[json!({"role": "assistant", "content": "plain"})]);
+        assert!(result[0].get("tool_calls").is_none());
+    }
+
+    #[test]
+    fn test_tool_call_id_not_included_when_absent() {
+        let result = history_llm_turns(&[json!({"role": "tool", "content": "ok"})]);
+        assert!(result[0].get("tool_call_id").is_none());
+    }
+}
