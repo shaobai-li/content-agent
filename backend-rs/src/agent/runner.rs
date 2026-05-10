@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use serde_json::Value;
 
+use crate::agent::hook::AgentHook;
 use crate::provider::base::{LLMProvider, LLMResponse, ToolCallRequest};
-use crate::tools::{ToolRegistry, Tool};
+use crate::tools::ToolRegistry;
 
 const DEFAULT_ERROR_MESSAGE: &str = "Sorry, I encountered an error calling the AI model.";
 const PERSISTED_MODEL_ERROR_PLACEHOLDER: &str = "[Assistant reply unavailable due to model error.]";
@@ -35,6 +35,7 @@ pub struct AgentRunSpec {
     pub fail_on_tool_error: bool,
     pub context_window_tokens: Option<u32>,
     pub provider_retry_mode: String,
+    pub hook: Option<Arc<dyn AgentHook>>,
 }
 
 /// Outcome of a shared agent execution.
@@ -72,18 +73,10 @@ impl AgentRunner {
         let mut had_injections = false;
         let mut injection_cycles = 0u32;
 
-        for iteration in 0..spec.max_iterations {
+        for _iteration in 0..spec.max_iterations {
             let messages_for_model = Self::apply_context_governance(&messages, &spec);
-            let response = match self.request_model(&spec, &messages_for_model).await {
-                Ok(r) => r,
-                Err(e) => {
-                    error = Some(format!("Error: {e}"));
-                    final_content.clone_from(&error);
-                    stop_reason = "error".to_string();
-                    break;
-                }
-            };
-            let raw_usage = Self::usage_dict(response.usage.as_ref());
+            let response = self.request_model(&spec, &messages_for_model).await;
+            let raw_usage = Self::usage_dict(Some(&response.usage));
             Self::accumulate_usage(&mut usage, &raw_usage);
 
             if response.should_execute_tools() {
@@ -97,10 +90,18 @@ impl AgentRunner {
                     tools_used.push(tc.name.clone());
                 }
 
+                if let Some(hook) = &spec.hook {
+                    hook.before_execute_tools(&response.tool_calls).await;
+                }
+
                 let (results, events, fatal_error) = self.execute_tools(
                     &spec, &response.tool_calls,
                 ).await;
                 tool_events.extend(events);
+
+                if let Some(hook) = &spec.hook {
+                    hook.after_iteration(&response.tool_calls, &results).await;
+                }
 
                 for (tc, result) in response.tool_calls.iter().zip(results.iter()) {
                     let tool_msg = serde_json::json!({
@@ -123,11 +124,11 @@ impl AgentRunner {
                 empty_content_retries = 0;
                 length_recovery_count = 0;
 
-                let (drained, new_cycles) = Self::try_drain_injections(
+                let (drained, _new_cycles) = Self::try_drain_injections(
                     &mut messages, None, injection_cycles,
                 ).await;
                 if drained { had_injections = true; }
-                injection_cycles = new_cycles;
+                injection_cycles = _new_cycles;
 
                 continue;
             }
@@ -159,14 +160,15 @@ impl AgentRunner {
                 None
             };
 
-            let (drained, new_cycles) = Self::try_drain_injections(
+            let (drained, _new_cycles) = Self::try_drain_injections(
                 &mut messages, assistant_msg.as_ref(), injection_cycles,
             ).await;
             if drained { had_injections = true; }
-            injection_cycles = new_cycles;
+            injection_cycles = _new_cycles;
 
             if response.finish_reason == "error" {
-                final_content = Some(clean.clone().unwrap_or_else(|| DEFAULT_ERROR_MESSAGE.to_string()));
+                let content = if clean.is_empty() { DEFAULT_ERROR_MESSAGE.to_string() } else { clean.clone() };
+                final_content = Some(content);
                 stop_reason = "error".to_string();
                 error.clone_from(&final_content);
                 Self::append_model_error_placeholder(&mut messages);
@@ -210,23 +212,47 @@ impl AgentRunner {
         result
     }
 
-    async fn request_model(&self, spec: &AgentRunSpec, messages: &[Value]) -> Result<LLMResponse, String> {
-        let tools_defs = spec.tools.get_definitions();
-        let mut kwargs = serde_json::json!({
-            "messages": messages,
-            "tools": tools_defs,
-            "model": spec.model,
-            "retry_mode": spec.provider_retry_mode,
-        });
-        if let Some(temp) = spec.temperature {
-            kwargs["temperature"] = serde_json::json!(temp);
-        }
-        if let Some(mt) = spec.max_tokens {
-            kwargs["max_tokens"] = serde_json::json!(mt);
+    async fn request_model(&self, spec: &AgentRunSpec, messages: &[Value]) -> LLMResponse {
+        let tools_defs = Some(spec.tools.get_definitions());
+        let model = Some(spec.model.as_str());
+        let reasoning_effort = spec.reasoning_effort.as_deref();
+
+        if let Some(hook) = &spec.hook {
+            if hook.wants_streaming() {
+                let hook = hook.clone();
+                let on_delta: Option<Box<dyn Fn(String) + Send>> = Some(Box::new(move |delta| {
+                    let hook = hook.clone();
+                    tokio::spawn(async move {
+                        hook.on_stream(&delta).await;
+                    });
+                }));
+                return self
+                    .provider
+                    .chat_stream(
+                        messages.to_vec(),
+                        tools_defs,
+                        model,
+                        spec.max_tokens,
+                        spec.temperature,
+                        reasoning_effort,
+                        None,
+                        on_delta,
+                    )
+                    .await;
+            }
         }
 
-        // For now, use non-streaming chat
-        self.provider.chat(kwargs).await
+        self.provider
+            .chat(
+                messages.to_vec(),
+                tools_defs,
+                model,
+                spec.max_tokens,
+                spec.temperature,
+                reasoning_effort,
+                None,
+            )
+            .await
     }
 
     async fn execute_tools(
@@ -261,7 +287,8 @@ impl AgentRunner {
         spec: &AgentRunSpec,
         tool_call: &ToolCallRequest,
     ) -> (String, Value, Option<String>) {
-        let result = spec.tools.execute(&tool_call.name, tool_call.arguments.clone()).await;
+        let args = serde_json::to_value(&tool_call.arguments).unwrap_or_default();
+        let result = spec.tools.execute(&tool_call.name, args).await;
 
         let event_status = if result.starts_with("Error") { "error" } else { "ok" };
         let detail = result.replace('\n', " ").trim()[..120.min(result.len())].to_string();
@@ -272,9 +299,10 @@ impl AgentRunner {
         });
 
         if result.starts_with("Error") {
+            let err_copy = result.clone();
             let with_hint = result + HINT;
             if spec.fail_on_tool_error {
-                (with_hint, event, Some(result.clone()))
+                (with_hint, event, Some(err_copy))
             } else {
                 (with_hint, event, None)
             }
@@ -423,7 +451,7 @@ impl AgentRunner {
         updated.unwrap_or_else(|| messages.to_vec())
     }
 
-    fn partition_tool_batches(spec: &AgentRunSpec, tool_calls: &[ToolCallRequest]) -> Vec<Vec<&ToolCallRequest>> {
+    fn partition_tool_batches<'a>(spec: &'a AgentRunSpec, tool_calls: &'a [ToolCallRequest]) -> Vec<Vec<&'a ToolCallRequest>> {
         if !spec.concurrent_tools {
             return tool_calls.iter().map(|tc| vec![tc]).collect();
         }

@@ -5,8 +5,6 @@ use serde_json::Value;
 
 use crate::core::config::get_agent_base_dir as core_get_agent_base_dir;
 
-use super::turn_context::AgentTurnContext;
-
 /// Built-in base system prompt (embedded at compile time).
 const DEFAULT_SYSTEM_PROMPT: &str = include_str!("standard/prompts/system.md");
 
