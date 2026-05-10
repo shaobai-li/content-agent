@@ -33,6 +33,9 @@ async fn main() {
         .merge(routes::agents::router())
         .merge(routes::sessions::router())
         .merge(routes::messages::router())
+        .merge(routes::knowledge_base::router())
+        .merge(routes::nodes::router())
+        .merge(routes::files::router())
         .layer(cors);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8001")
