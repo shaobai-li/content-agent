@@ -33,6 +33,22 @@ const TRANSIENT_ERROR_MARKERS: &[&str] = &[
 const RETRYABLE_STATUS_CODES: &[u16] = &[408, 409, 429];
 const TRANSIENT_ERROR_KINDS: &[&str] = &["timeout", "connection"];
 
+const NON_RETRYABLE_429_ERROR_TOKENS: &[&str] = &[
+    "insufficient_quota", "quota_exceeded", "quota_exhausted",
+    "billing_hard_limit_reached", "insufficient_balance",
+    "credit_balance_too_low", "billing_not_active", "payment_required",
+];
+
+const RETRYABLE_429_ERROR_TOKENS: &[&str] = &[
+    "rate_limit_exceeded", "rate_limit_error", "too_many_requests",
+    "request_limit_exceeded", "requests_limit_exceeded", "overloaded_error",
+];
+
+const CHAT_RETRY_DELAYS: &[f64] = &[1.0, 2.0, 4.0];
+const PERSISTENT_MAX_DELAY: f64 = 60.0;
+const PERSISTENT_IDENTICAL_ERROR_LIMIT: usize = 10;
+const RETRY_HEARTBEAT_CHUNK: f64 = 30.0;
+
 // ---------------------------------------------------------------------------
 // Provider configuration (simplified ProviderSpec for Rust)
 // ---------------------------------------------------------------------------
@@ -322,6 +338,378 @@ impl OpenAICompatProvider {
 
         payload
     }
+
+    // ------------------------------------------------------------------
+    // Retry logic
+    // ------------------------------------------------------------------
+
+    fn is_transient_error(content: Option<&str>) -> bool {
+        let err = content.unwrap_or("").to_lowercase();
+        TRANSIENT_ERROR_MARKERS.iter().any(|m| err.contains(m))
+    }
+
+    fn is_transient_response(response: &LLMResponse) -> bool {
+        // Prefer structured error metadata
+        if let Some(should_retry) = response.error_should_retry {
+            return should_retry;
+        }
+
+        if let Some(status) = response.error_status_code {
+            let status = status as u16;
+            if status == 429 {
+                return Self::is_retryable_429_response(response);
+            }
+            if RETRYABLE_STATUS_CODES.contains(&status) || status >= 500 {
+                return true;
+            }
+        }
+
+        let kind = response.error_kind.as_deref().unwrap_or("");
+        if TRANSIENT_ERROR_KINDS.contains(&kind) {
+            return true;
+        }
+
+        Self::is_transient_error(response.content.as_deref())
+    }
+
+    fn is_retryable_429_response(response: &LLMResponse) -> bool {
+        let type_token: &str = &response.error_type.as_deref().unwrap_or("").to_lowercase();
+        let code_token: &str = &response.error_code.as_deref().unwrap_or("").to_lowercase();
+        let content = response.content.as_deref().unwrap_or("").to_lowercase();
+
+        // Non-retryable semantic tokens
+        let tokens = [type_token, code_token];
+        for token in &tokens {
+            if NON_RETRYABLE_429_ERROR_TOKENS.contains(token) {
+                return false;
+            }
+        }
+        if NON_RETRYABLE_429_ERROR_TOKENS.iter().any(|m| content.contains(m)) {
+            return false;
+        }
+
+        // Retryable semantic tokens
+        if RETRYABLE_429_ERROR_TOKENS.contains(&type_token) || RETRYABLE_429_ERROR_TOKENS.contains(&code_token) {
+            return true;
+        }
+        if RETRYABLE_429_ERROR_TOKENS.iter().any(|m| content.contains(m)) {
+            return true;
+        }
+
+        // Unknown 429 defaults to retry
+        true
+    }
+
+    fn extract_retry_after(content: Option<&str>) -> Option<f64> {
+        let text = content.unwrap_or("").to_lowercase();
+
+        // Pattern 1: "retry after N unit"
+        if let Some((value, unit)) = extract_time_value(&text, &["retry after"]) {
+            return Some(to_retry_seconds(value, &unit));
+        }
+        // Pattern 2: "try again in N unit"
+        if let Some((value, unit)) = extract_time_value(&text, &["try again in"]) {
+            return Some(to_retry_seconds(value, &unit));
+        }
+        // Pattern 3: "wait N unit before retry"
+        if let Some((value, unit)) = extract_time_value_before(&text, "wait", "before retry") {
+            return Some(to_retry_seconds(value, &unit));
+        }
+        // Pattern 4: retry_after=N or retry-after=N
+        if let Some((value, unit)) = extract_retry_after_eq(&text) {
+            return Some(to_retry_seconds(value, &unit));
+        }
+
+        None
+    }
+
+    fn extract_retry_after_from_headers(headers: &reqwest::header::HeaderMap) -> Option<f64> {
+        // Try Retry-After-MS first
+        if let Some(retry_ms) = headers.get("retry-after-ms") {
+            if let Some(value) = retry_ms.to_str().ok().and_then(|s| s.parse::<f64>().ok()) {
+                if value > 0.0 {
+                    return Some(to_retry_seconds(value, "ms"));
+                }
+            }
+        }
+
+        // Try Retry-After
+        if let Some(retry_after) = headers.get("retry-after") {
+            if let Ok(text) = retry_after.to_str() {
+                let text = text.trim();
+                if !text.is_empty() {
+                    if let Ok(seconds) = text.parse::<f64>() {
+                        return Some(to_retry_seconds(seconds, "s"));
+                    }
+                    // Parse HTTP-date format
+                    if let Ok(retry_at) = chrono::DateTime::parse_from_rfc2822(text) {
+                        let retry_at_utc = retry_at.with_timezone(&chrono::Utc);
+                        let remaining = (retry_at_utc - chrono::Utc::now()).num_seconds() as f64;
+                        if remaining > 0.0 {
+                            return Some(remaining);
+                        }
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
+    fn extract_retry_after_from_response(response: &LLMResponse) -> Option<f64> {
+        if let Some(retry_after_s) = response.error_retry_after_s {
+            if retry_after_s > 0.0 {
+                return Some(retry_after_s);
+            }
+        }
+        // Fallback: extract from content text
+        Self::extract_retry_after(response.content.as_deref())
+    }
+
+    /// Run a chat function with retry on transient errors.
+    pub async fn run_with_retry<F, Fut>(
+        &self,
+        call: F,
+        retry_mode: &str,
+        on_retry_wait: Option<Box<dyn Fn(String) + Send>>,
+    ) -> LLMResponse
+    where
+        F: Fn() -> Fut,
+        Fut: std::future::Future<Output = LLMResponse>,
+    {
+        let mut attempt: usize = 0;
+        let persistent = retry_mode == "persistent";
+        let mut last_response: Option<LLMResponse> = None;
+        let mut last_error_key: Option<String> = None;
+        let mut identical_error_count: usize = 0;
+
+        loop {
+            attempt += 1;
+            let response = call().await;
+
+            if response.finish_reason != "error" {
+                return response;
+            }
+
+            let error_key = response.content.as_deref().unwrap_or("").trim().to_lowercase();
+            last_response = Some(response);
+            let error_key = if error_key.is_empty() { None } else { Some(error_key) };
+
+            if error_key.is_some() && error_key == last_error_key {
+                identical_error_count += 1;
+            } else {
+                last_error_key = error_key;
+                identical_error_count = if last_error_key.is_some() { 1 } else { 0 };
+            }
+
+            if !Self::is_transient_response(last_response.as_ref().unwrap()) {
+                return last_response.unwrap();
+            }
+
+            if persistent && identical_error_count >= PERSISTENT_IDENTICAL_ERROR_LIMIT {
+                if let Some(ref on_wait) = on_retry_wait {
+                    on_wait(format!(
+                        "Persistent retry stopped after {} identical errors.",
+                        identical_error_count
+                    ));
+                }
+                return last_response.unwrap();
+            }
+
+            if !persistent && attempt > CHAT_RETRY_DELAYS.len() {
+                if let Some(ref on_wait) = on_retry_wait {
+                    on_wait(format!(
+                        "Model request failed after {} retries, giving up.",
+                        attempt
+                    ));
+                }
+                break;
+            }
+
+            let base_delay = CHAT_RETRY_DELAYS[(attempt - 1).min(CHAT_RETRY_DELAYS.len() - 1)];
+            let delay = Self::extract_retry_after_from_response(last_response.as_ref().unwrap())
+                .unwrap_or(base_delay)
+                .min(if persistent { PERSISTENT_MAX_DELAY } else { f64::MAX });
+
+            // Sleep with heartbeat
+            self.sleep_with_heartbeat(delay, attempt, persistent, &on_retry_wait).await;
+        }
+
+        match last_response {
+            Some(resp) => resp,
+            None => call().await,
+        }
+    }
+
+    async fn sleep_with_heartbeat(
+        &self,
+        delay: f64,
+        attempt: usize,
+        persistent: bool,
+        on_retry_wait: &Option<Box<dyn Fn(String) + Send>>,
+    ) {
+        let mut remaining = delay.max(0.0);
+        while remaining > 0.0 {
+            if let Some(ref on_wait) = on_retry_wait {
+                let kind = if persistent { "persistent retry" } else { "retry" };
+                on_wait(format!(
+                    "Model request failed, {} in {}s (attempt {}).",
+                    kind,
+                    (remaining.max(1.0)).round() as i32,
+                    attempt,
+                ));
+            }
+            let chunk = remaining.min(RETRY_HEARTBEAT_CHUNK);
+            tokio::time::sleep(Duration::from_secs_f64(chunk)).await;
+            remaining -= chunk;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Public retry-aware API
+    // ------------------------------------------------------------------
+
+    pub async fn chat_with_retry(
+        &self,
+        messages: Vec<Value>,
+        tools: Option<Vec<Value>>,
+        model: Option<&str>,
+        max_tokens: Option<u32>,
+        temperature: Option<f64>,
+        reasoning_effort: Option<&str>,
+        tool_choice: Option<Value>,
+        retry_mode: &str,
+        on_retry_wait: Option<Box<dyn Fn(String) + Send>>,
+    ) -> LLMResponse {
+        let max_tokens = max_tokens.unwrap_or(4096);
+        let temperature = temperature.unwrap_or(0.7);
+
+        let messages_clone = messages.clone();
+        let tools_clone = tools.clone();
+        let model_clone = model.map(|s| s.to_string());
+        let reasoning_clone = reasoning_effort.map(|s| s.to_string());
+
+        self.run_with_retry(
+            || async {
+                self.chat(
+                    messages_clone.clone(),
+                    tools_clone.clone(),
+                    model_clone.as_deref(),
+                    Some(max_tokens),
+                    Some(temperature),
+                    reasoning_clone.as_deref(),
+                    tool_choice.clone(),
+                ).await
+            },
+            retry_mode,
+            on_retry_wait,
+        ).await
+    }
+
+    pub async fn chat_stream_with_retry(
+        &self,
+        messages: Vec<Value>,
+        tools: Option<Vec<Value>>,
+        model: Option<&str>,
+        max_tokens: Option<u32>,
+        temperature: Option<f64>,
+        reasoning_effort: Option<&str>,
+        tool_choice: Option<Value>,
+        on_content_delta: Option<Box<dyn Fn(String) + Send>>,
+        retry_mode: &str,
+        on_retry_wait: Option<Box<dyn Fn(String) + Send>>,
+    ) -> LLMResponse {
+        let max_tokens = max_tokens.unwrap_or(4096);
+        let temperature = temperature.unwrap_or(0.7);
+        let delta: std::sync::Arc<Option<Box<dyn Fn(String) + Send>>> = std::sync::Arc::new(on_content_delta);
+
+        self.run_with_retry(
+            || {
+                let messages = messages.clone();
+                let tools = tools.clone();
+                let tool_choice = tool_choice.clone();
+                let _delta = delta.clone();
+                let model = model.map(|s| s.to_string());
+                let reasoning = reasoning_effort.map(|s| s.to_string());
+
+                async move {
+                    self.chat_stream(
+                        messages,
+                        tools,
+                        model.as_deref(),
+                        Some(max_tokens),
+                        Some(temperature),
+                        reasoning.as_deref(),
+                        tool_choice,
+                        None, // don't pass delta on retry since Fn can't be cloned
+                    ).await
+                }
+            },
+            retry_mode,
+            on_retry_wait,
+        ).await
+    }
+}
+
+fn to_retry_seconds(value: f64, unit: &str) -> f64 {
+    match unit {
+        "ms" | "milliseconds" => (value / 1000.0).max(0.1),
+        "m" | "min" | "minutes" => (value * 60.0).max(0.1),
+        _ => value.max(0.1),
+    }
+}
+
+fn extract_time_value(text: &str, prefixes: &[&str]) -> Option<(f64, String)> {
+    for prefix in prefixes {
+        if let Some(pos) = text.find(prefix) {
+            let rest = &text[pos + prefix.len()..];
+            let rest = rest.trim();
+            let end = rest.find(|c: char| !c.is_ascii_digit() && c != '.').unwrap_or(rest.len());
+            if end > 0 {
+                if let Ok(value) = rest[..end].parse::<f64>() {
+                    let unit = rest[end..].trim().split_whitespace().next().unwrap_or("s").to_string();
+                    return Some((value, unit));
+                }
+            }
+        }
+    }
+    None
+}
+
+fn extract_time_value_before(text: &str, trigger: &str, after: &str) -> Option<(f64, String)> {
+    if let Some(pos) = text.find(trigger) {
+        let rest = &text[pos + trigger.len()..];
+        let rest = rest.trim();
+        let end = rest.find(|c: char| !c.is_ascii_digit() && c != '.').unwrap_or(rest.len());
+        if end > 0 {
+            if let Ok(value) = rest[..end].parse::<f64>() {
+                let after_rest = rest[end..].trim();
+                let unit = after_rest.split_whitespace().next().unwrap_or("s").to_string();
+                // Verify "before retry" appears after the value if after is non-empty
+                if after.is_empty() || rest[end..].contains(after) {
+                    return Some((value, unit));
+                }
+            }
+        }
+    }
+    None
+}
+
+fn extract_retry_after_eq(text: &str) -> Option<(f64, String)> {
+    // Look for "retry_after=" or "retry-after=" or "retryafter="
+    for prefix in &["retry_after=", "retry-after=", "retryafter=", "retry after="] {
+        if let Some(pos) = text.find(prefix) {
+            let rest = &text[pos + prefix.len()..];
+            let rest = rest.trim();
+            let end = rest.find(|c: char| !c.is_ascii_digit() && c != '.').unwrap_or(rest.len());
+            if end > 0 {
+                if let Ok(value) = rest[..end].parse::<f64>() {
+                    return Some((value, "s".to_string()));
+                }
+            }
+        }
+    }
+    None
 }
 
 #[async_trait]
