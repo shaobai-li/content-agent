@@ -1,14 +1,13 @@
 mod agent;
 mod core;
+mod routes;
 mod service;
 
-use axum::{routing::get, Router};
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() {
-    // 初始化日志
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
@@ -16,7 +15,6 @@ async fn main() {
         )
         .init();
 
-    // 加载配置
     dotenvy::dotenv().ok();
     core::config::init_config();
     agent::registry::init_registry();
@@ -31,8 +29,10 @@ async fn main() {
         .allow_methods(tower_http::cors::Any)
         .allow_headers(tower_http::cors::Any);
 
-    let app = Router::new()
-        .route("/", get(health_check))
+    let app = routes::health::router()
+        .merge(routes::agents::router())
+        .merge(routes::sessions::router())
+        .merge(routes::messages::router())
         .layer(cors);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8001")
@@ -40,14 +40,4 @@ async fn main() {
         .unwrap();
     tracing::info!("server starting on 0.0.0.0:8001");
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn health_check() -> axum::Json<serde_json::Value> {
-    let agents = agent::registry::list_agents();
-    let agent_ids: Vec<&str> = agents.iter().map(|a| a.id.as_str()).collect();
-    axum::Json(serde_json::json!({
-        "status": "running",
-        "version": "0.1.0",
-        "agents": agent_ids,
-    }))
 }
