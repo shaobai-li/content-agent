@@ -555,3 +555,218 @@ fn build_assistant_message(content: &str, tool_calls: &[ToolCallRequest], reason
 
     msg
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    // ── usage_dict ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_usage_dict_with_values() {
+        let mut usage = std::collections::HashMap::new();
+        usage.insert("prompt_tokens".to_string(), 10);
+        usage.insert("completion_tokens".to_string(), 5);
+        let result = AgentRunner::usage_dict(Some(&usage));
+        assert_eq!(result.get("prompt_tokens"), Some(&10));
+        assert_eq!(result.get("completion_tokens"), Some(&5));
+    }
+
+    #[test]
+    fn test_usage_dict_none_returns_empty() {
+        let result = AgentRunner::usage_dict(None);
+        assert!(result.is_empty());
+    }
+
+    // ── accumulate_usage ────────────────────────────────────────────────
+
+    #[test]
+    fn test_accumulate_usage_adds_values() {
+        let mut target = std::collections::HashMap::new();
+        target.insert("prompt_tokens".to_string(), 10);
+        let mut addition = std::collections::HashMap::new();
+        addition.insert("prompt_tokens".to_string(), 5);
+        addition.insert("completion_tokens".to_string(), 3);
+        AgentRunner::accumulate_usage(&mut target, &addition);
+        assert_eq!(target.get("prompt_tokens"), Some(&15));
+        assert_eq!(target.get("completion_tokens"), Some(&3));
+    }
+
+    // ── drop_orphan_tool_results ────────────────────────────────────────
+
+    #[test]
+    fn test_keeps_valid_tool_result() {
+        let messages = vec![
+            json!({"role": "assistant", "content": "", "tool_calls": [{"id": "tc1", "function": {"name": "foo"}}]}),
+            json!({"role": "tool", "tool_call_id": "tc1", "content": "ok"}),
+        ];
+        let result = AgentRunner::drop_orphan_tool_results(&messages);
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn test_drops_orphan_tool_result() {
+        let messages = vec![
+            json!({"role": "user", "content": "hi"}),
+            json!({"role": "tool", "tool_call_id": "ghost", "content": "orphan"}),
+        ];
+        let result = AgentRunner::drop_orphan_tool_results(&messages);
+        assert!(!result.iter().any(|m| m.get("role") == Some(&Value::String("tool".to_string()))));
+    }
+
+    #[test]
+    fn test_returns_same_list_when_no_orphans() {
+        let messages = vec![json!({"role": "user", "content": "hi"})];
+        let result = AgentRunner::drop_orphan_tool_results(&messages);
+        assert_eq!(result.len(), 1);
+    }
+
+    // ── backfill_missing_tool_results ───────────────────────────────────
+
+    #[test]
+    fn test_inserts_synthetic_result_for_missing_tool_call() {
+        let messages = vec![
+            json!({"role": "assistant", "content": "", "tool_calls": [
+                {"id": "tc1", "function": {"name": "my_tool"}}
+            ]}),
+        ];
+        let result = AgentRunner::backfill_missing_tool_results(&messages);
+        let tool_msgs: Vec<&Value> = result.iter().filter(|m| m.get("role") == Some(&Value::String("tool".to_string()))).collect();
+        assert_eq!(tool_msgs.len(), 1);
+        assert_eq!(tool_msgs[0].get("tool_call_id").and_then(|v| v.as_str()), Some("tc1"));
+        assert_eq!(tool_msgs[0].get("content").and_then(|v| v.as_str()), Some(BACKFILL_CONTENT));
+    }
+
+    #[test]
+    fn test_no_change_when_all_tool_calls_fulfilled() {
+        let messages = vec![
+            json!({"role": "assistant", "content": "", "tool_calls": [{"id": "tc1", "function": {"name": "foo"}}]}),
+            json!({"role": "tool", "tool_call_id": "tc1", "content": "done"}),
+        ];
+        let result = AgentRunner::backfill_missing_tool_results(&messages);
+        assert_eq!(result.len(), 2);
+    }
+
+    // ── partition_tool_batches ──────────────────────────────────────────
+
+    #[test]
+    fn test_sequential_when_not_concurrent() {
+        let tc1 = ToolCallRequest { id: "1".to_string(), name: "read_file".to_string(), arguments: std::collections::HashMap::new(), extra_content: None, provider_specific_fields: None, function_provider_specific_fields: None };
+        let tc2 = ToolCallRequest { id: "2".to_string(), name: "read_file".to_string(), arguments: std::collections::HashMap::new(), extra_content: None, provider_specific_fields: None, function_provider_specific_fields: None };
+        let spec = AgentRunSpec {
+            initial_messages: vec![], tools: ToolRegistry::new(), model: "test".to_string(),
+            max_iterations: 1, max_tool_result_chars: 1000, temperature: None, max_tokens: None,
+            reasoning_effort: None, error_message: None, max_iterations_message: None,
+            concurrent_tools: false, fail_on_tool_error: false, context_window_tokens: None,
+            provider_retry_mode: "simple".to_string(), hook: None,
+        };
+        let tcs = [tc1, tc2];
+        let batches = AgentRunner::partition_tool_batches(&spec, &tcs);
+        assert_eq!(batches.len(), 2);
+    }
+
+    // ── build_assistant_message ─────────────────────────────────────────
+
+    #[test]
+    fn test_build_assistant_message_plain() {
+        let msg = build_assistant_message("hello", &[], None);
+        assert_eq!(msg.get("role").and_then(|v| v.as_str()), Some("assistant"));
+        assert_eq!(msg.get("content").and_then(|v| v.as_str()), Some("hello"));
+        assert!(msg.get("tool_calls").is_none());
+    }
+
+    #[test]
+    fn test_build_assistant_message_with_tool_calls() {
+        let tc = ToolCallRequest { id: "tc1".to_string(), name: "foo".to_string(), arguments: std::collections::HashMap::new(), extra_content: None, provider_specific_fields: None, function_provider_specific_fields: None };
+        let msg = build_assistant_message("", &[tc], None);
+        assert!(msg.get("tool_calls").is_some());
+    }
+
+    #[test]
+    fn test_build_assistant_message_with_reasoning() {
+        let msg = build_assistant_message("hello", &[], Some("thinking..."));
+        assert_eq!(msg.get("reasoning_content").and_then(|v| v.as_str()), Some("thinking..."));
+    }
+
+    // ── normalize_tool_result ───────────────────────────────────────────
+
+    #[test]
+    fn test_normalize_tool_result_no_truncation() {
+        let runner = AgentRunner { provider: Arc::new(MockProvider) };
+        let spec = AgentRunSpec {
+            initial_messages: vec![], tools: ToolRegistry::new(), model: "test".to_string(),
+            max_iterations: 1, max_tool_result_chars: 1000, temperature: None, max_tokens: None,
+            reasoning_effort: None, error_message: None, max_iterations_message: None,
+            concurrent_tools: false, fail_on_tool_error: false, context_window_tokens: None,
+            provider_retry_mode: "simple".to_string(), hook: None,
+        };
+        let result = runner.normalize_tool_result(&spec, "tc1", "foo", "short");
+        assert_eq!(result, "short");
+    }
+
+    #[test]
+    fn test_normalize_tool_result_truncation() {
+        let runner = AgentRunner { provider: Arc::new(MockProvider) };
+        let spec = AgentRunSpec {
+            initial_messages: vec![], tools: ToolRegistry::new(), model: "test".to_string(),
+            max_iterations: 1, max_tool_result_chars: 10, temperature: None, max_tokens: None,
+            reasoning_effort: None, error_message: None, max_iterations_message: None,
+            concurrent_tools: false, fail_on_tool_error: false, context_window_tokens: None,
+            provider_retry_mode: "simple".to_string(), hook: None,
+        };
+        let long = "abcdefghijklmnopqrstuvwxyz";
+        let result = runner.normalize_tool_result(&spec, "tc1", "foo", long);
+        assert!(result.contains("truncated"));
+        assert!(result.contains("ab"));
+        assert!(result.contains("yz"));
+    }
+
+    // ── append_final_message ────────────────────────────────────────────
+
+    #[test]
+    fn test_append_final_message_push_when_last_not_assistant() {
+        let mut messages = vec![json!({"role": "user", "content": "hi"})];
+        AgentRunner::append_final_message(&mut messages, &Some("bye".to_string()));
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[1].get("role").and_then(|v| v.as_str()), Some("assistant"));
+    }
+
+    #[test]
+    fn test_append_final_message_skips_when_content_matches_last() {
+        let mut messages = vec![json!({"role": "assistant", "content": "bye"})];
+        AgentRunner::append_final_message(&mut messages, &Some("bye".to_string()));
+        assert_eq!(messages.len(), 1);
+    }
+
+    // ── append_model_error_placeholder ──────────────────────────────────
+
+    #[test]
+    fn test_append_placeholder_when_last_is_assistant() {
+        let mut messages = vec![json!({"role": "assistant", "content": "hi"})];
+        AgentRunner::append_model_error_placeholder(&mut messages);
+        assert_eq!(messages.len(), 1); // already assistant, no change
+    }
+
+    #[test]
+    fn test_append_placeholder_when_last_is_user() {
+        let mut messages = vec![json!({"role": "user", "content": "hi"})];
+        AgentRunner::append_model_error_placeholder(&mut messages);
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[1].get("content").and_then(|v| v.as_str()), Some(PERSISTED_MODEL_ERROR_PLACEHOLDER));
+    }
+
+    // Mock provider for tests that need one
+    struct MockProvider;
+    #[async_trait::async_trait]
+    impl LLMProvider for MockProvider {
+        async fn chat(&self, _messages: Vec<Value>, _tools: Option<Vec<Value>>, _model: Option<&str>, _max_tokens: Option<u32>, _temperature: Option<f64>, _reasoning_effort: Option<&str>, _tool_choice: Option<Value>) -> LLMResponse {
+            LLMResponse { content: Some("mock".to_string()), tool_calls: vec![], finish_reason: "stop".to_string(), usage: std::collections::HashMap::new(), reasoning_content: None, error_status_code: None, error_kind: None, error_type: None, error_code: None, error_retry_after_s: None, error_should_retry: None }
+        }
+        async fn chat_stream(&self, _messages: Vec<Value>, _tools: Option<Vec<Value>>, _model: Option<&str>, _max_tokens: Option<u32>, _temperature: Option<f64>, _reasoning_effort: Option<&str>, _tool_choice: Option<Value>, _on_content_delta: Option<Box<dyn Fn(String) + Send>>) -> LLMResponse {
+            LLMResponse { content: Some("mock".to_string()), tool_calls: vec![], finish_reason: "stop".to_string(), usage: std::collections::HashMap::new(), reasoning_content: None, error_status_code: None, error_kind: None, error_type: None, error_code: None, error_retry_after_s: None, error_should_retry: None }
+        }
+        fn get_default_model(&self) -> &str { "mock" }
+    }
+}

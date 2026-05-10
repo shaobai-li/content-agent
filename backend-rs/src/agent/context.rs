@@ -260,3 +260,52 @@ impl ContextBuilder {
 fn discover_skills_xml_for_agent(_agent_id: &str) -> String {
     String::new()
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use super::*;
+
+    // ── merge_message_content ───────────────────────────────────────────
+
+    #[test]
+    fn test_merge_two_strings_joined_with_double_newline() {
+        let result = ContextBuilder::merge_message_content(
+            Some(&Value::String("hello".to_string())),
+            Some(&Value::String("world".to_string())),
+        );
+        assert_eq!(result, Value::String("hello\n\nworld".to_string()));
+    }
+
+    #[test]
+    fn test_merge_empty_left_returns_right() {
+        let result = ContextBuilder::merge_message_content(
+            Some(&Value::String("".to_string())),
+            Some(&Value::String("world".to_string())),
+        );
+        assert_eq!(result, Value::String("world".to_string()));
+    }
+
+    #[test]
+    fn test_merge_list_and_string_returns_block_list() {
+        let result = ContextBuilder::merge_message_content(
+            Some(&json!([{"type": "text", "text": "a"}])),
+            Some(&Value::String("b".to_string())),
+        );
+        let expected = json!([
+            {"type": "text", "text": "a"},
+            {"type": "text", "text": "b"},
+        ]);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_merge_none_left_with_string_right() {
+        let result = ContextBuilder::merge_message_content(
+            None,
+            Some(&Value::String("hello".to_string())),
+        );
+        let expected = json!([{"type": "text", "text": "hello"}]);
+        assert_eq!(result, expected);
+    }
+}
