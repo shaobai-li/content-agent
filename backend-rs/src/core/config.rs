@@ -70,7 +70,7 @@ fn load_agent_yamls(config_dir: &Path) -> HashMap<String, AgentConfig> {
     let mut entries: Vec<_> = match std::fs::read_dir(&agents_dir) {
         Ok(entries) => entries
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map_or(false, |ext| ext == "yaml"))
+            .filter(|e| e.path().extension().is_some_and(|ext| ext == "yaml"))
             .collect(),
         Err(_) => return agents,
     };
