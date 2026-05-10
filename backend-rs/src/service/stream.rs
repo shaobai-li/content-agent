@@ -1,11 +1,11 @@
-/// SSE 事件序列化（Server-Sent Events 格式）
-///
-/// 协议约定：
-///   chunk:           event: chunk\ndata: {"content": "..."}\n\n
-///   done:            event: done\ndata: {"session_id": "..."}\n\n
-///   tool_exec_start: event: tool_exec_start\ndata: {"name":"...","call_id":"...","arguments":{...}}\n\n
-///   tool_exec_chunk: event: tool_exec_chunk\ndata: {"call_id":"...","content":"..."}\n\n
-///   tool_exec_end:   event: tool_exec_end\ndata: {"call_id":"..."}\n\n
+//! SSE 事件序列化（Server-Sent Events 格式）
+//!
+//! 协议约定：
+//!   chunk:           event: chunk\ndata: {"content": "..."}\n\n
+//!   done:            event: done\ndata: {"session_id": "..."}\n\n
+//!   tool_exec_start: event: tool_exec_start\ndata: {"name":"...","call_id":"...","arguments":{...}}\n\n
+//!   tool_exec_chunk: event: tool_exec_chunk\ndata: {"call_id":"...","content":"..."}\n\n
+//!   tool_exec_end:   event: tool_exec_end\ndata: {"call_id":"..."}\n\n
 
 use serde_json::Value;
 

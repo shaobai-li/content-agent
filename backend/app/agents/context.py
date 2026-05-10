@@ -18,7 +18,7 @@ class ContextBuilder:
       2. build_messages()       — system + history + reference articles + user message
     """
 
-    BOOTSTRAP_FILES = ["SOUL.md", "USER.md", "IDENTITY.md"]
+    BOOTSTRAP_FILES = ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md"]
 
     def __init__(self, workspace: Path, agent_id: str | None = None):
         self.workspace = workspace
@@ -34,7 +34,7 @@ class ContextBuilder:
 
         Composition (top-to-bottom):
           1. Skills XML catalog (``<skills>…</skills>``)
-          2. Bootstrap files — ``SOUL.md`` / ``USER.md`` / ``IDENTITY.md``
+          2. Bootstrap files — ``AGENTS.md`` / ``SOUL.md`` / ``USER.md`` / ``IDENTITY.md``
           3. Base prompt — user override ``system_prompt.md`` or built-in ``system.md``
           4. Current local datetime
           5. Tool guard — workspace / skills / KB environment variables
@@ -79,7 +79,7 @@ class ContextBuilder:
         return path.read_text(encoding="utf-8").strip()
 
     def _load_bootstrap_files(self) -> str:
-        """Load bootstrap files from workspace (SOUL.md, USER.md, IDENTITY.md)."""
+        """Load bootstrap files from workspace (AGENTS.md, SOUL.md, USER.md, IDENTITY.md)."""
         parts = []
         for filename in self.BOOTSTRAP_FILES:
             file_path = self.workspace / filename
