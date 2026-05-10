@@ -62,11 +62,11 @@ pub fn ensure_kb_document(agent_id: &str, kb_id: &str) -> Value {
         data["kb_id"] = Value::String(kb_id.to_string());
         changed = true;
     }
-    if !data.get("version").and_then(|v| v.as_i64()).map_or(false, |v| v >= 1) {
+    if !data.get("version").and_then(|v| v.as_i64()).is_some_and(|v| v >= 1) {
         data["version"] = Value::Number(1.into());
         changed = true;
     }
-    if !data.get("nodes").and_then(|v| v.as_array()).map_or(false, |nodes| {
+    if !data.get("nodes").and_then(|v| v.as_array()).is_some_and(|nodes| {
         nodes.iter().any(|n| n.get("id").and_then(|v| v.as_str()) == Some("fld_root"))
     }) {
         let nodes = data.get_mut("nodes")
