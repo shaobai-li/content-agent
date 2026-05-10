@@ -3,6 +3,7 @@ mod core;
 mod provider;
 mod routes;
 mod service;
+mod tools;
 
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::EnvFilter;
