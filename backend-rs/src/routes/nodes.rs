@@ -15,11 +15,11 @@ pub struct KbQuery {
 pub fn router() -> axum::Router {
     axum::Router::new()
         .route(
-            "/api/agents/{agent_id}/res/{res_name}",
+            "/api/agents/:agent_id/res/:res_name",
             axum::routing::get(get_nodes).post(create_node),
         )
         .route(
-            "/api/agents/{agent_id}/res/{res_name}/{node_id}",
+            "/api/agents/:agent_id/res/:res_name/:node_id",
             axum::routing::delete(delete_node).put(update_node),
         )
 }

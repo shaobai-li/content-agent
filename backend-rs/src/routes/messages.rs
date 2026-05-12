@@ -5,7 +5,7 @@ use crate::service::messages;
 
 pub fn router() -> axum::Router {
     axum::Router::new().route(
-        "/api/agents/{agent_id}/sessions/{session_id}/messages",
+        "/api/agents/:agent_id/sessions/:session_id/messages",
         axum::routing::get(get_messages),
     )
 }

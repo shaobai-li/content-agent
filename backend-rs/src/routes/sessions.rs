@@ -6,11 +6,11 @@ use crate::service::sessions;
 pub fn router() -> axum::Router {
     axum::Router::new()
         .route(
-            "/api/agents/{agent_id}/sessions",
+            "/api/agents/:agent_id/sessions",
             axum::routing::get(get_sessions),
         )
         .route(
-            "/api/agents/{agent_id}/sessions/{session_id}",
+            "/api/agents/:agent_id/sessions/:session_id",
             axum::routing::delete(delete_session_handler),
         )
 }

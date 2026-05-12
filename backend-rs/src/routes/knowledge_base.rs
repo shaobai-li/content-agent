@@ -6,11 +6,11 @@ use crate::service::knowledge_base;
 pub fn router() -> axum::Router {
     axum::Router::new()
         .route(
-            "/api/agents/{agent_id}/knowledge-bases",
+            "/api/agents/:agent_id/knowledge-bases",
             axum::routing::get(list_kb).post(create_kb),
         )
         .route(
-            "/api/agents/{agent_id}/knowledge-bases/{kb_id}",
+            "/api/agents/:agent_id/knowledge-bases/:kb_id",
             axum::routing::delete(delete_kb),
         )
 }
