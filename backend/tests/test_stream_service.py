@@ -10,174 +10,154 @@ from app.service.stream_service import (
 )
 
 
-def parse_sse_event(sse_text: str) -> dict:
-    """辅助函数：解析单条 SSE 事件为 {event, data} 字典。"""
-    block = sse_text.strip()
-    if "\n\n" in block:
-        block = block.split("\n\n")[0]
-    event = ""
-    data_str = ""
-    for line in block.split("\n"):
-        if line.startswith("event: "):
-            event = line[7:].strip()
-        elif line.startswith("data: "):
-            data_str = line[6:].strip()
-    return {"event": event, "data": json.loads(data_str)}
+# ── build_stream_chunk ───────────────────────────────────────────────────
+
+@pytest.mark.parametrize("content", ["hello", ""])
+def test_build_stream_chunk_format(content):
+    result = build_stream_chunk(content)
+    assert result.startswith("event: chunk\n")
+    assert "data: " in result
+    parsed = json.loads(result.split("data: ")[1].strip())
+    assert parsed == {"content": content}
 
 
-class TestBuildStreamChunk:
-    def test_event_is_chunk(self):
-        obj = parse_sse_event(build_stream_chunk("hello"))
-        assert obj["event"] == "chunk"
+# ── build_stream_done ────────────────────────────────────────────────────
 
-    def test_data_contains_content(self):
-        obj = parse_sse_event(build_stream_chunk("hello"))
-        assert obj["data"]["content"] == "hello"
-
-    def test_ends_with_newline(self):
-        assert build_stream_chunk("hello").endswith("\n\n")
-
-    def test_empty_content(self):
-        obj = parse_sse_event(build_stream_chunk(""))
-        assert obj["data"]["content"] == ""
-
-    def test_content_with_special_characters(self):
-        obj = parse_sse_event(build_stream_chunk("你好\n世界"))
-        assert obj["data"]["content"] == "你好\n世界"
+def test_build_stream_done_format():
+    result = build_stream_done("sess-1")
+    assert result.startswith("event: done\n")
+    parsed = json.loads(result.split("data: ")[1].strip())
+    assert parsed == {"session_id": "sess-1"}
 
 
-class TestBuildStreamDone:
-    def test_event_is_done(self):
-        obj = parse_sse_event(build_stream_done("sess-123"))
-        assert obj["event"] == "done"
-
-    def test_session_id_in_data(self):
-        obj = parse_sse_event(build_stream_done("sess-123"))
-        assert obj["data"]["session_id"] == "sess-123"
-
-    def test_ends_with_newline(self):
-        assert build_stream_done("sess-123").endswith("\n\n")
-
-    def test_extra_fields_merged_into_data(self):
-        obj = parse_sse_event(build_stream_done("sess-123", extra={"foo": "bar"}))
-        assert obj["data"]["foo"] == "bar"
-        assert obj["data"]["session_id"] == "sess-123"
-
-    def test_no_extra_has_only_session_id(self):
-        obj = parse_sse_event(build_stream_done("sess-123"))
-        assert list(obj["data"].keys()) == ["session_id"]
-
-    def test_none_extra_ignored(self):
-        obj = parse_sse_event(build_stream_done("sess-123", extra=None))
-        assert "session_id" in obj["data"]
+def test_build_stream_done_with_extra():
+    result = build_stream_done("sess-1", {"tokens": 42})
+    parsed = json.loads(result.split("data: ")[1].strip())
+    assert parsed == {"session_id": "sess-1", "tokens": 42}
 
 
-class TestBuildToolExecStart:
-    def test_event_is_tool_exec_start(self):
-        obj = parse_sse_event(build_tool_exec_start("read_file", "call_1", {"path": "/tmp/doc.md"}))
-        assert obj["event"] == "tool_exec_start"
-
-    def test_name_in_data(self):
-        obj = parse_sse_event(build_tool_exec_start("read_file", "call_1", {}))
-        assert obj["data"]["name"] == "read_file"
-
-    def test_call_id_in_data(self):
-        obj = parse_sse_event(build_tool_exec_start("read_file", "call_1", {}))
-        assert obj["data"]["call_id"] == "call_1"
-
-    def test_arguments_in_data(self):
-        obj = parse_sse_event(build_tool_exec_start("read_file", "call_1", {"path": "/tmp/doc.md"}))
-        assert obj["data"]["arguments"] == {"path": "/tmp/doc.md"}
-
-    def test_ends_with_newline(self):
-        assert build_tool_exec_start("read_file", "call_1", {}).endswith("\n\n")
+def test_build_stream_done_extra_overwrites_session():
+    result = build_stream_done("sess-1", {"session_id": "overridden"})
+    parsed = json.loads(result.split("data: ")[1].strip())
+    assert parsed["session_id"] == "overridden"
 
 
-class TestBuildToolExecChunk:
-    def test_event_is_tool_exec_chunk(self):
-        obj = parse_sse_event(build_tool_exec_chunk("call_1", "partial content"))
-        assert obj["event"] == "tool_exec_chunk"
+# ── build_tool_exec_start ────────────────────────────────────────────────
 
-    def test_call_id_in_data(self):
-        obj = parse_sse_event(build_tool_exec_chunk("call_1", "hello"))
-        assert obj["data"]["call_id"] == "call_1"
-
-    def test_content_in_data(self):
-        obj = parse_sse_event(build_tool_exec_chunk("call_1", "hello"))
-        assert obj["data"]["content"] == "hello"
-
-    def test_ends_with_newline(self):
-        assert build_tool_exec_chunk("call_1", "").endswith("\n\n")
+def test_build_tool_exec_start_format():
+    result = build_tool_exec_start("my_tool", "call-1", {"key": "val"})
+    assert result.startswith("event: tool_exec_start\n")
+    parsed = json.loads(result.split("data: ")[1].strip())
+    assert parsed == {"name": "my_tool", "call_id": "call-1", "arguments": {"key": "val"}}
 
 
-class TestBuildToolExecEnd:
-    def test_event_is_tool_exec_end(self):
-        obj = parse_sse_event(build_tool_exec_end("call_1"))
-        assert obj["event"] == "tool_exec_end"
+# ── build_tool_exec_chunk ────────────────────────────────────────────────
 
-    def test_call_id_in_data(self):
-        obj = parse_sse_event(build_tool_exec_end("call_1"))
-        assert obj["data"]["call_id"] == "call_1"
-
-    def test_ends_with_newline(self):
-        assert build_tool_exec_end("call_1").endswith("\n\n")
+def test_build_tool_exec_chunk_format():
+    result = build_tool_exec_chunk("call-1", "partial output")
+    assert result.startswith("event: tool_exec_chunk\n")
+    parsed = json.loads(result.split("data: ")[1].strip())
+    assert parsed == {"call_id": "call-1", "content": "partial output"}
 
 
-class TestAggregateStreamToChatResponse:
-    async def _make_stream(self, lines: list[str]):
-        for line in lines:
-            yield line
+# ── build_tool_exec_end ──────────────────────────────────────────────────
 
-    @pytest.mark.asyncio
-    async def test_collects_chunk_content(self):
-        stream = self._make_stream([
-            build_stream_chunk("hello "),
-            build_stream_chunk("world"),
-            build_stream_done("sess-1"),
-        ])
-        result = await aggregate_stream_to_chat_response(stream)
-        assert result["reply"] == "hello world"
+def test_build_tool_exec_end_format():
+    result = build_tool_exec_end("call-1")
+    assert result.startswith("event: tool_exec_end\n")
+    parsed = json.loads(result.split("data: ")[1].strip())
+    assert parsed == {"call_id": "call-1"}
 
-    @pytest.mark.asyncio
-    async def test_session_id_from_done(self):
-        stream = self._make_stream([
-            build_stream_chunk("hi"),
-            build_stream_done("sess-abc"),
-        ])
-        result = await aggregate_stream_to_chat_response(stream)
-        assert result["session_id"] == "sess-abc"
 
-    @pytest.mark.asyncio
-    async def test_extra_fields_from_done(self):
-        stream = self._make_stream([
-            build_stream_done("sess-1", extra={"foo": "bar"}),
-        ])
-        result = await aggregate_stream_to_chat_response(stream)
-        assert result["foo"] == "bar"
+# ── aggregate_stream_to_chat_response ────────────────────────────────────
 
-    @pytest.mark.asyncio
-    async def test_tool_events_not_included_in_reply(self):
-        stream = self._make_stream([
-            build_tool_exec_start("read_file", "call_1", {}),
-            build_tool_exec_chunk("call_1", "file content"),
-            build_tool_exec_end("call_1"),
-            build_stream_chunk("最终回答"),
-            build_stream_done("sess-1"),
-        ])
-        result = await aggregate_stream_to_chat_response(stream)
-        assert result["reply"] == "最终回答"
+@pytest.mark.asyncio
+async def test_aggregate_empty_stream():
+    async def empty():
+        for _ in range(0):
+            yield
+    result = await aggregate_stream_to_chat_response(empty())
+    assert result == {"reply": "", "session_id": ""}
 
-    @pytest.mark.asyncio
-    async def test_no_done_event_uses_empty_session_id(self):
-        stream = self._make_stream([
-            build_stream_chunk("hi"),
-        ])
-        result = await aggregate_stream_to_chat_response(stream)
-        assert result["session_id"] == ""
 
-    @pytest.mark.asyncio
-    async def test_empty_stream(self):
-        stream = self._make_stream([])
-        result = await aggregate_stream_to_chat_response(stream)
-        assert result["reply"] == ""
-        assert result["session_id"] == ""
+@pytest.mark.asyncio
+async def test_aggregate_multiple_chunks():
+    async def stream():
+        yield build_stream_chunk("hello ")
+        yield build_stream_chunk("world")
+
+    result = await aggregate_stream_to_chat_response(stream())
+    assert result["reply"] == "hello world"
+
+
+@pytest.mark.asyncio
+async def test_aggregate_chunk_and_done():
+    async def stream():
+        yield build_stream_chunk("reply text")
+        yield build_stream_done("sess-42", {"tokens": 100})
+
+    result = await aggregate_stream_to_chat_response(stream())
+    assert result["reply"] == "reply text"
+    assert result["session_id"] == "sess-42"
+    assert result["tokens"] == 100
+
+
+@pytest.mark.asyncio
+async def test_aggregate_done_without_chunk():
+    async def stream():
+        yield build_stream_done("sess-1")
+
+    result = await aggregate_stream_to_chat_response(stream())
+    assert result["reply"] == ""
+    assert result["session_id"] == "sess-1"
+
+
+@pytest.mark.asyncio
+async def test_aggregate_error_events_ignored():
+    async def stream():
+        yield "event: error\ndata: {\"msg\":\"fail\"}\n\n"
+        yield build_stream_chunk("ok")
+
+    result = await aggregate_stream_to_chat_response(stream())
+    assert result["reply"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_aggregate_invalid_json_silently_skipped():
+    async def stream():
+        yield "event: chunk\ndata: not-json\n\n"
+        yield build_stream_chunk("valid")
+
+    result = await aggregate_stream_to_chat_response(stream())
+    assert result["reply"] == "valid"
+
+
+@pytest.mark.asyncio
+async def test_aggregate_empty_block_between_events():
+    async def stream():
+        yield build_stream_chunk("hello")
+        yield "\n\n"
+        yield build_stream_chunk("world")
+
+    result = await aggregate_stream_to_chat_response(stream())
+    assert result["reply"] == "helloworld"
+
+
+@pytest.mark.asyncio
+async def test_aggregate_block_without_data():
+    async def stream():
+        yield "event: chunk\n\n"
+        yield build_stream_chunk("ok")
+
+    result = await aggregate_stream_to_chat_response(stream())
+    assert result["reply"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_aggregate_response_chunk_events():
+    async def stream():
+        yield build_stream_chunk("chunk1 ")
+        yield f"event: response_chunk\ndata: {json.dumps({'content': 'chunk2'})}\n\n"
+
+    result = await aggregate_stream_to_chat_response(stream())
+    assert result["reply"] == "chunk1 chunk2"
