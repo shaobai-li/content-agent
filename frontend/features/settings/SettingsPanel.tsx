@@ -6,9 +6,9 @@ import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
 const settingsTabs = [
+  { id: "system" as const, label: "System" },
+  { id: "application" as const, label: "Application" },
   { id: "personalization" as const, label: "Personalization" },
-  { id: "project" as const, label: "Project" },
-  { id: "skills" as const, label: "Skills" },
 ];
 
 type SettingsTabId = (typeof settingsTabs)[number]["id"];
@@ -20,13 +20,11 @@ const settingsMultilineFieldClass = cn(
 
 const personalizationFields = [
   { id: "soul", label: "SOUL" },
-  { id: "identity", label: "IDENTITY" },
   { id: "user", label: "USER" },
 ] as const;
 
 const projectFields = [
   { id: "agents", label: "AGENTS" },
-  { id: "memory", label: "MEMORY" },
 ] as const;
 
 const mockSkills = [
@@ -45,7 +43,7 @@ const mockSkills = [
 ] as const;
 
 export function SettingsPanel() {
-  const [activeTab, setActiveTab] = useState<SettingsTabId>("personalization");
+  const [activeTab, setActiveTab] = useState<SettingsTabId>("system");
 
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6">
@@ -77,39 +75,17 @@ export function SettingsPanel() {
         })}
       </div>
 
-      {activeTab === "personalization" && (
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
-          <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
-            <CardContent className="flex flex-col gap-4 px-4">
-              {personalizationFields.map((field) => (
-                <div key={field.id} className="flex flex-col gap-2">
-                  <label htmlFor={`settings-personalization-${field.id}`} className="text-sm font-medium text-foreground">
-                    {field.label}
-                  </label>
-                  <textarea
-                    id={`settings-personalization-${field.id}`}
-                    className={settingsMultilineFieldClass}
-                    rows={6}
-                    autoComplete="off"
-                  />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {activeTab === "project" && (
+      {activeTab === "system" && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
           <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
             <CardContent className="flex flex-col gap-4 px-4">
               {projectFields.map((field) => (
                 <div key={field.id} className="flex flex-col gap-2">
-                  <label htmlFor={`settings-project-${field.id}`} className="text-sm font-medium text-foreground">
+                  <label htmlFor={`settings-system-${field.id}`} className="text-sm font-medium text-foreground">
                     {field.label}
                   </label>
                   <textarea
-                    id={`settings-project-${field.id}`}
+                    id={`settings-system-${field.id}`}
                     className={settingsMultilineFieldClass}
                     rows={10}
                     autoComplete="off"
@@ -121,7 +97,7 @@ export function SettingsPanel() {
         </div>
       )}
 
-      {activeTab === "skills" && (
+      {activeTab === "application" && (
         <div className="flex min-w-0 flex-col gap-2" role="tabpanel">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {mockSkills.map((skill, index) => (
@@ -165,6 +141,28 @@ export function SettingsPanel() {
               <span className="text-sm font-medium text-muted-foreground">New Skill</span>
             </button>
           </div>
+        </div>
+      )}
+
+      {activeTab === "personalization" && (
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
+          <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
+            <CardContent className="flex flex-col gap-4 px-4">
+              {personalizationFields.map((field) => (
+                <div key={field.id} className="flex flex-col gap-2">
+                  <label htmlFor={`settings-personalization-${field.id}`} className="text-sm font-medium text-foreground">
+                    {field.label}
+                  </label>
+                  <textarea
+                    id={`settings-personalization-${field.id}`}
+                    className={settingsMultilineFieldClass}
+                    rows={6}
+                    autoComplete="off"
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
