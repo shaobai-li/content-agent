@@ -8,7 +8,7 @@ use crate::service::files;
 
 pub fn router() -> axum::Router {
     axum::Router::new().route(
-        "/api/agents/{agent_id}/attachments/cache",
+        "/api/agents/:agent_id/attachments/cache",
         axum::routing::post(upload_attachment),
     )
 }

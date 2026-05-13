@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 static CONFIG: OnceLock<AppConfig> = OnceLock::new();
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentLayout {
     pub left: Vec<String>,
     pub default_left: String,
