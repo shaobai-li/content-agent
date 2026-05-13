@@ -1,8 +1,12 @@
 /temp
 /log
 /skill_bench
+backend-rs/target/
 
 .github
 .cursor
 .claude
 CLAUDE.md
+.env
+config
+tasks

@@ -14,7 +14,7 @@ use crate::service::stream::build_stream_chunk;
 
 pub fn router() -> Router {
     Router::new()
-        .route("/api/agents/{agent_id}/chat/stream", post(chat_stream_handler))
+        .route("/api/agents/:agent_id/chat/stream", post(chat_stream_handler))
 }
 
 async fn chat_stream_handler(
