@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.utils.disabled_skills import DisabledSkills
 from app.utils.skill_loader import discover_skills_for_agent
 
 
@@ -13,7 +14,8 @@ def invoke_skill(agent_id: str, skill_id: str) -> str:
     sid = (skill_id or "").strip()
     if not sid:
         return "Error: skill_id is required"
-    for head in discover_skills_for_agent(agent_id):
+    disabled = DisabledSkills.load(agent_id)
+    for head in discover_skills_for_agent(agent_id, disabled_skills=disabled.skill_ids):
         if head.skill_id == sid:
             try:
                 return head.skill_md_path.read_text(encoding="utf-8")

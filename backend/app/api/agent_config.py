@@ -56,6 +56,8 @@ async def save_prompt(agent_id: str, filename: str, payload: dict = Body(...)):
     content = payload.get("content")
     if content is None:
         raise HTTPException(status_code=400, detail="缺少 content 字段")
+    if not isinstance(content, str):
+        raise HTTPException(status_code=400, detail="content 必须是字符串")
 
     prompts_dir = _agent_prompts_dir(agent_id)
     path = prompts_dir / filename
