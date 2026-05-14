@@ -27,10 +27,33 @@ pub struct AgentConfig {
     pub extra: HashMap<String, serde_json::Value>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VisibilityConfig {
+    #[serde(default = "default_visible")]
+    pub default_visible: bool,
+    #[serde(default)]
+    pub overrides: HashMap<String, bool>,
+}
+
+fn default_visible() -> bool {
+    true
+}
+
+impl Default for VisibilityConfig {
+    fn default() -> Self {
+        Self {
+            default_visible: true,
+            overrides: HashMap::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct AppConfig {
     pub data_dir: PathBuf,
     pub agents: HashMap<String, AgentConfig>,
+    pub visibility: VisibilityConfig,
 }
 
 fn find_project_root() -> PathBuf {
@@ -105,9 +128,18 @@ pub fn init_config() {
     let config_dir = find_config_dir(&project_root);
 
     let agents = load_agent_yamls(&config_dir);
+    let visibility = load_visibility_yaml(&config_dir);
 
-    let config = AppConfig { data_dir, agents };
+    let config = AppConfig { data_dir, agents, visibility };
     CONFIG.set(config).ok();
+}
+
+fn load_visibility_yaml(config_dir: &Path) -> VisibilityConfig {
+    let path = config_dir.join("visibility.yaml");
+    match std::fs::read_to_string(&path) {
+        Ok(content) => serde_yaml::from_str(&content).unwrap_or_default(),
+        Err(_) => VisibilityConfig::default(),
+    }
 }
 
 pub fn get_config() -> &'static AppConfig {

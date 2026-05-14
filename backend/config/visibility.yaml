@@ -1,0 +1,7 @@
+# Agent 可见性配置
+# 未在 overrides 中列出的 agent 默认可见
+default_visible: true
+overrides:
+  # std: true
+  # xhs-writer-agent: false
+  # ip-agent-v2: false

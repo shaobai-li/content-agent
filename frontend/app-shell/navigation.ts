@@ -30,6 +30,7 @@ export function getSidebarRoutes(): RouteItem[] {
     return {
       href: `/agent/${agent.id}`,
       label: agent.name,
+      agentId: agent.id,
       menuItems,
     };
   });
