@@ -36,9 +36,9 @@ export const uiModuleRegistry: Record<
     body: <KnowledgeBasePanel agentId={agentId} />,
   }),
 
-  settings: () => ({
+  settings: (agentId) => ({
     header: <SettingsHeader />,
-    body: <SettingsPanel />,
+    body: <SettingsPanel agentId={agentId} />,
   }),
 
   chat: () => ({
