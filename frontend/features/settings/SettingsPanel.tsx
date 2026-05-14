@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
@@ -30,7 +30,53 @@ const projectFields = [
 
 export function SettingsPanel({ agentId }: { agentId: string }) {
   const [activeTab, setActiveTab] = useState<SettingsTabId>("system");
-  const { skills, loading: skillsLoading, toggleDisable } = useSkills(agentId);
+  const { skills, loading: skillsLoading, toggleDisable, upload } = useSkills(agentId);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleNewSkill = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFolderSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+
+    try {
+      const firstPath = files[0].webkitRelativePath;
+      const folderName = firstPath.split("/")[0];
+
+      const fileMap: Record<string, string> = {};
+      const readers: Promise<void>[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const relativePath = file.webkitRelativePath.slice(folderName.length + 1);
+        readers.push(
+          new Promise<void>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              fileMap[relativePath] = reader.result as string;
+              resolve();
+            };
+            reader.onerror = reject;
+            reader.readAsText(file);
+          }),
+        );
+      }
+
+      await Promise.all(readers);
+      await upload(folderName, fileMap);
+    } catch {
+      // 静默失败，后续 commit 加入错误处理
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
 
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6">
@@ -86,6 +132,16 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
 
       {activeTab === "application" && (
         <div className="flex min-w-0 flex-col gap-2" role="tabpanel">
+          {/* 隐藏的文件选择器（用于上传技能文件夹） */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            /* @ts-expect-error webkitdirectory 是非标准属性 */
+            webkitdirectory=""
+            onChange={handleFolderSelected}
+          />
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {skillsLoading ? (
               <p className="col-span-full text-sm text-muted-foreground">加载中...</p>
@@ -125,16 +181,21 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
             )}
             <button
               type="button"
+              disabled={uploading}
+              onClick={handleNewSkill}
               className={cn(
                 "flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-transparent py-6 shadow-none outline-none transition-colors",
                 "hover:border-muted-foreground/50 hover:bg-muted/30",
                 "focus-visible:border-border focus-visible:ring-2 focus-visible:ring-ring/50",
+                "disabled:cursor-not-allowed disabled:opacity-50",
               )}
             >
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/45 text-muted-foreground">
                 <PlusIcon className="size-5" aria-hidden />
               </span>
-              <span className="text-sm font-medium text-muted-foreground">New Skill</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                {uploading ? "上传中..." : "New Skill"}
+              </span>
             </button>
           </div>
         </div>

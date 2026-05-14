@@ -59,9 +59,30 @@ export function useSkills(agentId: string) {
     [agentId],
   );
 
+  const upload = useCallback(
+    async (folderName: string, files: Record<string, string>) => {
+      const res = await fetch(
+        `${API_BASE_URL}/api/agents/${agentId}/skills/upload`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folder_name: folderName, files }),
+        },
+      );
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null);
+        throw new Error(
+          detail?.detail || `上传失败 (HTTP ${res.status})`,
+        );
+      }
+      await load();
+    },
+    [agentId, load],
+  );
+
   useEffect(() => {
     load();
   }, [load]);
 
-  return { skills, loading, load, toggleDisable };
+  return { skills, loading, load, toggleDisable, upload };
 }
