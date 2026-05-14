@@ -5,6 +5,7 @@ import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
+import { useSkills } from "./useSettingsApi";
 const settingsTabs = [
   { id: "system" as const, label: "System" },
   { id: "application" as const, label: "Application" },
@@ -27,23 +28,9 @@ const projectFields = [
   { id: "agents", label: "AGENTS" },
 ] as const;
 
-const mockSkills = [
-  {
-    name: "Web Search",
-    description: "检索网页并汇总要点，用于补充实时信息。",
-  },
-  {
-    name: "Code Review",
-    description: "审查代码风格、可读性与常见缺陷。",
-  },
-  {
-    name: "Summarize",
-    description: "将长文或对话压缩为结构化摘要。",
-  },
-] as const;
-
-export function SettingsPanel() {
+export function SettingsPanel({ agentId }: { agentId: string }) {
   const [activeTab, setActiveTab] = useState<SettingsTabId>("system");
+  const { skills, loading: skillsLoading, toggleDisable } = useSkills(agentId);
 
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6">
@@ -100,33 +87,42 @@ export function SettingsPanel() {
       {activeTab === "application" && (
         <div className="flex min-w-0 flex-col gap-2" role="tabpanel">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {mockSkills.map((skill, index) => (
-              <Card
-                key={skill.name}
-                className="relative min-h-36 gap-0 border-border bg-card py-6 text-card-foreground shadow-sm"
-              >
-                <Switch
-                  className="absolute right-4 top-4"
-                  defaultChecked={index === 0}
-                  aria-label={`启用 ${skill.name}`}
-                />
-                <CardContent className="flex flex-col gap-2 pb-10 pr-14 pt-0">
-                  <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                  <p className="text-sm text-muted-foreground">{skill.description}</p>
-                </CardContent>
-                <button
-                  type="button"
-                  className={cn(
-                    "absolute bottom-3 right-3 rounded-md p-1.5 text-destructive outline-none transition-opacity",
-                    "opacity-0 hover:opacity-100 focus-visible:opacity-100",
-                    "hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring/50",
-                  )}
-                  aria-label={`删除 ${skill.name}`}
+            {skillsLoading ? (
+              <p className="col-span-full text-sm text-muted-foreground">加载中...</p>
+            ) : skills && skills.length > 0 ? (
+              skills.map((skill) => (
+                <Card
+                  key={skill.id}
+                  className="relative min-h-36 gap-0 border-border bg-card py-6 text-card-foreground shadow-sm"
                 >
-                  <TrashIcon className="size-5" aria-hidden />
-                </button>
-              </Card>
-            ))}
+                  <Switch
+                    className="absolute right-4 top-4"
+                    checked={!skill.disabled}
+                    onCheckedChange={(checked) => toggleDisable(skill.id, !checked)}
+                    aria-label={`${skill.disabled ? "启用" : "禁用"} ${skill.name}`}
+                  />
+                  <CardContent className="flex flex-col gap-2 pb-10 pr-14 pt-0">
+                    <span className="text-sm font-medium text-foreground">{skill.name}</span>
+                    <p className="text-sm text-muted-foreground">{skill.description}</p>
+                  </CardContent>
+                  {skill.source === "user" && (
+                    <button
+                      type="button"
+                      className={cn(
+                        "absolute bottom-3 right-3 rounded-md p-1.5 text-destructive outline-none transition-opacity",
+                        "opacity-0 hover:opacity-100 focus-visible:opacity-100",
+                        "hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring/50",
+                      )}
+                      aria-label={`删除 ${skill.name}`}
+                    >
+                      <TrashIcon className="size-5" aria-hidden />
+                    </button>
+                  )}
+                </Card>
+              ))
+            ) : (
+              <p className="col-span-full text-sm text-muted-foreground">暂无技能</p>
+            )}
             <button
               type="button"
               className={cn(
