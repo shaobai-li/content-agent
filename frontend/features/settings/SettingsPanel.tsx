@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
-import { usePrompts } from "./useSettingsApi";
+import { usePrompts, useSkills } from "./useSettingsApi";
 
 const settingsTabs = [
   { id: "system" as const, label: "System" },
@@ -29,28 +29,71 @@ const systemFields = [
   { id: "AGENTS.md", label: "AGENTS" },
 ] as const;
 
-const mockSkills = [
-  {
-    name: "Web Search",
-    description: "检索网页并汇总要点，用于补充实时信息。",
-  },
-  {
-    name: "Code Review",
-    description: "审查代码风格、可读性与常见缺陷。",
-  },
-  {
-    name: "Summarize",
-    description: "将长文或对话压缩为结构化摘要。",
-  },
-] as const;
-
 interface SettingsPanelProps {
   agentId: string;
 }
 
 export function SettingsPanel({ agentId }: SettingsPanelProps) {
-
   const [activeTab, setActiveTab] = useState<SettingsTabId>("system");
+  const { skills, loading: skillsLoading, error: skillsError, toggleDisable, upload, remove } = useSkills(agentId);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleNewSkill = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFolderSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadError(null);
+    setUploading(true);
+
+    try {
+      const firstPath = files[0].webkitRelativePath;
+      const folderName = firstPath.split("/")[0];
+
+      const fileMap: Record<string, string> = {};
+      const readers: Promise<void>[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const relativePath = file.webkitRelativePath.slice(folderName.length + 1);
+        readers.push(
+          new Promise<void>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              fileMap[relativePath] = reader.result as string;
+              resolve();
+            };
+            reader.onerror = reject;
+            reader.readAsText(file);
+          }),
+        );
+      }
+
+      await Promise.all(readers);
+      await upload(folderName, fileMap);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "上传失败");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDelete = async (skillId: string, skillName: string) => {
+    if (!window.confirm(`确定要删除 skill「${skillName}」吗？`)) return;
+    setUploadError(null);
+    try {
+      await remove(skillId);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "删除失败");
+    }
+  };
 
   // ── Prompts ────────────────────────────────────────────────────
   const {
@@ -179,49 +222,81 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
         </div>
       )}
 
-      {/* Application tab: skills (mock for PR1) */}
+      {/* Application tab: skills */}
       {activeTab === "application" && (
         <div className="flex min-w-0 flex-col gap-2" role="tabpanel">
+          {/* 隐藏的文件选择器（用于上传技能文件夹） */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            /* @ts-expect-error webkitdirectory 是非标准属性 */
+            webkitdirectory=""
+            onChange={handleFolderSelected}
+          />
+
+          {skillsError && (
+            <p className="text-sm text-destructive">{skillsError}</p>
+          )}
+          {uploadError && (
+            <p className="text-sm text-destructive">{uploadError}</p>
+          )}
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {mockSkills.map((skill, index) => (
-              <Card
-                key={skill.name}
-                className="relative min-h-36 gap-0 border-border bg-card py-6 text-card-foreground shadow-sm"
-              >
-                <Switch
-                  className="absolute right-4 top-4"
-                  defaultChecked={index === 0}
-                  aria-label={`启用 ${skill.name}`}
-                />
-                <CardContent className="flex flex-col gap-2 pb-10 pr-14 pt-0">
-                  <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                  <p className="text-sm text-muted-foreground">{skill.description}</p>
-                </CardContent>
-                <button
-                  type="button"
-                  className={cn(
-                    "absolute bottom-3 right-3 rounded-md p-1.5 text-destructive outline-none transition-opacity",
-                    "opacity-0 hover:opacity-100 focus-visible:opacity-100",
-                    "hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring/50",
-                  )}
-                  aria-label={`删除 ${skill.name}`}
+            {skillsLoading ? (
+              <p className="col-span-full text-sm text-muted-foreground">加载中...</p>
+            ) : skills && skills.length > 0 ? (
+              skills.map((skill) => (
+                <Card
+                  key={skill.id}
+                  className="relative min-h-36 gap-0 border-border bg-card py-6 text-card-foreground shadow-sm"
                 >
-                  <TrashIcon className="size-5" aria-hidden />
-                </button>
-              </Card>
-            ))}
+                  <Switch
+                    className="absolute right-4 top-4"
+                    checked={!skill.disabled}
+                    onCheckedChange={(checked) => toggleDisable(skill.id, !checked)}
+                    aria-label={`${skill.disabled ? "启用" : "禁用"} ${skill.name}`}
+                  />
+                  <CardContent className="flex flex-col gap-2 pb-10 pr-14 pt-0">
+                    <span className="text-sm font-medium text-foreground">{skill.name}</span>
+                    <p className="text-sm text-muted-foreground">{skill.description}</p>
+                  </CardContent>
+                  {skill.source === "user" && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(skill.id, skill.name)}
+                      className={cn(
+                        "absolute bottom-3 right-3 rounded-md p-1.5 text-destructive outline-none transition-opacity",
+                        "opacity-0 hover:opacity-100 focus-visible:opacity-100",
+                        "hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring/50",
+                      )}
+                      aria-label={`删除 ${skill.name}`}
+                    >
+                      <TrashIcon className="size-5" aria-hidden />
+                    </button>
+                  )}
+                </Card>
+              ))
+            ) : (
+              <p className="col-span-full text-sm text-muted-foreground">暂无技能</p>
+            )}
             <button
               type="button"
+              disabled={uploading}
+              onClick={handleNewSkill}
               className={cn(
                 "flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-transparent py-6 shadow-none outline-none transition-colors",
                 "hover:border-muted-foreground/50 hover:bg-muted/30",
                 "focus-visible:border-border focus-visible:ring-2 focus-visible:ring-ring/50",
+                "disabled:cursor-not-allowed disabled:opacity-50",
               )}
             >
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/45 text-muted-foreground">
                 <PlusIcon className="size-5" aria-hidden />
               </span>
-              <span className="text-sm font-medium text-muted-foreground">New Skill</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                {uploading ? "上传中..." : "New Skill"}
+              </span>
             </button>
           </div>
         </div>

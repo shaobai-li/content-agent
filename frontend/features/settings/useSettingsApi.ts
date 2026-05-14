@@ -100,23 +100,27 @@ export function useSkills(agentId: string) {
 
   const toggleDisable = useCallback(
     async (skillId: string, disabled: boolean) => {
-      const res = await fetch(
-        `${API_BASE_URL}/api/agents/${agentId}/skills/${skillId}/disable`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ disabled }),
-        },
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      // 乐观更新
-      setSkills((prev) =>
-        prev
-          ? prev.map((s) =>
-              s.id === skillId ? { ...s, disabled } : s,
-            )
-          : prev,
-      );
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/agents/${agentId}/skills/${skillId}/disable`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ disabled }),
+          },
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setSkills((prev) =>
+          prev
+            ? prev.map((s) =>
+                s.id === skillId ? { ...s, disabled } : s,
+              )
+            : prev,
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "操作失败");
+        await load(); // 回滚乐观更新
+      }
     },
     [agentId],
   );
