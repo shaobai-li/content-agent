@@ -22,16 +22,18 @@ export interface SkillListResponse {
 export function useSkills(agentId: string) {
   const [skills, setSkills] = useState<SkillInfo[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`${API_BASE_URL}/api/agents/${agentId}/skills`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: SkillListResponse = await res.json();
       setSkills(data.skills);
-    } catch {
-      // 静默失败，后续 commit 加入错误处理
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "加载 skills 失败");
     } finally {
       setLoading(false);
     }
@@ -39,22 +41,26 @@ export function useSkills(agentId: string) {
 
   const toggleDisable = useCallback(
     async (skillId: string, disabled: boolean) => {
-      const res = await fetch(
-        `${API_BASE_URL}/api/agents/${agentId}/skills/${skillId}/disable`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ disabled }),
-        },
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setSkills((prev) =>
-        prev
-          ? prev.map((s) =>
-              s.id === skillId ? { ...s, disabled } : s,
-            )
-          : prev,
-      );
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/agents/${agentId}/skills/${skillId}/disable`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ disabled }),
+          },
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setSkills((prev) =>
+          prev
+            ? prev.map((s) =>
+                s.id === skillId ? { ...s, disabled } : s,
+              )
+            : prev,
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "操作失败");
+      }
     },
     [agentId],
   );
@@ -80,9 +86,21 @@ export function useSkills(agentId: string) {
     [agentId, load],
   );
 
+  const remove = useCallback(
+    async (skillId: string) => {
+      const res = await fetch(
+        `${API_BASE_URL}/api/agents/${agentId}/skills/${skillId}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await load();
+    },
+    [agentId, load],
+  );
+
   useEffect(() => {
     load();
   }, [load]);
 
-  return { skills, loading, load, toggleDisable, upload };
+  return { skills, loading, error, load, toggleDisable, upload, remove };
 }

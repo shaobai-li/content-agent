@@ -30,10 +30,11 @@ const projectFields = [
 
 export function SettingsPanel({ agentId }: { agentId: string }) {
   const [activeTab, setActiveTab] = useState<SettingsTabId>("system");
-  const { skills, loading: skillsLoading, toggleDisable, upload } = useSkills(agentId);
+  const { skills, loading: skillsLoading, error: skillsError, toggleDisable, upload, remove } = useSkills(agentId);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleNewSkill = () => {
     fileInputRef.current?.click();
@@ -70,11 +71,20 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
 
       await Promise.all(readers);
       await upload(folderName, fileMap);
-    } catch {
-      // 静默失败，后续 commit 加入错误处理
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "上传失败");
     } finally {
       setUploading(false);
       e.target.value = "";
+    }
+  };
+
+  const handleDelete = async (skillId: string, skillName: string) => {
+    if (!window.confirm(`确定要删除 skill「${skillName}」吗？`)) return;
+    try {
+      await remove(skillId);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "删除失败");
     }
   };
 
@@ -142,6 +152,13 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
             onChange={handleFolderSelected}
           />
 
+          {skillsError && (
+            <p className="text-sm text-destructive">{skillsError}</p>
+          )}
+          {uploadError && (
+            <p className="text-sm text-destructive">{uploadError}</p>
+          )}
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {skillsLoading ? (
               <p className="col-span-full text-sm text-muted-foreground">加载中...</p>
@@ -164,6 +181,7 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
                   {skill.source === "user" && (
                     <button
                       type="button"
+                      onClick={() => handleDelete(skill.id, skill.name)}
                       className={cn(
                         "absolute bottom-3 right-3 rounded-md p-1.5 text-destructive outline-none transition-opacity",
                         "opacity-0 hover:opacity-100 focus-visible:opacity-100",
