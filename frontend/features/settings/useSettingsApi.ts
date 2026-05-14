@@ -5,6 +5,8 @@ import { API_BASE_URL } from "@/shared/api/config";
 
 // ── Types ────────────────────────────────────────────────────────
 
+export type PromptFiles = Record<string, string>;
+
 export interface SkillInfo {
   id: string;
   name: string;
@@ -15,6 +17,63 @@ export interface SkillInfo {
 
 export interface SkillListResponse {
   skills: SkillInfo[];
+}
+
+export interface PromptListResponse {
+  files: PromptFiles;
+}
+
+// ── Hook: prompts ────────────────────────────────────────────────
+
+export function usePrompts(agentId: string) {
+  const [files, setFiles] = useState<PromptFiles | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/agents/${agentId}/prompts`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: PromptListResponse = await res.json();
+      setFiles(data.files);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "加载 prompts 失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [agentId]);
+
+  const save = useCallback(
+    async (filename: string, content: string) => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/agents/${agentId}/prompts/${filename}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content }),
+          },
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        // 更新本地状态
+        setFiles((prev) =>
+          prev ? { ...prev, [filename]: content } : prev,
+        );
+        return true;
+      } catch (err) {
+        throw err;
+      }
+    },
+    [agentId],
+  );
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return { files, loading, error, load, save };
 }
 
 // ── Hook: skills ─────────────────────────────────────────────────

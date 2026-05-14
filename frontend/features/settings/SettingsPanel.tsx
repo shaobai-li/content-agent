@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
-import { useSkills } from "./useSettingsApi";
+import { usePrompts, useSkills } from "./useSettingsApi";
+
 const settingsTabs = [
   { id: "system" as const, label: "System" },
   { id: "application" as const, label: "Application" },
@@ -20,15 +21,19 @@ const settingsMultilineFieldClass = cn(
 );
 
 const personalizationFields = [
-  { id: "soul", label: "SOUL" },
-  { id: "user", label: "USER" },
+  { id: "SOUL.md", label: "SOUL" },
+  { id: "USER.md", label: "USER" },
 ] as const;
 
-const projectFields = [
-  { id: "agents", label: "AGENTS" },
+const systemFields = [
+  { id: "AGENTS.md", label: "AGENTS" },
 ] as const;
 
-export function SettingsPanel({ agentId }: { agentId: string }) {
+interface SettingsPanelProps {
+  agentId: string;
+}
+
+export function SettingsPanel({ agentId }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<SettingsTabId>("system");
   const { skills, loading: skillsLoading, error: skillsError, toggleDisable, upload, remove } = useSkills(agentId);
 
@@ -90,8 +95,53 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
     }
   };
 
+  // ── Prompts ────────────────────────────────────────────────────
+  const {
+    files: serverFiles,
+    loading: promptsLoading,
+    error: promptsError,
+    save: savePrompt,
+    load: reloadPrompts,
+  } = usePrompts(agentId);
+
+  // 本地编辑状态（未保存的修改）
+  const [dirtyText, setDirtyText] = useState<Record<string, string>>({});
+
+  const getValue = useCallback(
+    (filename: string) => {
+      if (filename in dirtyText) return dirtyText[filename];
+      return serverFiles?.[filename] ?? "";
+    },
+    [dirtyText, serverFiles],
+  );
+
+  const handleChange = useCallback(
+    (filename: string, value: string) => {
+      setDirtyText((prev) => ({ ...prev, [filename]: value }));
+    },
+    [],
+  );
+
+  // ── Header 暴露保存/重置方法 ──────────────────────────────────
+  // SettingsHeader 通过 DOM 事件或父级协调；这里直接用最简单的方案:
+  // 暴露到 window 供 header 调用（或改为 context）
+
+  const handleSave = useCallback(async () => {
+    const modified = Object.keys(dirtyText);
+    for (const filename of modified) {
+      await savePrompt(filename, dirtyText[filename]);
+    }
+    setDirtyText({});
+  }, [dirtyText, savePrompt]);
+
+  const handleCancel = useCallback(() => {
+    setDirtyText({});
+    reloadPrompts();
+  }, [reloadPrompts]);
+
   return (
     <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-6">
+      {/* Tabs */}
       <div
         className="flex min-w-0 shrink-0 gap-8 border-b border-border"
         role="tablist"
@@ -120,13 +170,23 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
         })}
       </div>
 
+      {/* System tab: AGENTS.md */}
       {activeTab === "system" && (
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
+        <div
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto"
+          role="tabpanel"
+        >
+          {promptsError && (
+            <p className="text-sm text-destructive">{promptsError}</p>
+          )}
           <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
             <CardContent className="flex flex-col gap-4 px-4">
-              {projectFields.map((field) => (
+              {systemFields.map((field) => (
                 <div key={field.id} className="flex flex-col gap-2">
-                  <label htmlFor={`settings-system-${field.id}`} className="text-sm font-medium text-foreground">
+                  <label
+                    htmlFor={`settings-system-${field.id}`}
+                    className="text-sm font-medium text-foreground"
+                  >
                     {field.label}
                   </label>
                   <textarea
@@ -134,14 +194,35 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
                     className={settingsMultilineFieldClass}
                     rows={10}
                     autoComplete="off"
+                    value={getValue(field.id)}
+                    onChange={(e) => handleChange(field.id, e.target.value)}
+                    disabled={promptsLoading}
                   />
                 </div>
               ))}
             </CardContent>
           </Card>
+          {/* 行内保存/取消 */}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90"
+            >
+              Save
+            </button>
+          </div>
         </div>
       )}
 
+      {/* Application tab: skills */}
       {activeTab === "application" && (
         <div className="flex min-w-0 flex-col gap-2" role="tabpanel">
           {/* 隐藏的文件选择器（用于上传技能文件夹） */}
@@ -221,13 +302,23 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
         </div>
       )}
 
+      {/* Personalization tab: SOUL.md, USER.md */}
       {activeTab === "personalization" && (
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
+        <div
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto"
+          role="tabpanel"
+        >
+          {promptsError && (
+            <p className="text-sm text-destructive">{promptsError}</p>
+          )}
           <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
             <CardContent className="flex flex-col gap-4 px-4">
               {personalizationFields.map((field) => (
                 <div key={field.id} className="flex flex-col gap-2">
-                  <label htmlFor={`settings-personalization-${field.id}`} className="text-sm font-medium text-foreground">
+                  <label
+                    htmlFor={`settings-personalization-${field.id}`}
+                    className="text-sm font-medium text-foreground"
+                  >
                     {field.label}
                   </label>
                   <textarea
@@ -235,11 +326,31 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
                     className={settingsMultilineFieldClass}
                     rows={6}
                     autoComplete="off"
+                    value={getValue(field.id)}
+                    onChange={(e) => handleChange(field.id, e.target.value)}
+                    disabled={promptsLoading}
                   />
                 </div>
               ))}
             </CardContent>
           </Card>
+          {/* 行内保存/取消 */}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90"
+            >
+              Save
+            </button>
+          </div>
         </div>
       )}
     </div>

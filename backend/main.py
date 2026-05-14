@@ -40,6 +40,7 @@ import app.agents.write_agent
 
 # 导入统一 API 路由
 from app.api.agents import router as agents_router, list_router as agents_list_router
+from app.api.agent_config import router as agent_config_router
 from app.core.config import AGENTS_CONFIG
 from app.runtime.agent_registry import AGENT_CONFIG_REGISTRY, register_agent
 from app.service.knowledge_base_registry_service import list_knowledge_bases
@@ -94,9 +95,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 统一 API 路由（包含 agent 列表 + chat、sessions、messages）
+# 统一 API 路由（包含 agent 列表 + chat、sessions、messages、config）
 app.include_router(agents_list_router)
 app.include_router(agents_router)
+app.include_router(agent_config_router)
 
 
 @app.on_event("startup")
