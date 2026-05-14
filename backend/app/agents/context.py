@@ -92,24 +92,10 @@ class ContextBuilder:
             return None
 
     def _load_bootstrap_files(self) -> str:
-        """Load bootstrap files from prompts/; fallback to workspace root for backwards compatibility."""
+        """Load bootstrap files from prompts/ (AGENTS.md, SOUL.md, USER.md, IDENTITY.md)."""
         prompts_dir = self._agent_prompts_dir()
         if not prompts_dir:
-            # fallback: 从 workspace 根目录读取（兼容已存在的 agent 配置）
-            parts = []
-            for filename in self.BOOTSTRAP_FILES:
-                file_path = self.workspace / filename
-                if file_path.exists():
-                    content = file_path.read_text(encoding="utf-8").strip()
-                    if content:
-                        parts.append(f"## {filename}\n\n{content}")
-            if parts:
-                import logging
-                logging.getLogger(__name__).warning(
-                    "bootstrap files found in workspace root; consider moving them to prompts/ for agent %s",
-                    self.agent_id,
-                )
-            return "\n\n".join(parts) if parts else ""
+            return ""
         parts = []
         for filename in self.BOOTSTRAP_FILES:
             file_path = prompts_dir / filename
