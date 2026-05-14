@@ -27,6 +27,7 @@ export async function loadAgents(): Promise<void> {
       agentRegistry[item.id] = {
         id: item.id,
         name: item.name ?? item.id,
+        visible: item.visible ?? true,
         layout: item.layout ?? DEFAULT_LAYOUT,
       };
     }

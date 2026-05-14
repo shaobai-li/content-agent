@@ -9,6 +9,7 @@ use crate::agent::base::BaseAgent;
 pub struct AgentMeta {
     pub id: String,
     pub name: String,
+    pub visible: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub layout: Option<serde_json::Value>,
 }
@@ -18,14 +19,21 @@ static AGENT_INSTANCES: OnceLock<HashMap<String, Arc<dyn BaseAgent>>> = OnceLock
 
 pub fn init_registry() {
     let config = crate::core::config::get_config();
+    let visibility = &config.visibility;
     let mut agents: Vec<AgentMeta> = config
         .agents
         .iter()
         .map(|(id, cfg)| {
+            let visible = visibility
+                .overrides
+                .get(id)
+                .copied()
+                .unwrap_or(visibility.default_visible);
             let layout = serde_json::to_value(&cfg.layout).ok();
             AgentMeta {
                 id: id.clone(),
                 name: cfg.name.clone().unwrap_or_else(|| id.clone()),
+                visible,
                 layout,
             }
         })

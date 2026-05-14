@@ -9,4 +9,5 @@ backend-rs/target/
 CLAUDE.md
 .env
 config
+!backend/config/
 tasks

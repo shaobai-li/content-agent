@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import Image from "next/image";
-import { Settings, Ellipsis, Monitor, History, BookOpen, FileText } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
@@ -14,18 +14,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { useState, useCallback } from "react";
+import { hideAgent, getHiddenAgentIds, isAgentVisible } from "@/entities/agent/visibility";
+import { agentRegistry } from "@/entities/agent/agent.registry";
 
 // 菜单项接口
 export interface MenuItem {
   label: string;
   href?: string;
   icon?: "history" | "knowledgebase" | "document" | "settings";
+  onClick?: () => void;
 }
 
 // 路由项接口
 export interface RouteItem {
   href: string;
   label: string;
+  agentId?: string;
   menuItems?: MenuItem[];  // 可选的下拉菜单项
 }
 
@@ -35,22 +40,34 @@ interface SidebarProps {
 
 export function Sidebar({ routes }: SidebarProps) {
   const currentPath = usePathname();
+  const [hiddenIds, setHiddenIds] = useState<string[]>(() => getHiddenAgentIds());
+
+  const handleHide = useCallback((agentId: string) => {
+    hideAgent(agentId);
+    setHiddenIds(getHiddenAgentIds());
+  }, []);
+
+  // 过滤隐藏的 agent
+  const visibleRoutes = routes.filter((route) => {
+    if (!route.agentId) return true;
+    const agent = agentRegistry[route.agentId];
+    return isAgentVisible(route.agentId, agent?.visible ?? true);
+  });
 
   return (
     <Card className="w-70 shrink-0 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
       <div className="flex items-center px-3">
-        <Image 
+        <Image
           className="mb-[-20px]"
           src="/OmniAge_Logo_4K.svg"
-          // src="/OmniAge_Logo_black_2.svg"
-          alt="OmniAge Logo" 
+          alt="OmniAge Logo"
           width={190}
           height={80}
           priority
         />
       </div>
       <CardContent className="flex-grow flex flex-col p-4 gap-1">
-        {routes.map((route) => {
+        {visibleRoutes.map((route) => {
           // 检查当前路径是否匹配该路由或其子路由
           const isActive = currentPath === route.href || currentPath.startsWith(`${route.href}/`);
           const hasMenu = route.menuItems && route.menuItems.length > 0;
@@ -95,7 +112,7 @@ export function Sidebar({ routes }: SidebarProps) {
                               {item.label}
                             </Link>
                           ) : (
-                            <span className="flex items-center gap-2">
+                            <span className="flex items-center gap-2 cursor-pointer">
                               {Icon && <Icon className="size-4" />}
                               {item.label}
                             </span>
@@ -103,6 +120,17 @@ export function Sidebar({ routes }: SidebarProps) {
                         </DropdownMenuItem>
                       );
                     })}
+                    {route.agentId && (
+                      <>
+                        <div className="h-px bg-border mx-1 my-1" />
+                        <DropdownMenuItem onClick={() => handleHide(route.agentId!)}>
+                          <span className="flex items-center gap-2 cursor-pointer">
+                            <EyeOff className="size-4" />
+                            隐藏
+                          </span>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -113,7 +141,7 @@ export function Sidebar({ routes }: SidebarProps) {
       <div className="p-4 flex justify-between items-center border-t">
         <Avatar className="size-6">
           <AvatarImage src="https://github.com/shadcn.png" />
-          <AvatarFallback>CNZ</AvatarFallback> 
+          <AvatarFallback>CNZ</AvatarFallback>
         </Avatar>
         <div className="flex-1 flex flex-col px-2">
           <span className="text-sm font-medium">User Name</span>
