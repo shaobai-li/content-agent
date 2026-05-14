@@ -78,11 +78,27 @@ class ContextBuilder:
         path = self._prompts_dir / "system.md"
         return path.read_text(encoding="utf-8").strip()
 
+    def _agent_prompts_dir(self) -> Path | None:
+        """Agent 级 prompts 目录（base_dir/prompts/），无 agent_id 或 agent 不存在时返回 None。"""
+        if not self.agent_id:
+            return None
+        from app.core.config import get_agent_base_dir, AGENTS_CONFIG
+        if self.agent_id not in AGENTS_CONFIG:
+            return None
+        try:
+            d = get_agent_base_dir(self.agent_id) / "prompts"
+            return d if d.is_dir() else None
+        except (ValueError, KeyError):
+            return None
+
     def _load_bootstrap_files(self) -> str:
-        """Load bootstrap files from workspace (AGENTS.md, SOUL.md, USER.md, IDENTITY.md)."""
+        """Load bootstrap files from prompts/ (AGENTS.md, SOUL.md, USER.md, IDENTITY.md)."""
+        prompts_dir = self._agent_prompts_dir()
+        if not prompts_dir:
+            return ""
         parts = []
         for filename in self.BOOTSTRAP_FILES:
-            file_path = self.workspace / filename
+            file_path = prompts_dir / filename
             if file_path.exists():
                 content = file_path.read_text(encoding="utf-8").strip()
                 if content:
