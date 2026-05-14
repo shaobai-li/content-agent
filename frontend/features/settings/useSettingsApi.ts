@@ -60,6 +60,7 @@ export function useSkills(agentId: string) {
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : "操作失败");
+        await load(); // 回滚乐观更新
       }
     },
     [agentId],

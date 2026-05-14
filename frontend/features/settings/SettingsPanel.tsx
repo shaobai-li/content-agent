@@ -44,6 +44,7 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    setUploadError(null);
     setUploading(true);
 
     try {
@@ -81,6 +82,7 @@ export function SettingsPanel({ agentId }: { agentId: string }) {
 
   const handleDelete = async (skillId: string, skillName: string) => {
     if (!window.confirm(`确定要删除 skill「${skillName}」吗？`)) return;
+    setUploadError(null);
     try {
       await remove(skillId);
     } catch (err) {
