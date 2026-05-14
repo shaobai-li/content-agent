@@ -95,9 +95,15 @@ def test_build_system_prompt_with_skills_xml(tmp_path):
 
 
 def test_build_system_prompt_with_bootstrap(tmp_path):
-    cb = ContextBuilder(tmp_path)
-    (tmp_path / "AGENTS.md").write_text("bootstrap content")
-    with patch.object(cb, "_resolve_base_prompt", return_value="base"), _kb_empty():
+    """Bootstrap files are read from prompts/ (not workspace/)."""
+    cb = ContextBuilder(tmp_path, agent_id="ag")
+    prompts_dir = tmp_path / "prompts"
+    prompts_dir.mkdir(parents=True, exist_ok=True)
+    (prompts_dir / "AGENTS.md").write_text("bootstrap content")
+    with patch("app.core.config.get_agent_base_dir", return_value=tmp_path), \
+         patch("app.core.config.AGENTS_CONFIG", {"ag": {"base_dir": "."}}), \
+         patch.object(cb, "_resolve_base_prompt", return_value="base"), \
+         _kb_empty():
         prompt = cb.build_system_prompt()
         assert "AGENTS.md" in prompt
         assert "bootstrap content" in prompt

@@ -8,6 +8,7 @@ from xml.sax.saxutils import escape
 import yaml
 
 from app.core.config import get_agent_base_dir, get_agent_skill_ids
+from app.utils.disabled_skills import DisabledSkills
 
 
 def _xml_text(s: str) -> str:
@@ -80,17 +81,21 @@ def load_skill(skill_path: Path, skill_name: str) -> str:
     return load_skill_body(skill_path, skill_name)
 
 
-def discover_skills_for_agent(agent_id: str) -> List[SkillHead]:
+def discover_skills_for_agent(agent_id: str, disabled_skills: set[str] | None = None) -> List[SkillHead]:
     """
     发现某 agent 可用 skill：仅解析各 SKILL.md 的 frontmatter。
     顺序：config 中 skills 列表顺序；再追加用户目录下（仅不在该列表中的 skill_id，字母序）。
     同名 skill_id：用户目录覆盖仓库内条目。
+    disabled_skills 中的 skill_id 会被跳过（不加入返回列表）。
     """
+    disabled = disabled_skills or set()
     bundled_root = bundled_skills_dir()
     merged: Dict[str, SkillHead] = {}
     ordered: List[str] = []
 
     for skill_id in get_agent_skill_ids(agent_id):
+        if skill_id in disabled:
+            continue
         p = bundled_root / skill_id / "SKILL.md"
         if not p.is_file():
             continue
@@ -105,10 +110,12 @@ def discover_skills_for_agent(agent_id: str) -> List[SkillHead]:
         for sub in sorted(user_root.iterdir()):
             if not sub.is_dir():
                 continue
+            sid = sub.name
+            if sid in disabled:
+                continue
             sm = sub / "SKILL.md"
             if not sm.is_file():
                 continue
-            sid = sub.name
             head = read_skill_head(sid, sm, "user")
             if not head:
                 continue
@@ -147,8 +154,11 @@ def format_skills_discovery_xml(heads: List[SkillHead]) -> str:
 
 
 def discover_skills_xml_for_agent(agent_id: str) -> str:
-    """发现某 agent 可用 skill，返回仅含头信息的 XML 字符串；无 skill 时返回空串。"""
-    return format_skills_discovery_xml(discover_skills_for_agent(agent_id))
+    """发现某 agent 可用 skill（含 disable 过滤），返回仅含头信息的 XML 字符串；无 skill 时返回空串。"""
+    disabled = DisabledSkills.load(agent_id)
+    return format_skills_discovery_xml(
+        discover_skills_for_agent(agent_id, disabled_skills=disabled.skill_ids)
+    )
 
 
 def prepend_skill_catalog_xml_to_system_prompt(base_system_prompt: str, agent_id: str) -> str:
