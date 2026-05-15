@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import Image from "next/image";
-import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, GripVertical } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
@@ -85,20 +85,13 @@ function SortableRoute({ route, isActive, children }: { route: RouteItem; isActi
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       className={cn(
-        "group relative flex items-center w-full rounded-md text-sm hover:bg-sidebar-accent text-sidebar-foreground",
+        "group relative flex items-center w-full rounded-md text-sm hover:bg-sidebar-accent text-sidebar-foreground cursor-grab active:cursor-grabbing",
         isActive && "bg-sidebar-accent",
       )}
     >
-      {/* 拖拽手柄 */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="px-1 py-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity hover:bg-sidebar-accent/50 rounded shrink-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical className="size-3.5 text-muted-foreground" />
-      </button>
       {children}
     </div>
   );
