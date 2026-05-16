@@ -8,12 +8,12 @@ interface DocumentCollapseContextValue {
 }
 
 const DocumentCollapseContext = createContext<DocumentCollapseContextValue>({
-  isCollapsed: false,
+  isCollapsed: true,
   toggle: () => {},
 });
 
 export function DocumentCollapseProvider({ children }: { children: ReactNode }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   return (
     <DocumentCollapseContext.Provider
       value={{ isCollapsed, toggle: () => setIsCollapsed((v) => !v) }}
