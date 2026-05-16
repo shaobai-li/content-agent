@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { $getRoot, type EditorState } from "lexical";
 import { LexicalEditor, type LexicalEditorHandle } from "./LexicalEditor";
 import { Button } from "@/shared/ui/button";
@@ -143,6 +143,11 @@ function DragOverlay({
   );
 }
 
+const MODEL_OPTIONS = [
+  { value: "deepseek-chat", label: "DeepSeek Chat" },
+  { value: "deepseek-reasoner", label: "DeepSeek Reasoner" },
+];
+
 export function ChatInput({
   value,
   onChange,
@@ -156,6 +161,9 @@ export function ChatInput({
   agentId,
 }: ChatInputProps) {
   const editorRef = useRef<LexicalEditorHandle>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const [model, setModel] = useState("deepseek-chat");
+  const [expanded, setExpanded] = useState(false);
   const handleMentionDropped = (mention: MentionItem) => {
     if (
       mentions.some((item) => getMentionKey(item) === getMentionKey(mention)) ||
@@ -246,6 +254,21 @@ export function ChatInput({
     onMentionsChange?.(extractMentionsFromState(editorState));
   };
 
+  // 检测输入内容是否超过一行，切换单行/双层布局
+  useEffect(() => {
+    const el = editorContainerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      setExpanded(el.getBoundingClientRect().height > 60);
+    };
+
+    requestAnimationFrame(update);
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [value]);
+
   return (
     <div
       className="relative rounded-lg border shadow-sm overflow-hidden"
@@ -269,17 +292,20 @@ export function ChatInput({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-1 p-2">
+      <div ref={editorContainerRef} className="flex flex-wrap items-center gap-1 p-2">
         <LexicalEditor
           ref={editorRef}
-          className="flex-1 min-w-[120px]"
+          className={
+            "flex-1 min-w-[120px] max-h-[200px] overflow-y-auto" +
+            (expanded ? " basis-full" : "")
+          }
           placeholder="Type messages ..."
           value={value}
           onChange={handleEditorChange}
           onEnter={onSend}
           agentId={agentId}
         />
-        <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
+        <Button size="sm" className="text-xs gap-2.5 ml-auto" onClick={onSend} disabled={isSendDisabled}>
           Send
         </Button>
       </div>
