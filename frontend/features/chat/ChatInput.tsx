@@ -296,7 +296,7 @@ export function ChatInput({
         <LexicalEditor
           ref={editorRef}
           className={
-            "flex-1 min-w-[120px] max-h-[200px] overflow-y-auto" +
+            "flex-1 min-w-[120px] max-h-[140px] overflow-y-auto" +
             (expanded ? " basis-full" : "")
           }
           placeholder="Type messages ..."
