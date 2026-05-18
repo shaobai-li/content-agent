@@ -4,20 +4,27 @@ import { ReactNode } from "react";
 import { DocumentCollapseProvider, useDocumentCollapse } from "./DocumentCollapseContext";
 
 interface AgentPageLayoutProps {
+    agentId: string;
     leftHeader?: ReactNode;
     leftBody?: ReactNode;
     rightBody: ReactNode;
 }
 
-export function AgentPageLayout(props: AgentPageLayoutProps) {
+interface LayoutInnerProps {
+    leftHeader?: ReactNode;
+    leftBody?: ReactNode;
+    rightBody: ReactNode;
+}
+
+export function AgentPageLayout({ agentId, leftHeader, leftBody, rightBody }: AgentPageLayoutProps) {
     return (
-        <DocumentCollapseProvider>
-            <AgentPageLayoutInner {...props} />
+        <DocumentCollapseProvider agentId={agentId}>
+            <AgentPageLayoutInner leftHeader={leftHeader} leftBody={leftBody} rightBody={rightBody} />
         </DocumentCollapseProvider>
     );
 }
 
-function AgentPageLayoutInner({ leftHeader, leftBody, rightBody }: AgentPageLayoutProps) {
+function AgentPageLayoutInner({ leftHeader, leftBody, rightBody }: LayoutInnerProps) {
     const { isCollapsed } = useDocumentCollapse();
 
     return (
