@@ -73,7 +73,7 @@ export function HistoryPanel() {
               key={item.session_id}
               id={item.session_id}
               title={item.title}
-              preview={item.content}
+              preview={item.content ?? ""}
               active={item.session_id === activeSessionId}
               onClick={() => handleSelect(item.session_id)}
               onDelete={() => handleDelete(item.session_id, item.title)}

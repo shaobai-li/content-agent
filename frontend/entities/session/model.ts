@@ -1,7 +1,7 @@
 export interface Session {
-    id: string;
+    session_id: string;
     title: string;
-    lastMessageContent?: string;
+    content?: string;
 }
 
 export interface SessionMessage {
