@@ -166,12 +166,14 @@ function MentionBridgePlugin({
         insertMention({
           trigger: "@",
           value: mention.name,
-          kind: mention.kind,
-          id: mention.id,
-          kbId: mention.kbId,
-          nodeId: mention.nodeId,
-          recordId: mention.recordId,
-          ...(mention.parsed_path ? { parsed_path: mention.parsed_path } : {}),
+          data: {
+            id: mention.id,
+            kind: mention.kind ?? null,
+            kbId: mention.kbId ?? null,
+            nodeId: mention.nodeId ?? null,
+            recordId: mention.recordId ?? null,
+            parsed_path: mention.parsed_path ?? null,
+          },
         });
       },
       hasMention: (mention) => {

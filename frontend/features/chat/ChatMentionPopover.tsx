@@ -47,8 +47,8 @@ export function ChatMentionPopover({
         .then((response) => {
           const nodes = response.nodes || [];
           const options = (nodes as KnowledgeBaseRecordOption[]).map((record) => ({
-            id: record.record_id,
-            name: record.name,
+            id: record.record_id ?? "",
+            name: record.name ?? "",
             kind: "record" as const,
             recordId: record.record_id,
             ...(record.id ? { nodeId: record.id } : {}),
