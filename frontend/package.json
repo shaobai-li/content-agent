@@ -17,10 +17,12 @@
     "@lexical/utils": "^0.41.0",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-slot": "^1.2.4",
+    "@tailwindcss/typography": "^0.5.19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "easymde": "^2.20.0",
+    "highlight.js": "^11.11.1",
     "lexical": "^0.41.0",
     "lexical-beautiful-mentions": "^0.1.48",
     "lucide-react": "^0.562.0",
@@ -28,6 +30,9 @@
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

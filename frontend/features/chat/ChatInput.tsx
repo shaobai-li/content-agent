@@ -7,7 +7,13 @@ import { Button } from "@/shared/ui/button";
 import { FileChip } from "./FileChip";
 import type { MentionItem } from "./MentionChip";
 import { FileTypeIconMap } from "@/shared/ui/icons";
-import { Upload } from "lucide-react";
+import { ChevronDown, Upload } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 import { AgentId } from "@/entities/agent/model";
 import {
   hasKnowledgeBaseDragData,
@@ -144,8 +150,9 @@ function DragOverlay({
 }
 
 const MODEL_OPTIONS = [
-  { value: "deepseek-chat", label: "DeepSeek Chat" },
-  { value: "deepseek-reasoner", label: "DeepSeek Reasoner" },
+  { value: "deepseek", label: "deepseek" },
+  { value: "gpt", label: "gpt" },
+  { value: "kimi", label: "kimi" },
 ];
 
 export function ChatInput({
@@ -162,7 +169,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const editorRef = useRef<LexicalEditorHandle>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  const [model, setModel] = useState("deepseek-chat");
+  const [model, setModel] = useState("deepseek");
   const [expanded, setExpanded] = useState(false);
   const handleMentionDropped = (mention: MentionItem) => {
     if (
@@ -305,7 +312,30 @@ export function ChatInput({
           onEnter={onSend}
           agentId={agentId}
         />
-        <Button size="sm" className="text-xs gap-2.5 ml-auto" onClick={onSend} disabled={isSendDisabled}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-xs gap-1 px-2 font-normal text-muted-foreground hover:text-foreground ml-auto"
+            >
+              {model}
+              <ChevronDown className="size-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {MODEL_OPTIONS.map((opt) => (
+              <DropdownMenuItem
+                key={opt.value}
+                onSelect={() => setModel(opt.value)}
+                className={model === opt.value ? "bg-accent" : ""}
+              >
+                {opt.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
           Send
         </Button>
       </div>

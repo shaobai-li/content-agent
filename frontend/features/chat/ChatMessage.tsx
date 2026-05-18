@@ -1,9 +1,44 @@
+import { useState, type ReactElement, type ReactNode } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import { Copy, Check } from "lucide-react";
+import "highlight.js/styles/github.css";
 import { isFileMessage, type Message, type MessagePart } from "@/entities/message/model";
 import { FileMessageItem } from "./FileMessageItem";
 import { CollapsibleSection } from "./CollapsibleSection";
 
 interface ChatMessageProps {
   messages: Message[];
+}
+
+function extractTextContent(node: ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (!node) return "";
+  if (Array.isArray(node)) return node.map(extractTextContent).join("");
+  if (typeof node === "object" && "props" in node)
+    return extractTextContent((node as ReactElement).props.children);
+  return "";
+}
+
+function CopyButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="absolute right-2 top-2 z-10 p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+      title="复制代码"
+    >
+      {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+    </button>
+  );
 }
 
 function renderParts(parts: MessagePart[]) {
@@ -22,9 +57,64 @@ function renderParts(parts: MessagePart[]) {
       return (
         <div
           key={i}
-          className="min-w-0 max-w-full whitespace-pre-wrap break-all"
+          className="
+            prose prose-sm max-w-none
+            text-foreground
+
+            prose-headings:text-foreground
+            prose-headings:font-semibold
+            prose-h1:text-2xl
+            prose-h2:text-xl
+            prose-h3:text-lg
+
+            prose-p:leading-7
+            prose-p:my-3
+
+            prose-a:text-foreground
+            prose-a:no-underline hover:prose-a:underline
+
+            prose-strong:text-foreground
+
+            prose-code:rounded
+            prose-code:px-1.5
+            prose-code:py-0.5
+            prose-code:text-sm
+            prose-code:font-medium
+            prose-code:text-foreground
+            prose-code:before:content-none
+            prose-code:after:content-none
+
+            prose-pre:bg-muted
+            prose-pre:text-foreground
+            prose-pre:rounded-lg
+            prose-pre:p-4
+            prose-pre:overflow-x-auto
+
+            prose-table:text-sm
+            prose-th:font-semibold
+            prose-th:text-foreground
+            prose-td:text-muted-foreground
+
+            prose-hr:border-border
+          "
         >
-          {part.content}
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeHighlight]}
+            components={{
+              pre({ children }) {
+                const codeText = extractTextContent(children);
+                return (
+                  <div className="relative group">
+                    <pre>{children}</pre>
+                    <CopyButton code={codeText} />
+                  </div>
+                );
+              },
+            }}
+          >
+            {part.content}
+          </ReactMarkdown>
         </div>
       );
     }
