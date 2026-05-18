@@ -1,4 +1,4 @@
-import { useState, type ReactElement, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -17,7 +17,7 @@ function extractTextContent(node: ReactNode): string {
   if (!node) return "";
   if (Array.isArray(node)) return node.map(extractTextContent).join("");
   if (typeof node === "object" && "props" in node)
-    return extractTextContent((node as ReactElement).props.children);
+    return extractTextContent((node as { props: { children: ReactNode } }).props.children);
   return "";
 }
 
