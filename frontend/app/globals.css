@@ -1,5 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+/* 取消 highlight.js 给代码块内 code 加的白色背景，只保留 pre 的统一底色 */
+.prose pre code.hljs {
+  background: transparent;
+}
 
 @custom-variant dark (&:is(.dark *));
 
