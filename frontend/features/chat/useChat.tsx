@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Message, FileMessage } from "@/entities/message/model";
 import type { MentionItem } from "./MentionChip";
 import { fetchMessages } from "@/entities/session/api";
@@ -20,11 +20,46 @@ export type SendPayload = {
   attachments?: File[];
 };
 
+/** 模块级缓存：组件实例复用时按 agentId 隔离聊天状态 */
+const chatStateCache = new Map<string, {
+  messages: Message[];
+  currentSessionId: string | null;
+  input: string;
+}>();
+
 export function useChat({ agentId, apiEndpoint }: UseChatProps) {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState(() => chatStateCache.get(agentId)?.input ?? "");
+  const [messages, setMessages] = useState<Message[]>(() => chatStateCache.get(agentId)?.messages ?? []);
   const [isSending, setIsSending] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(
+    () => chatStateCache.get(agentId)?.currentSessionId ?? null,
+  );
+
+  // 检测 agentId 切换：保存上一个 agent 的状态，恢复当前 agent 的状态
+  const prevAgentRef = useRef(agentId);
+  useEffect(() => {
+    const prev = prevAgentRef.current;
+    if (prev !== agentId) {
+      chatStateCache.set(prev, { messages, currentSessionId, input });
+      const cached = chatStateCache.get(agentId);
+      if (cached) {
+        setMessages(cached.messages);
+        setCurrentSessionId(cached.currentSessionId);
+        setInput(cached.input);
+      } else {
+        setMessages([]);
+        setCurrentSessionId(null);
+        setInput("");
+      }
+    }
+    prevAgentRef.current = agentId;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentId]);
+
+  // 持久化当前聊天状态
+  useEffect(() => {
+    chatStateCache.set(agentId, { messages, currentSessionId, input });
+  }, [agentId, messages, currentSessionId, input]);
 
   const streamEndpoint = `${apiEndpoint}/stream`;
 
