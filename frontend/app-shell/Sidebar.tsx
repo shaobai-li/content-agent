@@ -306,7 +306,13 @@ export function Sidebar({ routes }: SidebarProps) {
               })}
             </nav>
           </div>
-          <div className="flex-1 bg-muted p-6" />
+          <div className="flex-1 bg-muted p-6">
+            <h3 className="text-sm font-semibold text-foreground border-b border-foreground/20 pb-2 mb-4">
+              {selectedSetting === "general" && "General"}
+              {selectedSetting === "account" && "Account"}
+              {selectedSetting === "about" && "About"}
+            </h3>
+          </div>
         </DialogContent>
       </Dialog>
     </>
