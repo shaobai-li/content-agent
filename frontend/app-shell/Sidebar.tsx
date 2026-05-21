@@ -276,8 +276,11 @@ export function Sidebar({ routes }: SidebarProps) {
       </div>
     </Card>
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="!max-w-none w-[660px] h-[630px]">
-          <DialogTitle>settings</DialogTitle>
+        <DialogContent className="!max-w-none w-[660px] h-[630px] p-0 flex flex-row gap-0 overflow-hidden">
+          <div className="w-1/3 shrink-0 flex flex-col border-r border-border p-6">
+            <DialogTitle className="text-sm font-semibold text-foreground">settings</DialogTitle>
+          </div>
+          <div className="flex-1 bg-muted p-6" />
         </DialogContent>
       </Dialog>
     </>
