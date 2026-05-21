@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import Image from "next/image";
-import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, SlidersHorizontal, User, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
@@ -102,6 +102,7 @@ export function Sidebar({ routes }: SidebarProps) {
   const currentPath = usePathname();
   const [hiddenIds, setHiddenIds] = useState<string[]>(() => getHiddenAgentIds());
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selectedSetting, setSelectedSetting] = useState("general");
 
   const handleHide = useCallback((agentId: string) => {
     hideAgent(agentId);
@@ -278,7 +279,32 @@ export function Sidebar({ routes }: SidebarProps) {
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="!max-w-none w-[660px] h-[630px] p-0 flex flex-row gap-0 overflow-hidden">
           <div className="w-1/3 shrink-0 flex flex-col border-r border-border p-6">
-            <DialogTitle className="text-sm font-semibold text-foreground">settings</DialogTitle>
+            <DialogTitle className="text-sm font-semibold text-muted-foreground mb-4">Settings</DialogTitle>
+            <nav className="flex flex-col gap-1">
+              {[
+                { id: "general", label: "General", icon: SlidersHorizontal },
+                { id: "account", label: "Account", icon: User },
+                { id: "about", label: "About", icon: Info },
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = selectedSetting === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelectedSetting(item.id)}
+                    className={cn(
+                      "flex items-center w-full gap-3 px-2 py-2 rounded-md text-sm text-sidebar-foreground transition-colors",
+                      "hover:bg-sidebar-accent",
+                      isActive && "bg-sidebar-accent",
+                    )}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
           <div className="flex-1 bg-muted p-6" />
         </DialogContent>
