@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import Image from "next/image";
 import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
@@ -100,6 +101,7 @@ function SortableRoute({ route, isActive, children }: { route: RouteItem; isActi
 export function Sidebar({ routes }: SidebarProps) {
   const currentPath = usePathname();
   const [hiddenIds, setHiddenIds] = useState<string[]>(() => getHiddenAgentIds());
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleHide = useCallback((agentId: string) => {
     hideAgent(agentId);
@@ -160,7 +162,8 @@ export function Sidebar({ routes }: SidebarProps) {
   );
 
   return (
-    <Card className="w-70 shrink-0 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
+    <>
+      <Card className="w-70 shrink-0 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
       <div className="flex items-center px-3">
         <Image
           className="mb-[-20px]"
@@ -267,11 +270,17 @@ export function Sidebar({ routes }: SidebarProps) {
             Level 1 Pilot
           </span>
         </div>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
           <Settings className="size-6" />
         </Button>
       </div>
     </Card>
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="!max-w-none w-[660px] h-[630px]">
+          <DialogTitle>settings</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
