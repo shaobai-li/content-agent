@@ -4,10 +4,13 @@ import { Sidebar } from "@/app-shell/Sidebar";
 import { getSidebarRoutes } from "@/app-shell/navigation";
 import { loadAgents } from "@/entities/agent/agent.registry";
 import { AuthProvider, AuthGate } from "@/entities/auth/store";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { RouteItem } from "@/app-shell/Sidebar";
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isLoginPage = pathname === "/login";
   const [routes, setRoutes] = useState<RouteItem[]>([]);
   const [ready, setReady] = useState(false);
 
@@ -18,7 +21,6 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         setReady(true);
       })
       .catch(() => {
-        // 后端不可达时，静默降级（空 sidebar + 仅内容区）
         setReady(true);
       });
   }, []);
@@ -34,10 +36,16 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <AuthGate>
-        <div className="flex h-screen">
-          <Sidebar routes={routes} />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
-        </div>
+        {isLoginPage ? (
+          children
+        ) : (
+          <div className="flex h-screen">
+            <Sidebar routes={routes} />
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              {children}
+            </div>
+          </div>
+        )}
       </AuthGate>
     </AuthProvider>
   );
