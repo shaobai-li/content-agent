@@ -35,12 +35,16 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     () => chatStateCache.get(agentId)?.currentSessionId ?? null,
   );
 
+  // 用 ref 追踪最新状态，供 effect cleanup 读取
+  const latestStateRef = useRef({ messages, currentSessionId, input });
+  latestStateRef.current = { messages, currentSessionId, input };
+
   // 检测 agentId 切换：保存上一个 agent 的状态，恢复当前 agent 的状态
   const prevAgentRef = useRef(agentId);
   useEffect(() => {
     const prev = prevAgentRef.current;
     if (prev !== agentId) {
-      chatStateCache.set(prev, { messages, currentSessionId, input });
+      chatStateCache.set(prev, latestStateRef.current);
       const cached = chatStateCache.get(agentId);
       if (cached) {
         setMessages(cached.messages);
@@ -53,13 +57,12 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
       }
     }
     prevAgentRef.current = agentId;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentId]);
 
-  // 持久化当前聊天状态
-  useEffect(() => {
-    chatStateCache.set(agentId, { messages, currentSessionId, input });
-  }, [agentId, messages, currentSessionId, input]);
+    // cleanup：组件卸载或 agentId 再次变化时保存当前状态
+    return () => {
+      chatStateCache.set(agentId, latestStateRef.current);
+    };
+  }, [agentId]);
 
   const streamEndpoint = `${apiEndpoint}/stream`;
 
