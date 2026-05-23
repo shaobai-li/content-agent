@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import Image from "next/image";
-import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, SlidersHorizontal, User, Info } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, LogOut, SlidersHorizontal, User, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
@@ -34,6 +34,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { hideAgent, getHiddenAgentIds, isAgentVisible } from "@/entities/agent/visibility";
 import { agentRegistry } from "@/entities/agent/agent.registry";
+import { useAuth } from "@/entities/auth/store";
 
 const STORAGE_KEY = "agent-order";
 
@@ -109,6 +110,7 @@ function SortableRoute({ route, isActive, children }: { route: RouteItem; isActi
 export function Sidebar({ routes }: SidebarProps) {
   const currentPath = usePathname();
   const [hiddenIds, setHiddenIds] = useState<string[]>(() => getHiddenAgentIds());
+  const { user, logout, enabled: authEnabled } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedSetting, setSelectedSetting] = useState<SettingId>("general");
 
@@ -269,19 +271,35 @@ export function Sidebar({ routes }: SidebarProps) {
         </DndContext>
       </CardContent>
       <div className="p-4 flex justify-between items-center border-t">
-        <Avatar className="size-6">
-          <AvatarImage src="https://github.com/shadcn.png" />
-          <AvatarFallback>CNZ</AvatarFallback>
-        </Avatar>
-        <div className="flex-1 flex flex-col px-2">
-          <span className="text-sm font-medium">User Name</span>
-          <span className="text-xs text-muted-foreground">
-            Level 1 Pilot
-          </span>
-        </div>
-        <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
-          <Settings className="size-6" />
-        </Button>
+        {authEnabled && user ? (
+          <>
+            <Avatar className="size-6">
+              <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 flex flex-col px-2">
+              <span className="text-sm font-medium">{user.username}</span>
+            </div>
+            <Button variant="ghost" size="icon" onClick={logout}>
+              <LogOut className="size-6" />
+            </Button>
+          </>
+        ) : (
+          <>
+            <Avatar className="size-6">
+              <AvatarImage src="https://github.com/shadcn.png" />
+              <AvatarFallback>CNZ</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 flex flex-col px-2">
+              <span className="text-sm font-medium">User Name</span>
+              <span className="text-xs text-muted-foreground">
+                Level 1 Pilot
+              </span>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
+              <Settings className="size-6" />
+            </Button>
+          </>
+        )}
       </div>
     </Card>
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
