@@ -43,6 +43,7 @@ export function LoginForm() {
         value={username}
         onChange={(e) => setUsername(e.target.value)}
         disabled={loading}
+        autoComplete="off"
       />
       <Input
         type="password"
@@ -51,6 +52,7 @@ export function LoginForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         disabled={loading}
+        autoComplete="new-password"
       />
       {error && (
         <p className="text-sm text-destructive">{error}</p>

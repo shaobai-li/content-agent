@@ -68,7 +68,6 @@ function DialogContent({
       >
         {children}
         {showCloseButton && (
-          {/* 移除 focus:ring-* 以消除关闭按钮选中边框，保持弹窗头部视觉简洁 */}
           <DialogPrimitive.Close
             data-slot="dialog-close"
             className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
