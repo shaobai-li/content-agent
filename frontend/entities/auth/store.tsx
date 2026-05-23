@@ -12,7 +12,7 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  login: (username: string) => void
+  login: (user: { id: number; username: string }) => void
   logout: () => void
   enabled: boolean
   loading: boolean
@@ -46,8 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
   }, [])
 
-  const login = useCallback((username: string) => {
-    setState({ user: { id: 0, username }, status: 'authenticated' })
+  const login = useCallback((user: { id: number; username: string }) => {
+    setState({ user, status: 'authenticated' })
   }, [])
 
   const logout = useCallback(() => {

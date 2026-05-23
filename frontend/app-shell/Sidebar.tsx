@@ -6,7 +6,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import Image from "next/image";
-import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, LogOut } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, LogOut, SlidersHorizontal, User, Info } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
@@ -36,6 +37,14 @@ import { agentRegistry } from "@/entities/agent/agent.registry";
 import { useAuth } from "@/entities/auth/store";
 
 const STORAGE_KEY = "agent-order";
+
+const SETTINGS_NAV = [
+  { id: "general", label: "General", icon: SlidersHorizontal },
+  { id: "account", label: "Account", icon: User },
+  { id: "about", label: "About", icon: Info },
+] as const;
+
+type SettingId = (typeof SETTINGS_NAV)[number]["id"];
 
 function loadOrder(): string[] {
   if (typeof window === "undefined") return [];
@@ -102,6 +111,8 @@ export function Sidebar({ routes }: SidebarProps) {
   const currentPath = usePathname();
   const [hiddenIds, setHiddenIds] = useState<string[]>(() => getHiddenAgentIds());
   const { user, logout, enabled: authEnabled } = useAuth();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selectedSetting, setSelectedSetting] = useState<SettingId>("general");
 
   const handleHide = useCallback((agentId: string) => {
     hideAgent(agentId);
@@ -162,7 +173,8 @@ export function Sidebar({ routes }: SidebarProps) {
   );
 
   return (
-    <Card className="w-70 shrink-0 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
+    <>
+      <Card className="w-70 shrink-0 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
       <div className="flex items-center px-3">
         <Image
           className="mb-[-20px]"
@@ -283,13 +295,47 @@ export function Sidebar({ routes }: SidebarProps) {
                 Level 1 Pilot
               </span>
             </div>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
               <Settings className="size-6" />
             </Button>
           </>
         )}
       </div>
     </Card>
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="!max-w-none w-[660px] max-h-[85vh] p-0 flex flex-row gap-0 overflow-hidden">
+          <div className="w-1/3 shrink-0 flex flex-col border-r border-border p-6 overflow-y-auto">
+            <DialogTitle className="text-sm font-semibold text-muted-foreground mb-4">Settings</DialogTitle>
+            <nav className="flex flex-col gap-1">
+              {SETTINGS_NAV.map((item) => {
+                const Icon = item.icon;
+                const isActive = selectedSetting === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSelectedSetting(item.id)}
+                    className={cn(
+                      "flex items-center w-full gap-3 px-2 py-2 rounded-md text-sm text-sidebar-foreground transition-colors",
+                      "hover:bg-sidebar-accent",
+                      isActive && "bg-sidebar-accent",
+                    )}
+                  >
+                    <Icon className="size-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+          <div className="flex-1 bg-muted p-6 overflow-y-auto">
+            <h3 className="text-sm font-semibold text-foreground border-b border-foreground/20 pb-2 mb-4">
+              {SETTINGS_NAV.find((i) => i.id === selectedSetting)?.label}
+            </h3>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
