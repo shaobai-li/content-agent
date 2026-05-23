@@ -37,6 +37,14 @@ import { agentRegistry } from "@/entities/agent/agent.registry";
 
 const STORAGE_KEY = "agent-order";
 
+const SETTINGS_NAV = [
+  { id: "general", label: "General", icon: SlidersHorizontal },
+  { id: "account", label: "Account", icon: User },
+  { id: "about", label: "About", icon: Info },
+] as const;
+
+type SettingId = (typeof SETTINGS_NAV)[number]["id"];
+
 function loadOrder(): string[] {
   if (typeof window === "undefined") return [];
   try {
@@ -102,7 +110,7 @@ export function Sidebar({ routes }: SidebarProps) {
   const currentPath = usePathname();
   const [hiddenIds, setHiddenIds] = useState<string[]>(() => getHiddenAgentIds());
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [selectedSetting, setSelectedSetting] = useState("general");
+  const [selectedSetting, setSelectedSetting] = useState<SettingId>("general");
 
   const handleHide = useCallback((agentId: string) => {
     hideAgent(agentId);
@@ -277,15 +285,11 @@ export function Sidebar({ routes }: SidebarProps) {
       </div>
     </Card>
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="!max-w-none w-[660px] h-[630px] p-0 flex flex-row gap-0 overflow-hidden">
-          <div className="w-1/3 shrink-0 flex flex-col border-r border-border p-6">
+        <DialogContent className="!max-w-none w-[660px] max-h-[85vh] p-0 flex flex-row gap-0 overflow-hidden">
+          <div className="w-1/3 shrink-0 flex flex-col border-r border-border p-6 overflow-y-auto">
             <DialogTitle className="text-sm font-semibold text-muted-foreground mb-4">Settings</DialogTitle>
             <nav className="flex flex-col gap-1">
-              {[
-                { id: "general", label: "General", icon: SlidersHorizontal },
-                { id: "account", label: "Account", icon: User },
-                { id: "about", label: "About", icon: Info },
-              ].map((item) => {
+              {SETTINGS_NAV.map((item) => {
                 const Icon = item.icon;
                 const isActive = selectedSetting === item.id;
                 return (
@@ -306,11 +310,9 @@ export function Sidebar({ routes }: SidebarProps) {
               })}
             </nav>
           </div>
-          <div className="flex-1 bg-muted p-6">
+          <div className="flex-1 bg-muted p-6 overflow-y-auto">
             <h3 className="text-sm font-semibold text-foreground border-b border-foreground/20 pb-2 mb-4">
-              {selectedSetting === "general" && "General"}
-              {selectedSetting === "account" && "Account"}
-              {selectedSetting === "about" && "About"}
+              {SETTINGS_NAV.find((i) => i.id === selectedSetting)?.label}
             </h3>
           </div>
         </DialogContent>
