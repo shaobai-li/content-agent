@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Message, FileMessage } from "@/entities/message/model";
 import type { MentionItem } from "./MentionChip";
 import { fetchMessages } from "@/entities/session/api";
@@ -20,11 +20,49 @@ export type SendPayload = {
   attachments?: File[];
 };
 
+/** 模块级缓存：组件实例复用时按 agentId 隔离聊天状态 */
+const chatStateCache = new Map<string, {
+  messages: Message[];
+  currentSessionId: string | null;
+  input: string;
+}>();
+
 export function useChat({ agentId, apiEndpoint }: UseChatProps) {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState(() => chatStateCache.get(agentId)?.input ?? "");
+  const [messages, setMessages] = useState<Message[]>(() => chatStateCache.get(agentId)?.messages ?? []);
   const [isSending, setIsSending] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(
+    () => chatStateCache.get(agentId)?.currentSessionId ?? null,
+  );
+
+  // 用 ref 追踪最新状态，供 effect cleanup 读取
+  const latestStateRef = useRef({ messages, currentSessionId, input });
+  latestStateRef.current = { messages, currentSessionId, input };
+
+  // 检测 agentId 切换：保存上一个 agent 的状态，恢复当前 agent 的状态
+  const prevAgentRef = useRef(agentId);
+  useEffect(() => {
+    const prev = prevAgentRef.current;
+    if (prev !== agentId) {
+      chatStateCache.set(prev, latestStateRef.current);
+      const cached = chatStateCache.get(agentId);
+      if (cached) {
+        setMessages(cached.messages);
+        setCurrentSessionId(cached.currentSessionId);
+        setInput(cached.input);
+      } else {
+        setMessages([]);
+        setCurrentSessionId(null);
+        setInput("");
+      }
+    }
+    prevAgentRef.current = agentId;
+
+    // cleanup：组件卸载或 agentId 再次变化时保存当前状态
+    return () => {
+      chatStateCache.set(agentId, latestStateRef.current);
+    };
+  }, [agentId]);
 
   const streamEndpoint = `${apiEndpoint}/stream`;
 
