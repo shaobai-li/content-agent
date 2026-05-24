@@ -270,37 +270,49 @@ export function Sidebar({ routes }: SidebarProps) {
           </DragOverlay>
         </DndContext>
       </CardContent>
-      <div className="p-4 flex justify-between items-center border-t">
-        {authEnabled && user ? (
-          <>
-            <Avatar className="size-6">
-              <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <div className="p-4 flex justify-between items-center border-t cursor-pointer hover:bg-sidebar-accent transition-colors">
+            <Avatar className="size-8">
+              {authEnabled && user ? (
+                <AvatarFallback className="bg-neutral-600 text-white text-[10px]">{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+              ) : (
+                <>
+                  <AvatarImage src="https://github.com/shadcn.png" />
+                  <AvatarFallback className="bg-neutral-600 text-white text-[10px]">CNZ</AvatarFallback>
+                </>
+              )}
             </Avatar>
-            <div className="flex-1 flex flex-col px-2">
-              <span className="text-sm font-medium">{user.username}</span>
-            </div>
-            <Button variant="ghost" size="icon" onClick={logout}>
-              <LogOut className="size-6" />
-            </Button>
-          </>
-        ) : (
-          <>
-            <Avatar className="size-6">
-              <AvatarImage src="https://github.com/shadcn.png" />
-              <AvatarFallback>CNZ</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 flex flex-col px-2">
-              <span className="text-sm font-medium">User Name</span>
-              <span className="text-xs text-muted-foreground">
-                Level 1 Pilot
+            <div className="flex-1 flex flex-col px-3">
+              <span className="text-sm font-medium text-left">
+                {authEnabled && user ? user.username : "User Name"}
               </span>
+              {!authEnabled && (
+                <span className="text-xs text-muted-foreground">Level 1 Pilot</span>
+              )}
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
-              <Settings className="size-6" />
-            </Button>
-          </>
-        )}
-      </div>
+          </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" side="top" className="w-48">
+          <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+            <span className="flex items-center gap-2 cursor-pointer">
+              <Settings className="size-4" />
+              设置
+            </span>
+          </DropdownMenuItem>
+          {authEnabled && (
+            <>
+              <div className="h-px bg-border mx-1 my-1" />
+              <DropdownMenuItem onClick={logout}>
+                <span className="flex items-center gap-2 cursor-pointer">
+                  <LogOut className="size-4" />
+                  退出登录
+                </span>
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </Card>
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="!max-w-none w-[660px] max-h-[85vh] p-0 flex flex-row gap-0 overflow-hidden">
