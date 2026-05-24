@@ -81,6 +81,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
     if (auth.status === 'unauthenticated' && pathname !== '/login') {
       router.replace('/login')
     }
+    if (auth.status === 'authenticated' && pathname === '/login') {
+      router.replace('/')
+    }
   }, [auth.status, auth.loading, auth.enabled, pathname, router])
 
   if (auth.enabled && auth.loading) return null
