@@ -218,9 +218,8 @@ class TestSkillsAPI:
 
         with patch("app.api.agent_config.get_agent_base_dir", return_value=tmp_path):
             with patch("app.utils.skill_loader.get_agent_base_dir", return_value=tmp_path):
-                with patch("app.api.agent_config.get_agent_config", return_value={"base_dir": "."}):
-                    resp = client.delete(f"/api/agents/{agent_id}/skills/my-test-skill")
-                    assert resp.status_code == 200
+                resp = client.delete(f"/api/agents/{agent_id}/skills/my-test-skill")
+                assert resp.status_code == 200
 
     def test_upload_skill(self, client, agent_id, tmp_path):
         with patch("app.api.agent_config.get_agent_base_dir", return_value=tmp_path):

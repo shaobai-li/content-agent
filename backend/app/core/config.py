@@ -45,14 +45,6 @@ AGENTS_CONFIG: Dict[str, Dict[str, Any]] = {
     **_old_agents,
     **_agent_yamls,
 }
-
-def get_agent_config(agent_id: str) -> Dict[str, Any]:
-    agent_config = AGENTS_CONFIG.get(agent_id, {})
-    if not agent_config:
-        raise ValueError(f"Agent '{agent_id}' 配置不存在")
-    return agent_config
-
-
 def get_agent_base_dir(agent_id: str) -> Path:
     from app.core.auth import get_current_user_id
     user_id = get_current_user_id()

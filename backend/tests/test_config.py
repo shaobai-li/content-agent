@@ -2,7 +2,6 @@ from pathlib import Path
 from unittest.mock import patch, mock_open
 import pytest
 from app.core.config import (
-    get_agent_config,
     get_agent_base_dir,
     get_agent_workspace_dir,
     get_agent_local_data_dir,
@@ -55,13 +54,7 @@ def test_load_agent_yamls_strips_agent_id_key():
 
 
 # ── get_agent_config ───────────────────────────────────────────────────────
-
-def test_get_agent_config_raises_for_missing():
-    with pytest.raises(ValueError, match="配置不存在"):
-        get_agent_config("nonexistent_agent_xyz")
-
-# Already-covered path via AGENTS_CONFIG populated in conftest/dotenv — tested
-# indirectly through path functions below.
+# path functions implicitly tested via AGENTS_CONFIG populated in conftest/dotenv.
 
 # ── get_agent_base_dir ─────────────────────────────────────────────────────
 

@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Body, HTTPException
 from loguru import logger
 
-from app.core.config import get_agent_base_dir, get_agent_config
+from app.core.config import get_agent_base_dir
 from app.utils.skill_loader import discover_skills_for_agent, SkillHead
 from app.utils.disabled_skills import DisabledSkills
 
