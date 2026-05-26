@@ -65,12 +65,10 @@ def test_get_agent_config_raises_for_missing():
 
 # ── get_agent_base_dir ─────────────────────────────────────────────────────
 
-@patch.object(Path, "mkdir")
-@patch("app.core.config.get_agent_config")
-def test_get_agent_base_dir(mock_config, mock_mkdir):
-    mock_config.return_value = {"base_dir": "test_agent"}
-    result = get_agent_base_dir("ag")
-    assert result.name == "test_agent"
+def test_get_agent_base_dir(tmp_path):
+    with patch("app.core.config.DATA_DIR", tmp_path):
+        result = get_agent_base_dir("ag")
+    assert result == (tmp_path / "u_0" / "data" / "ag").resolve()
 
 # ── get_agent_workspace_dir ────────────────────────────────────────────────
 
@@ -79,27 +77,27 @@ def test_get_agent_base_dir(mock_config, mock_mkdir):
 def test_get_agent_workspace_dir(mock_base_dir, mock_mkdir, tmp_path):
     mock_base_dir.return_value = tmp_path
     result = get_agent_workspace_dir("ag")
-    assert result.name == "workspace"
+    assert result.name == ".local"
     assert result.parent == tmp_path
 
 
 # ── get_agent_local_data_dir ───────────────────────────────────────────────
 
 @patch.object(Path, "mkdir")
-@patch("app.core.config.get_agent_workspace_dir")
-def test_get_agent_local_data_dir(mock_ws, mock_mkdir, tmp_path):
-    mock_ws.return_value = tmp_path
+@patch("app.core.config.get_agent_base_dir")
+def test_get_agent_local_data_dir(mock_base_dir, mock_mkdir, tmp_path):
+    mock_base_dir.return_value = tmp_path
     result = get_agent_local_data_dir("ag")
-    assert result.name == "local_data"
+    assert result.name == "knowledge_base"
     assert result.parent == tmp_path
 
 
 # ── get_agent_attachment_cache_dir ─────────────────────────────────────────
 
 @patch.object(Path, "mkdir")
-@patch("app.core.config.get_agent_local_data_dir")
-def test_get_agent_attachment_cache_dir(mock_local, mock_mkdir, tmp_path):
-    mock_local.return_value = tmp_path
+@patch("app.core.config.get_agent_workspace_dir")
+def test_get_agent_attachment_cache_dir(mock_ws, mock_mkdir, tmp_path):
+    mock_ws.return_value = tmp_path
     result = get_agent_attachment_cache_dir("ag")
     assert result.name == "cache"
     assert result.parent == tmp_path
@@ -107,33 +105,21 @@ def test_get_agent_attachment_cache_dir(mock_local, mock_mkdir, tmp_path):
 
 # ── get_agent_sessions_path ────────────────────────────────────────────────
 
-@patch("app.core.config.get_agent_config")
-@patch("app.core.config.get_agent_base_dir")
-def test_get_agent_sessions_path(mock_base_dir, mock_config, tmp_path):
-    mock_base_dir.return_value = tmp_path
-    mock_config.return_value = {"sessions_file": "custom_sessions.json"}
-    result = get_agent_sessions_path("ag")
-    assert result == tmp_path / "custom_sessions.json"
-
-
-@patch("app.core.config.get_agent_config")
-@patch("app.core.config.get_agent_base_dir")
-def test_get_agent_sessions_path_default(mock_base_dir, mock_config, tmp_path):
-    mock_base_dir.return_value = tmp_path
-    mock_config.return_value = {}
+@patch("app.core.config.get_agent_workspace_dir")
+def test_get_agent_sessions_path(mock_ws, tmp_path):
+    mock_ws.return_value = tmp_path
     result = get_agent_sessions_path("ag")
     assert result == tmp_path / "sessions.json"
 
 
+
 # ── get_agent_messages_path ────────────────────────────────────────────────
 
-@patch("app.core.config.get_agent_config")
-@patch("app.core.config.get_agent_base_dir")
-def test_get_agent_messages_path(mock_base_dir, mock_config, tmp_path):
-    mock_base_dir.return_value = tmp_path
-    mock_config.return_value = {"messages_file": "custom_messages.json"}
+@patch("app.core.config.get_agent_workspace_dir")
+def test_get_agent_messages_path(mock_ws, tmp_path):
+    mock_ws.return_value = tmp_path
     result = get_agent_messages_path("ag")
-    assert result == tmp_path / "custom_messages.json"
+    assert result == tmp_path / "messages.json"
 
 
 # ── get_agent_knowledge_base_path ──────────────────────────────────────────
