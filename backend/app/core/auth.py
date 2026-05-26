@@ -1,0 +1,54 @@
+"""FastAPI 依赖：从 X-User-Id header 提取 user_id，加载用户自定义 agent。"""
+
+from __future__ import annotations
+
+from contextvars import ContextVar
+from pathlib import Path
+from typing import Any, Dict
+
+from fastapi import HTTPException, Request
+
+from app.core.config import DATA_DIR
+
+_user_id_var: ContextVar[str] = ContextVar("user_id")
+_user_agents_var: ContextVar[Dict[str, Dict[str, Any]]] = ContextVar("user_agents")
+
+
+def get_current_user_id() -> str:
+    """返回当前请求的 user_id（必须在 require_user_id 之后的请求上下文中调用）。"""
+    return _user_id_var.get()
+
+
+def _load_user_agent_yamls(user_id: str) -> Dict[str, Dict[str, Any]]:
+    """扫描 DATA_DIR/u_{user_id}/agent/*.yaml，文件名即 agent_id。"""
+    import yaml
+
+    agents_dir = DATA_DIR / f"u_{user_id}" / "agent"
+    result: Dict[str, Dict[str, Any]] = {}
+    if not agents_dir.is_dir():
+        return result
+    for yaml_path in sorted(agents_dir.glob("*.yaml")):
+        agent_id = yaml_path.stem
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        if not isinstance(data, dict):
+            continue
+        data.pop("agent_id", None)
+        result[agent_id] = data
+    return result
+
+
+async def require_user_id(request: Request) -> None:
+    """FastAPI 依赖：从 X-User-Id header 提取 user_id，加载该用户的自定义 agent。
+
+    无 header → 401。
+    成功后 user_id 和该用户的自定义 agent 配置写入 contextvar。
+    """
+    user_id = request.headers.get("X-User-Id", "").strip()
+    if not user_id:
+        raise HTTPException(status_code=401, detail="缺少 X-User-Id header")
+    _user_id_var.set(user_id)
+
+    # 加载该用户的自定义 agent（系统 agent 已在 config.py 模块级加载）
+    user_agents = _load_user_agent_yamls(user_id)
+    _user_agents_var.set(user_agents)

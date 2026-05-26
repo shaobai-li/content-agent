@@ -35,32 +35,15 @@ def _load_agent_yamls() -> Dict[str, Dict[str, Any]]:
     return result
 
 
-def _load_user_agent_yamls() -> Dict[str, Dict[str, Any]]:
-    """扫描 DATA_DIR/u_0/agent/*.yaml，文件名即为 agent_id，用户自定义最高优先级。"""
-    user_agents_dir = DATA_DIR / "u_0" / "agent"
-    result: Dict[str, Dict[str, Any]] = {}
-    if not user_agents_dir.is_dir():
-        return result
-    for yaml_path in sorted(user_agents_dir.glob("*.yaml")):
-        agent_id = yaml_path.stem
-        with open(yaml_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-        if not isinstance(data, dict):
-            continue
-        data.pop("agent_id", None)
-        result[agent_id] = data
-    return result
-
-
-# ── 合并优先级：用户自定义 > config/agents/*.yaml > config.yaml agents ──
+# ── 合并：config/agents/*.yaml 优先，config.yaml agents 作为降级 ──
 _agent_yamls = _load_agent_yamls()
-_user_agent_yamls = _load_user_agent_yamls()
 _old_agents = config.get("agents", {}) or {}
 
+# 仅包含系统 agent（config/agents/*.yaml + config.yaml agents 字段）
+# 用户自定义 agent 在 auth.require_user_id() 中按需加载
 AGENTS_CONFIG: Dict[str, Dict[str, Any]] = {
     **_old_agents,
     **_agent_yamls,
-    **_user_agent_yamls,       # 同名覆盖，用户自定义最高优先级
 }
 
 def get_agent_config(agent_id: str) -> Dict[str, Any]:
@@ -71,7 +54,9 @@ def get_agent_config(agent_id: str) -> Dict[str, Any]:
 
 
 def get_agent_base_dir(agent_id: str) -> Path:
-    return (DATA_DIR / "u_0" / "data" / agent_id).resolve()
+    from app.core.auth import get_current_user_id
+    user_id = get_current_user_id()
+    return (DATA_DIR / f"u_{user_id}" / "data" / agent_id).resolve()
 
 
 def get_agent_workspace_dir(agent_id: str) -> Path:
@@ -115,6 +100,13 @@ def get_agent_knowledge_base_path(agent_id: str, kb_id: str) -> Path:
 def get_agent_skill_ids(agent_id: str) -> List[str]:
     """config.yaml 中 agents.<id>.skills 列出的仓库内 skill 目录名（app/agents/skills/<id>/）。"""
     block = AGENTS_CONFIG.get(agent_id) or {}
+    if not block:
+        # 再检查用户自定义 agent
+        from app.core.auth import _user_agents_var
+        try:
+            block = _user_agents_var.get().get(agent_id) or {}
+        except LookupError:
+            block = {}
     raw = block.get("skills", [])
     if not isinstance(raw, list):
         return []
