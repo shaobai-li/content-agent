@@ -35,13 +35,32 @@ def _load_agent_yamls() -> Dict[str, Dict[str, Any]]:
     return result
 
 
-# ── 合并：per-agent YAML 优先，旧的 config.yaml agents 作为降级 ──
+def _load_user_agent_yamls() -> Dict[str, Dict[str, Any]]:
+    """扫描 DATA_DIR/u_0/agent/*.yaml，文件名即为 agent_id，用户自定义最高优先级。"""
+    user_agents_dir = DATA_DIR / "u_0" / "agent"
+    result: Dict[str, Dict[str, Any]] = {}
+    if not user_agents_dir.is_dir():
+        return result
+    for yaml_path in sorted(user_agents_dir.glob("*.yaml")):
+        agent_id = yaml_path.stem
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        if not isinstance(data, dict):
+            continue
+        data.pop("agent_id", None)
+        result[agent_id] = data
+    return result
+
+
+# ── 合并优先级：用户自定义 > config/agents/*.yaml > config.yaml agents ──
 _agent_yamls = _load_agent_yamls()
+_user_agent_yamls = _load_user_agent_yamls()
 _old_agents = config.get("agents", {}) or {}
 
 AGENTS_CONFIG: Dict[str, Dict[str, Any]] = {
     **_old_agents,
-    **_agent_yamls,           # 同名覆盖，per-agent YAML 优先
+    **_agent_yamls,
+    **_user_agent_yamls,       # 同名覆盖，用户自定义最高优先级
 }
 
 def get_agent_config(agent_id: str) -> Dict[str, Any]:
