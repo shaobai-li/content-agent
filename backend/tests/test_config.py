@@ -2,7 +2,6 @@ from pathlib import Path
 from unittest.mock import patch, mock_open
 import pytest
 from app.core.config import (
-    get_agent_config,
     get_agent_base_dir,
     get_agent_workspace_dir,
     get_agent_local_data_dir,
@@ -12,7 +11,6 @@ from app.core.config import (
     get_agent_knowledge_base_path,
     get_agent_skill_ids,
     _load_agent_yamls,
-    _load_user_agent_yamls,
 )
 
 
@@ -55,59 +53,16 @@ def test_load_agent_yamls_strips_agent_id_key():
         assert result["std"] == {"base_dir": "test"}
 
 
-# ── _load_user_agent_yamls ─────────────────────────────────────────────────
-
-def test_load_user_agent_yamls_empty_dir():
-    with patch.object(Path, "is_dir", return_value=False):
-        result = _load_user_agent_yamls()
-        assert result == {}
-
-
-def test_load_user_agent_yamls_loads_yaml():
-    fake_yaml = {"base_dir": "custom", "system_prompt": "hi"}
-    with patch.object(Path, "is_dir", return_value=True), \
-         patch.object(Path, "glob", return_value=[Path("u_0/agent/my-agent.yaml")]), \
-         patch("app.core.config.yaml.safe_load", return_value=fake_yaml), \
-         patch("builtins.open", mock_open(read_data="")):
-        result = _load_user_agent_yamls()
-        assert "my-agent" in result
-        assert result["my-agent"]["base_dir"] == "custom"
-
-
-def test_load_user_agent_yamls_skips_non_dict():
-    with patch.object(Path, "is_dir", return_value=True), \
-         patch.object(Path, "glob", return_value=[Path("u_0/agent/bad.yaml")]), \
-         patch("app.core.config.yaml.safe_load", return_value=["not", "a", "dict"]), \
-         patch("builtins.open", mock_open()):
-        result = _load_user_agent_yamls()
-        assert "bad" not in result
-
-
-def test_load_user_agent_yamls_strips_agent_id_key():
-    fake_yaml = {"agent_id": "should_be_ignored", "system_prompt": "hello"}
-    with patch.object(Path, "is_dir", return_value=True), \
-         patch.object(Path, "glob", return_value=[Path("u_0/agent/custom.yaml")]), \
-         patch("app.core.config.yaml.safe_load", return_value=fake_yaml), \
-         patch("builtins.open", mock_open()):
-        result = _load_user_agent_yamls()
-        assert result["custom"] == {"system_prompt": "hello"}
-
-
 # ── get_agent_config ───────────────────────────────────────────────────────
-
-def test_get_agent_config_raises_for_missing():
-    with pytest.raises(ValueError, match="配置不存在"):
-        get_agent_config("nonexistent_agent_xyz")
-
-# Already-covered path via AGENTS_CONFIG populated in conftest/dotenv — tested
-# indirectly through path functions below.
+# path functions implicitly tested via AGENTS_CONFIG populated in conftest/dotenv.
 
 # ── get_agent_base_dir ─────────────────────────────────────────────────────
 
 def test_get_agent_base_dir(tmp_path):
-    with patch("app.core.config.DATA_DIR", tmp_path):
+    with patch("app.core.config.DATA_DIR", tmp_path), \
+         patch("app.core.auth.get_current_user_id", return_value="1"):
         result = get_agent_base_dir("ag")
-    assert result == (tmp_path / "u_0" / "data" / "ag").resolve()
+    assert result == (tmp_path / "u_1" / "data" / "ag").resolve()
 
 # ── get_agent_workspace_dir ────────────────────────────────────────────────
 

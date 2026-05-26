@@ -5,6 +5,7 @@ import type { Message, FileMessage } from "@/entities/message/model";
 import type { MentionItem } from "./MentionChip";
 import { fetchMessages } from "@/entities/session/api";
 import { readStreamLines } from "./fetchStream";
+import { getUserId } from "@/shared/api/config";
 
 interface UseChatProps {
   agentId: string;
@@ -167,8 +168,13 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     console.log("[session_id 验证] 发送前 currentSessionId:", currentSessionId);
 
     try {
+      const headers: Record<string, string> = {};
+      const uid = getUserId();
+      if (uid) headers["X-User-Id"] = uid;
+
       const response = await fetch(streamEndpoint, {
         method: "POST",
+        headers,
         body: formData,
       });
 
