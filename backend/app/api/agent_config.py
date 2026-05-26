@@ -19,13 +19,13 @@ ALLOWED_PROMPT_FILES = {"AGENTS.md", "SOUL.md", "USER.md", "system_prompt.md"}
 
 
 def _agent_prompts_dir(agent_id: str) -> Path:
-    d = get_agent_base_dir(agent_id) / "prompts"
+    d = get_agent_base_dir(agent_id) / ".agent" / "prompts"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
 
 def _agent_skills_dir(agent_id: str) -> Path:
-    d = get_agent_base_dir(agent_id) / "skills"
+    d = get_agent_base_dir(agent_id) / ".agent" / "skills"
     d.mkdir(parents=True, exist_ok=True)
     return d
 

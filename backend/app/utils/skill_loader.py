@@ -104,7 +104,7 @@ def discover_skills_for_agent(agent_id: str, disabled_skills: set[str] | None = 
             merged[skill_id] = head
             ordered.append(skill_id)
 
-    user_root = get_agent_base_dir(agent_id) / "skills"
+    user_root = get_agent_base_dir(agent_id) / ".agent" / "skills"
     user_only: List[str] = []
     if user_root.is_dir():
         for sub in sorted(user_root.iterdir()):
