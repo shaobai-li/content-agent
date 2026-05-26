@@ -12,6 +12,7 @@ from app.core.config import (
     get_agent_knowledge_base_path,
     get_agent_skill_ids,
     _load_agent_yamls,
+    _load_user_agent_yamls,
 )
 
 
@@ -52,6 +53,44 @@ def test_load_agent_yamls_strips_agent_id_key():
          patch("builtins.open", mock_open()):
         result = _load_agent_yamls()
         assert result["std"] == {"base_dir": "test"}
+
+
+# ── _load_user_agent_yamls ─────────────────────────────────────────────────
+
+def test_load_user_agent_yamls_empty_dir():
+    with patch.object(Path, "is_dir", return_value=False):
+        result = _load_user_agent_yamls()
+        assert result == {}
+
+
+def test_load_user_agent_yamls_loads_yaml():
+    fake_yaml = {"base_dir": "custom", "system_prompt": "hi"}
+    with patch.object(Path, "is_dir", return_value=True), \
+         patch.object(Path, "glob", return_value=[Path("u_0/agent/my-agent.yaml")]), \
+         patch("app.core.config.yaml.safe_load", return_value=fake_yaml), \
+         patch("builtins.open", mock_open(read_data="")):
+        result = _load_user_agent_yamls()
+        assert "my-agent" in result
+        assert result["my-agent"]["base_dir"] == "custom"
+
+
+def test_load_user_agent_yamls_skips_non_dict():
+    with patch.object(Path, "is_dir", return_value=True), \
+         patch.object(Path, "glob", return_value=[Path("u_0/agent/bad.yaml")]), \
+         patch("app.core.config.yaml.safe_load", return_value=["not", "a", "dict"]), \
+         patch("builtins.open", mock_open()):
+        result = _load_user_agent_yamls()
+        assert "bad" not in result
+
+
+def test_load_user_agent_yamls_strips_agent_id_key():
+    fake_yaml = {"agent_id": "should_be_ignored", "system_prompt": "hello"}
+    with patch.object(Path, "is_dir", return_value=True), \
+         patch.object(Path, "glob", return_value=[Path("u_0/agent/custom.yaml")]), \
+         patch("app.core.config.yaml.safe_load", return_value=fake_yaml), \
+         patch("builtins.open", mock_open()):
+        result = _load_user_agent_yamls()
+        assert result["custom"] == {"system_prompt": "hello"}
 
 
 # ── get_agent_config ───────────────────────────────────────────────────────
