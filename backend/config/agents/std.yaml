@@ -1,6 +1,4 @@
 name: 标准系统智能体
-sessions_file: sessions.json
-messages_file: messages.json
 skills:
   - ingest-file
   - wiki-query
