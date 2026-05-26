@@ -18,11 +18,14 @@ list_router = APIRouter(prefix="/api", tags=["agents"])
 
 @list_router.get("/agents")
 async def list_agents():
-    """返回所有注册 agent 的元信息（供前端动态渲染）。"""
+    """返回所有注册 agent 的元信息（含当前用户的 custom agent，供前端动态渲染）。"""
     from app.core.config import AGENTS_CONFIG
+    from app.core.auth import _user_agents_var
 
     logger.info("list agents")
     result = []
+
+    # 系统 agent
     for agent_id, cfg in AGENTS_CONFIG.items():
         if not isinstance(cfg, dict):
             continue
@@ -36,6 +39,25 @@ async def list_agents():
                 "defaultRight": "chat",
             }),
         })
+
+    # 当前用户的 custom agent
+    try:
+        user_agents = _user_agents_var.get()
+        for agent_id, cfg in user_agents.items():
+            if agent_id not in AGENTS_CONFIG:
+                result.append({
+                    "id": agent_id,
+                    "name": cfg.get("name", agent_id),
+                    "layout": cfg.get("layout", {
+                        "left": ["history", "knowledgebase", "document"],
+                        "defaultLeft": "knowledgebase",
+                        "right": ["chat"],
+                        "defaultRight": "chat",
+                    }),
+                })
+    except LookupError:
+        pass
+
     return {"agents": result}
 
 
@@ -170,6 +192,21 @@ async def chat_stream(
     logger.info("chat stream: {} session={}", agent_id, session_id)
 
     agent_config = get_agent_config(agent_id)
+
+    if not agent_config:
+        # 检查是否是当前用户的 custom agent，动态创建 StandardAgent
+        from app.core.auth import _user_agents_var
+        try:
+            user_agents = _user_agents_var.get()
+            if agent_id in user_agents:
+                from app.agents.standard.agent import StandardAgent
+                from app.runtime.agent_registry import register_agent
+                instance = StandardAgent(agent_id=agent_id)
+                register_agent(instance)
+                agent_config = get_agent_config(agent_id)
+                logger.info("dynamically created StandardAgent for custom agent: {}", agent_id)
+        except LookupError:
+            pass
 
     if not agent_config:
         logger.warning("unknown agent: {}", agent_id)

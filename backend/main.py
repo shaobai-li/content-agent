@@ -31,7 +31,7 @@ def _setup_loguru(level: str) -> None:
 _log_level = "DEBUG" if os.getenv("APP_VERBOSE", "").lower() in ("1", "true", "yes") else "INFO"
 _setup_loguru(_log_level)
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 # 导入各个 agent 模块（自定义 agent，导入即注册）
@@ -41,6 +41,7 @@ import app.agents.write_agent
 # 导入统一 API 路由
 from app.api.agents import router as agents_router, list_router as agents_list_router
 from app.api.agent_config import router as agent_config_router
+from app.core.auth import require_user_id
 from app.core.config import AGENTS_CONFIG
 from app.runtime.agent_registry import AGENT_CONFIG_REGISTRY, register_agent
 from app.service.knowledge_base_registry_service import list_knowledge_bases
@@ -96,9 +97,9 @@ app.add_middleware(
 )
 
 # 统一 API 路由（包含 agent 列表 + chat、sessions、messages、config）
-app.include_router(agents_list_router)
-app.include_router(agents_router)
-app.include_router(agent_config_router)
+app.include_router(agents_list_router, dependencies=[Depends(require_user_id)])
+app.include_router(agents_router, dependencies=[Depends(require_user_id)])
+app.include_router(agent_config_router, dependencies=[Depends(require_user_id)])
 
 
 @app.on_event("startup")
