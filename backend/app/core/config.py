@@ -4,7 +4,6 @@ import yaml
 from typing import Dict, Any, List
 
 from dotenv import load_dotenv
-from loguru import logger
 load_dotenv()
 
 # 绝对路径：从 .env 读取
@@ -16,8 +15,6 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIG_PATH = _PROJECT_ROOT / "config.yaml"
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     config = yaml.safe_load(f) or {}
-
-RECORDS_FILE = DATA_DIR / "records.jsonl"
 
 
 # ── 加载 per‑agent YAML（config/agents/<agent_id>.yaml） ─────────
@@ -55,47 +52,36 @@ def get_agent_config(agent_id: str) -> Dict[str, Any]:
 
 
 def get_agent_base_dir(agent_id: str) -> Path:
-    agent_config = get_agent_config(agent_id)
-    # base_dir 在 yaml 中为相对 DATA_DIR 的路径
-    base_dir = (DATA_DIR / agent_config["base_dir"]).resolve()
-    base_dir.mkdir(parents=True, exist_ok=True)
-    logger.debug("agent base_dir: {}", base_dir)
-    return base_dir
+    return (DATA_DIR / "u_0" / "data" / agent_id).resolve()
 
 
 def get_agent_workspace_dir(agent_id: str) -> Path:
-    """Agent 工作区根目录：<base>/workspace/"""
-    ws = get_agent_base_dir(agent_id) / "workspace"
+    """Agent 工作区根目录：<base>/.local/"""
+    ws = get_agent_base_dir(agent_id) / ".local"
     ws.mkdir(parents=True, exist_ok=True)
     return ws
 
 
 def get_agent_local_data_dir(agent_id: str) -> Path:
-    """用户数据根目录：<base>/workspace/local_data/（知识库、注册表等）。"""
-    local_data = get_agent_workspace_dir(agent_id) / "local_data"
+    """用户数据根目录：<base>/knowledge_base/（知识库、注册表等）。"""
+    local_data = get_agent_base_dir(agent_id) / "knowledge_base"
     local_data.mkdir(parents=True, exist_ok=True)
     return local_data
 
 
 def get_agent_attachment_cache_dir(agent_id: str) -> Path:
-    """附件缓存：<base>/workspace/local_data/cache/"""
-    cache = get_agent_local_data_dir(agent_id) / "cache"
+    """附件缓存：<base>/.local/cache/"""
+    cache = get_agent_workspace_dir(agent_id) / "cache"
     cache.mkdir(parents=True, exist_ok=True)
     return cache
 
 
 def get_agent_sessions_path(agent_id: str) -> Path:
-    base_dir = get_agent_base_dir(agent_id)
-    agent_config = get_agent_config(agent_id)
-    sessions_file = agent_config.get("sessions_file", "sessions.json")
-    return base_dir / sessions_file
+    return get_agent_workspace_dir(agent_id) / "sessions.json"
 
 
 def get_agent_messages_path(agent_id: str) -> Path:
-    base_dir = get_agent_base_dir(agent_id)
-    agent_config = get_agent_config(agent_id)
-    messages_file = agent_config.get("messages_file", "messages.json")
-    return base_dir / messages_file
+    return get_agent_workspace_dir(agent_id) / "messages.json"
 
 
 def get_agent_knowledge_base_path(agent_id: str, kb_id: str) -> Path:

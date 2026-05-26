@@ -70,7 +70,7 @@ class ContextBuilder:
           2. Built-in ``standard/prompts/system.md``
         """
         if self.agent_id:
-            user_path = get_agent_base_dir(self.agent_id) / "prompts" / "system_prompt.md"
+            user_path = get_agent_base_dir(self.agent_id) / ".agent" / "prompts" / "system_prompt.md"
             if user_path.is_file():
                 text = user_path.read_text(encoding="utf-8").strip()
                 if text:
@@ -86,7 +86,7 @@ class ContextBuilder:
         if self.agent_id not in AGENTS_CONFIG:
             return None
         try:
-            d = get_agent_base_dir(self.agent_id) / "prompts"
+            d = get_agent_base_dir(self.agent_id) / ".agent" / "prompts"
             return d if d.is_dir() else None
         except (ValueError, KeyError):
             return None
