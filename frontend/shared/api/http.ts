@@ -2,11 +2,16 @@
  * HTTP client for API requests
  */
 
-import { API_BASE_URL } from "./config";
+import { API_BASE_URL, getUserId } from "./config";
 
 interface HttpResponse<T = any> {
   data: T;
   status: number;
+}
+
+function authHeaders(): Record<string, string> {
+  const uid = getUserId();
+  return uid ? { "X-User-Id": uid } : {};
 }
 
 class HttpClient {
@@ -17,7 +22,9 @@ class HttpClient {
   }
 
   async get<T = any>(url: string): Promise<T> {
-    const response = await fetch(`${this.baseURL}${url}`);
+    const response = await fetch(`${this.baseURL}${url}`, {
+      headers: { ...authHeaders() },
+    });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -29,6 +36,7 @@ class HttpClient {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders(),
       },
       body: JSON.stringify(data),
     });
@@ -43,6 +51,7 @@ class HttpClient {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders(),
       },
       body: JSON.stringify(data),
     });
@@ -55,6 +64,7 @@ class HttpClient {
   async delete<T = any>(url: string): Promise<T> {
     const response = await fetch(`${this.baseURL}${url}`, {
       method: "DELETE",
+      headers: { ...authHeaders() },
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

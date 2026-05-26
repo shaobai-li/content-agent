@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback((user: { id: number; username: string }) => {
     setState({ user, status: 'authenticated' })
+    localStorage.setItem('auth-user', JSON.stringify(user))
   }, [])
 
   const logout = useCallback(() => {
