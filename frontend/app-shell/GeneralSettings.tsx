@@ -44,10 +44,9 @@ function GeneralSettings() {
   const getValue = useCallback(
     (envKey: string) => {
       if (envKey in dirty) return dirty[envKey];
-      const p = providers.find((pr) => pr.env_key === envKey);
-      return p?.set ? p.masked : "";
+      return "";
     },
-    [dirty, providers],
+    [dirty],
   );
 
   const handleChange = useCallback(
@@ -70,11 +69,6 @@ function GeneralSettings() {
       setSaving(false);
     }
   }, [dirty, load]);
-
-  const handleCancel = useCallback(() => {
-    setDirty({});
-    load();
-  }, [load]);
 
   const toggleVisibility = useCallback((envKey: string) => {
     setVisible((prev) => ({ ...prev, [envKey]: !prev[envKey] }));
@@ -106,7 +100,7 @@ function GeneralSettings() {
               {p.display_name} API Key
               {p.set && !isDirty && (
                 <span className="ml-2 text-xs text-muted-foreground font-normal">
-                  (已配置)
+                  {p.masked}
                 </span>
               )}
             </label>
@@ -153,15 +147,7 @@ function GeneralSettings() {
         <p className="text-sm text-muted-foreground">无可配置的 API Key</p>
       )}
 
-      <div className="flex justify-end gap-2 mt-2">
-        <button
-          type="button"
-          onClick={handleCancel}
-          disabled={saving || Object.keys(dirty).length === 0}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
-        >
-          Cancel
-        </button>
+      <div className="flex justify-end mt-2">
         <button
           type="button"
           onClick={handleSave}
