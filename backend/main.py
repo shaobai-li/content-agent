@@ -2,10 +2,7 @@ import os
 import sys
 import logging
 
-from dotenv import load_dotenv
-from app.core.config import ENV_PATH
-
-load_dotenv(dotenv_path=ENV_PATH)
+from app.core.config import ENV_PATH  # loads .env early (triggers config.py module init)
 
 from loguru import logger
 
