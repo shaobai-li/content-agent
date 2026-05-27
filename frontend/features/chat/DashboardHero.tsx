@@ -1,13 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
-
-function getGreeting(h: number) {
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
-}
+import Clock from "react-clock";
+import "react-clock/dist/Clock.css";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -23,8 +18,6 @@ function useNow() {
 export function DashboardHero() {
   const now = useNow();
 
-  const hours = now.getHours();
-  const greeting = getGreeting(hours);
   const timeStr = now.toLocaleTimeString("en-US", { hour12: false });
   const weekday = WEEKDAYS[now.getDay()];
   const dateStr = now.toLocaleDateString("en-US", {
@@ -34,29 +27,36 @@ export function DashboardHero() {
   });
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 items-center justify-center p-8">
-      <div className="flex w-full max-w-xl flex-col items-center gap-8 rounded-xl border bg-card p-10 shadow-sm">
-        {/* Logo + Greeting */}
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
-            <Sparkles className="h-6 w-6 text-foreground" />
-          </div>
-          <p className="text-sm font-medium text-muted-foreground">{greeting}</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+    <div className="flex flex-1 min-h-0 min-w-0 items-center justify-center p-12">
+      <div className="flex w-full max-w-2xl flex-col rounded-xl border bg-card p-14 shadow-sm">
+        <div className="flex w-full flex-col gap-3">
+          <h1 className="w-full text-center text-xl text-muted-foreground">
             Welcome back!
           </h1>
+          <p className="w-full text-center text-4xl font-semibold tracking-tight text-foreground">
+            Your adventure starts now.
+          </p>
         </div>
 
-        {/* Clock + Date */}
-        <div className="flex w-full items-stretch gap-6">
-          <div className="flex flex-1 items-center justify-center">
-            <span className="font-mono text-5xl font-light tracking-wider text-foreground tabular-nums">
+        <hr className="my-10 w-full border-border" />
+
+        <div className="flex w-full items-stretch gap-8">
+          <div className="flex flex-1 items-center gap-6">
+            <Clock
+              value={now}
+              size={120}
+              renderNumbers
+              hourHandWidth={3}
+              minuteHandWidth={2}
+              secondHandWidth={1}
+            />
+            <span className="font-mono text-6xl font-light tracking-wider text-foreground tabular-nums">
               {timeStr}
             </span>
           </div>
           <div className="flex w-[38.2%] flex-col items-center justify-center gap-1">
-            <span className="text-sm font-medium text-muted-foreground">{weekday}</span>
-            <span className="text-center text-base text-foreground">{dateStr}</span>
+            <span className="text-base font-medium text-muted-foreground">{weekday}</span>
+            <span className="text-center text-lg text-foreground">{dateStr}</span>
           </div>
         </div>
       </div>

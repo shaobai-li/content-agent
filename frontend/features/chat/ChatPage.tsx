@@ -134,17 +134,15 @@ export function ChatPage({ agentId }: ChatPageProps) {
     <div className="flex h-full min-h-0 min-w-0 flex-col">
       <ChatHeader />
       <div className="flex-1 min-h-0 min-w-0 flex flex-col">
-        <ScrollArea className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
-          <div className="flex h-full min-h-0 min-w-0">
-            {messages.length === 0 && isCollapsed ? (
-              <DashboardHero />
-            ) : (
-              <div className="w-full min-w-0 max-w-full p-4">
-                <ChatMessage messages={messages} />
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+        {messages.length === 0 && isCollapsed ? (
+          <DashboardHero />
+        ) : (
+          <ScrollArea className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
+            <div className="w-full min-w-0 max-w-full p-4">
+              <ChatMessage messages={messages} />
+            </div>
+          </ScrollArea>
+        )}
         <div className="flex min-w-0 flex-col border p-4 bg-background">
           <ChatInput
             value={input}
