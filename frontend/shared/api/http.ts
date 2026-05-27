@@ -9,7 +9,7 @@ interface HttpResponse<T = any> {
   status: number;
 }
 
-function authHeaders(): Record<string, string> {
+export function authHeaders(): Record<string, string> {
   const uid = getUserId();
   return uid ? { "X-User-Id": uid } : {};
 }
@@ -39,6 +39,19 @@ class HttpClient {
         ...authHeaders(),
       },
       body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  /** 上传 FormData（不设 Content-Type，让浏览器自动处理 multipart/form-data boundary）。 */
+  async uploadForm<T = any>(url: string, formData: FormData): Promise<T> {
+    const response = await fetch(`${this.baseURL}${url}`, {
+      method: "POST",
+      headers: { ...authHeaders() },
+      body: formData,
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
