@@ -48,6 +48,8 @@ interface ChatInputProps {
   // 模型选择
   modelOption?: ModelOption;
   onModelChange?: (option: ModelOption) => void;
+  /** 可用的模型选项列表（根据 API Key 配置动态过滤） */
+  modelOptions?: ModelOption[];
 }
 
 type DragOverlayKind = "files" | "knowledge-base";
@@ -177,6 +179,7 @@ export function ChatInput({
   agentId,
   modelOption = MODEL_OPTIONS[0],
   onModelChange,
+  modelOptions = MODEL_OPTIONS,
 }: ChatInputProps) {
   const editorRef = useRef<LexicalEditorHandle>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -334,7 +337,7 @@ export function ChatInput({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {MODEL_OPTIONS.map((opt) => (
+            {(modelOptions.length > 0 ? modelOptions : MODEL_OPTIONS).map((opt) => (
               <DropdownMenuItem
                 key={`${opt.provider}:${opt.model}`}
                 onSelect={() => onModelChange?.(opt)}

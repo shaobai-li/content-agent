@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useChat } from "@/features/chat/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
@@ -10,6 +10,7 @@ import { FileTypeIconMap } from "@/shared/ui/icons";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { API_BASE_URL } from "@/shared/api/config";
 import { uploadAgentAttachmentCache } from "@/shared/api/attachments";
+import { http } from "@/shared/api/http";
 
 interface ChatPageProps {
   agentId: string; // 简短的agent标识，用于构建API端点
@@ -45,8 +46,43 @@ export function ChatPage({ agentId }: ChatPageProps) {
   const [pendingFiles, setPendingFiles] = useState<FileItem[]>([]);
   // 管理提及标签（如知识库）
   const [mentions, setMentions] = useState<MentionItem[]>([]);
+  // 已配置 API Key 的 provider 集合
+  const [configuredProviders, setConfiguredProviders] = useState<Set<string>>(new Set());
   // 当前选择的 LLM 供应商和模型
   const [modelOption, setModelOption] = useState<ModelOption>(MODEL_OPTIONS[0]);
+
+  // 根据 API Key 配置过滤可用的模型选项
+  const availableModelOptions = useMemo(() => {
+    if (configuredProviders.size === 0) return MODEL_OPTIONS;
+    return MODEL_OPTIONS.filter((opt) => configuredProviders.has(opt.provider));
+  }, [configuredProviders]);
+
+  // 当可用选项变化时，若当前选择不再可用则切到第一个可用
+  useEffect(() => {
+    if (availableModelOptions.length === 0) return;
+    const stillAvailable = availableModelOptions.some(
+      (o) => o.provider === modelOption.provider && o.model === modelOption.model,
+    );
+    if (!stillAvailable) {
+      setModelOption(availableModelOptions[0]);
+    }
+  }, [availableModelOptions, modelOption.provider, modelOption.model]);
+
+  // 获取已配置 API Key 的 provider 列表
+  useEffect(() => {
+    http
+      .get<{ providers: { provider: string; set: boolean }[] }>("/api/settings/env")
+      .then((data) => {
+        const configured = new Set(
+          data.providers.filter((p) => p.set).map((p) => p.provider),
+        );
+        setConfiguredProviders(configured);
+      })
+      .catch(() => {
+        // 请求失败时默认全部显示
+        setConfiguredProviders(new Set());
+      });
+  }, []);
 
   // 根据文件名获取文件类型
   const getFileType = (fileName: string): keyof typeof FileTypeIconMap => {
@@ -153,6 +189,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
             agentId={agentId}
             modelOption={modelOption}
             onModelChange={setModelOption}
+            modelOptions={availableModelOptions}
           />
         </div>
       </div>
