@@ -42,6 +42,8 @@ class AgentTurnContext:
     attachments: Optional[List[UploadFile]]
     resolved_attachment_paths: Tuple[str, ...]  # 已校验的 cache 绝对路径，已并入 user_text 附件块
     history_messages: List[Dict[str, Any]]
+    provider: Optional[str] = None  # LLM 供应商名称，如 "deepseek", "openai", "moonshot"
+    model: Optional[str] = None  # LLM 模型名称，如 "deepseek-chat", "gpt-4o", "kimi-k2.5"
 
 
 def _parse_attachment_paths_json(raw: Optional[str]) -> List[str]:
@@ -64,6 +66,8 @@ def build_agent_turn_context(
     mentions: Optional[str] = None,
     attachments: Optional[List[UploadFile]] = None,
     attachment_paths: Optional[str] = None,
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
 ) -> AgentTurnContext:
     """
     从 HTTP 表单等价参数构造本轮上下文：解析 mentions、生成 user_text、按需加载历史。
@@ -90,4 +94,6 @@ def build_agent_turn_context(
         attachments=attachments,
         resolved_attachment_paths=path_strings,
         history_messages=history,
+        provider=provider,
+        model=model,
     )

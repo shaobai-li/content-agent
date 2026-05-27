@@ -188,6 +188,8 @@ async def chat_stream(
     mentions: Optional[str] = Form(None),
     attachment_paths: Optional[str] = Form(None),
     attachments: Optional[List[UploadFile]] = File(None),
+    provider: Optional[str] = Form(None),
+    model: Optional[str] = Form(None),
 ):
     logger.info("chat stream: {} session={}", agent_id, session_id)
 
@@ -230,6 +232,8 @@ async def chat_stream(
         mentions=mentions,
         attachments=attachments,
         attachment_paths=attachment_paths,
+        provider=provider,
+        model=model,
     )
 
     return StreamingResponse(
