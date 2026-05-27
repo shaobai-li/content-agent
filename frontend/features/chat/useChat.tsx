@@ -19,6 +19,10 @@ export type SendPayload = {
   attachmentPaths?: string[];
   /** 旧逻辑：随 chat/stream  multipart 上传（未预缓存时） */
   attachments?: File[];
+  /** LLM 供应商名称 */
+  provider?: string;
+  /** LLM 模型名称 */
+  model?: string;
 };
 
 /** 模块级缓存：组件实例复用时按 agentId 隔离聊天状态 */
@@ -164,6 +168,8 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     if (currentSessionId) {
       formData.append("session_id", currentSessionId);
     }
+    if (payload.provider) formData.append("provider", payload.provider);
+    if (payload.model) formData.append("model", payload.model);
 
     console.log("[session_id 验证] 发送前 currentSessionId:", currentSessionId);
 
