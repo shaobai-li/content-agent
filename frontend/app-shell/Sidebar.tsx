@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { useState, useMemo, useCallback } from "react";
+import { GeneralSettings } from "./GeneralSettings";
 import {
   DndContext,
   DragOverlay,
@@ -344,6 +345,7 @@ export function Sidebar({ routes }: SidebarProps) {
             <h3 className="text-sm font-semibold text-foreground border-b border-foreground/20 pb-2 mb-4">
               {SETTINGS_NAV.find((i) => i.id === selectedSetting)?.label}
             </h3>
+            {selectedSetting === "general" && <GeneralSettings />}
           </div>
         </DialogContent>
       </Dialog>

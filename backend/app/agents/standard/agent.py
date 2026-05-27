@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List
 
@@ -21,14 +20,20 @@ from app.agents.tools import create_tool_registry
 _MAX_TOOL_ROUNDS = 30
 
 
-def _get_provider():
-    """Get the shared OpenAI-compatible provider instance."""
-    from app.providers.openai_compat_provider import OpenAICompatProvider
-    from app.providers.registry import find_by_name
+def _get_provider(provider_name: str | None = None, model: str | None = None):
+    """Create an LLM provider based on provider name and model.
 
-    return OpenAICompatProvider(
-        api_key=os.getenv("DEEPSEEK_API_KEY"),
-        spec=find_by_name("deepseek"),
+    Args:
+        provider_name: Provider name, e.g. "deepseek", "openai", "moonshot".
+                       Defaults to "deepseek" when None.
+        model: Model name, e.g. "deepseek-chat", "gpt-4o", "kimi-k2.5".
+               Uses provider default when None.
+    """
+    from app.providers.factory import create_provider
+
+    return create_provider(
+        provider_name=provider_name or "deepseek",
+        model=model,
     )
 
 
@@ -124,14 +129,14 @@ class StandardAgent(BaseAgent):
                 build_tool_exec_start, build_tool_exec_chunk, build_tool_exec_end,
             )
 
-            provider = _get_provider()
+            provider = _get_provider(provider_name=ctx.provider, model=ctx.model)
             queue: asyncio.Queue = asyncio.Queue()
             hook = StreamingHook(queue)
 
             spec = AgentRunSpec(
                 initial_messages=messages,
                 tools=registry,
-                model=provider.default_model,
+                model=ctx.model or provider.default_model,
                 max_iterations=_MAX_TOOL_ROUNDS,
                 max_tool_result_chars=100000,
                 max_tokens=provider.generation.max_tokens,

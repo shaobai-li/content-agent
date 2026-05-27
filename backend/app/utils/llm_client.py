@@ -11,15 +11,28 @@ from openai.types.chat.chat_completion_message_tool_call import (
     Function,
 )
 
-_deepseek_client = OpenAI(
-    api_key=os.getenv("DEEPSEEK_API_KEY"),
-    base_url="https://api.deepseek.com",
-)
+_deepseek_client: OpenAI | None = None
+_deepseek_async_client: AsyncOpenAI | None = None
 
-_deepseek_async_client = AsyncOpenAI(
-    api_key=os.getenv("DEEPSEEK_API_KEY"),
-    base_url="https://api.deepseek.com",
-)
+
+def _get_sync_client() -> OpenAI:
+    global _deepseek_client
+    if _deepseek_client is None:
+        _deepseek_client = OpenAI(
+            api_key=os.getenv("DEEPSEEK_API_KEY") or "",
+            base_url="https://api.deepseek.com",
+        )
+    return _deepseek_client
+
+
+def _get_async_client() -> AsyncOpenAI:
+    global _deepseek_async_client
+    if _deepseek_async_client is None:
+        _deepseek_async_client = AsyncOpenAI(
+            api_key=os.getenv("DEEPSEEK_API_KEY") or "",
+            base_url="https://api.deepseek.com",
+        )
+    return _deepseek_async_client
 
 # 避免 tool 多轮中对同一条 system 重复刷满屏日志
 _last_logged_system_prompt: Optional[str] = None
@@ -69,7 +82,7 @@ def deepseek_chat(messages: List[Dict[str, Any]], model: str = "deepseek-chat") 
     """同步、无 tools：底层统一走流式接口，聚合为完整正文。"""
     _log_system_prompt_sent_to_llm(messages)
     _log_last_user_message_sent_to_llm(messages)
-    stream = _deepseek_client.chat.completions.create(
+    stream = _get_sync_client().chat.completions.create(
         model=model,
         messages=messages,
         stream=True,
@@ -128,7 +141,7 @@ async def deepseek_chat_stream(
 
     _log_system_prompt_sent_to_llm(messages)
     _log_last_user_message_sent_to_llm(messages)
-    stream = await _deepseek_async_client.chat.completions.create(**kwargs)
+    stream = await _get_async_client().chat.completions.create(**kwargs)
 
     if not tools:
         async for chunk in stream:
