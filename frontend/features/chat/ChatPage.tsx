@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useChat } from "@/features/chat/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
-import { ChatInput, type FileItem } from "./ChatInput";
+import { ChatInput, type FileItem, type ModelOption } from "./ChatInput";
 import type { MentionItem } from "./MentionChip";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { ScrollArea } from "@/shared/ui/scroll-area";
@@ -45,6 +45,12 @@ export function ChatPage({ agentId }: ChatPageProps) {
   const [pendingFiles, setPendingFiles] = useState<FileItem[]>([]);
   // 管理提及标签（如知识库）
   const [mentions, setMentions] = useState<MentionItem[]>([]);
+  // 当前选择的 LLM 供应商和模型
+  const [modelOption, setModelOption] = useState<ModelOption>({
+    provider: "deepseek",
+    model: "deepseek-chat",
+    label: "DeepSeek Chat",
+  });
 
   // 根据文件名获取文件类型
   const getFileType = (fileName: string): keyof typeof FileTypeIconMap => {
@@ -117,6 +123,8 @@ export function ChatPage({ agentId }: ChatPageProps) {
       text: input.trim() || undefined,
       mentions: mentions.length > 0 ? mentions : undefined,
       attachmentPaths: attachmentPaths.length > 0 ? attachmentPaths : undefined,
+      provider: modelOption.provider,
+      model: modelOption.model,
     };
 
     setInput("");
@@ -147,6 +155,8 @@ export function ChatPage({ agentId }: ChatPageProps) {
             onFileRemove={handleFileRemove}
             isSending={isSending}
             agentId={agentId}
+            modelOption={modelOption}
+            onModelChange={setModelOption}
           />
         </div>
       </div>
