@@ -24,8 +24,8 @@ function GeneralSettings() {
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [dirty, setDirty] = useState<Record<string, string>>({});
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const refresh = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       const data = await http.get<EnvResponse>("/api/settings/env");
@@ -33,21 +33,20 @@ function GeneralSettings() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    refresh();
+  }, [refresh]);
 
   const getValue = useCallback(
     (envKey: string) => {
       if (envKey in dirty) return dirty[envKey];
-      const p = providers.find((pr) => pr.env_key === envKey);
-      return p?.set ? p.masked : "";
+      return "";
     },
-    [dirty, providers],
+    [dirty],
   );
 
   const handleChange = useCallback(
@@ -63,18 +62,13 @@ function GeneralSettings() {
     try {
       await http.put("/api/settings/env", dirty);
       setDirty({});
-      await load();
+      await refresh(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
       setSaving(false);
     }
-  }, [dirty, load]);
-
-  const handleCancel = useCallback(() => {
-    setDirty({});
-    load();
-  }, [load]);
+  }, [dirty, refresh]);
 
   const toggleVisibility = useCallback((envKey: string) => {
     setVisible((prev) => ({ ...prev, [envKey]: !prev[envKey] }));
@@ -106,7 +100,7 @@ function GeneralSettings() {
               {p.display_name} API Key
               {p.set && !isDirty && (
                 <span className="ml-2 text-xs text-muted-foreground font-normal">
-                  (已配置)
+                  {p.masked}
                 </span>
               )}
             </label>
@@ -118,7 +112,7 @@ function GeneralSettings() {
                 placeholder={p.set ? "输入新 Key 覆盖现有值" : "输入 API Key"}
                 value={val}
                 onChange={(e) => handleChange(p.env_key, e.target.value)}
-                autoComplete="off"
+                autoComplete="new-password"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5">
                 {isDirty && val !== "" && (
@@ -153,15 +147,7 @@ function GeneralSettings() {
         <p className="text-sm text-muted-foreground">无可配置的 API Key</p>
       )}
 
-      <div className="flex justify-end gap-2 mt-2">
-        <button
-          type="button"
-          onClick={handleCancel}
-          disabled={saving || Object.keys(dirty).length === 0}
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
-        >
-          Cancel
-        </button>
+      <div className="flex justify-end mt-2">
         <button
           type="button"
           onClick={handleSave}
