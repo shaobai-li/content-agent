@@ -45,6 +45,9 @@ interface ChatInputProps {
   onFileRemove?: (id: string) => void; // 改为通过 id 删除
   isSending?: boolean; // 发送状态
   agentId: AgentId;
+  // 模型选择
+  modelOption?: ModelOption;
+  onModelChange?: (option: ModelOption) => void;
 }
 
 type DragOverlayKind = "files" | "knowledge-base";
@@ -149,10 +152,16 @@ function DragOverlay({
   );
 }
 
-const MODEL_OPTIONS = [
-  { value: "deepseek", label: "deepseek" },
-  { value: "gpt", label: "gpt" },
-  { value: "kimi", label: "kimi" },
+export type ModelOption = {
+  provider: string;
+  model: string;
+  label: string;
+};
+
+export const MODEL_OPTIONS: ModelOption[] = [
+  { provider: "deepseek", model: "deepseek-chat",   label: "DeepSeek Chat" },
+  { provider: "openai",   model: "gpt-4o",          label: "GPT-4o" },
+  { provider: "moonshot", model: "kimi-k2.5",       label: "Kimi K2.5" },
 ];
 
 export function ChatInput({
@@ -166,10 +175,11 @@ export function ChatInput({
   onFileRemove,
   isSending,
   agentId,
+  modelOption = MODEL_OPTIONS[0],
+  onModelChange,
 }: ChatInputProps) {
   const editorRef = useRef<LexicalEditorHandle>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  const [model, setModel] = useState("deepseek");
   const [expanded, setExpanded] = useState(false);
   const handleMentionDropped = (mention: MentionItem) => {
     if (
@@ -319,16 +329,16 @@ export function ChatInput({
               variant="ghost"
               className="text-xs gap-1 px-2 font-normal text-muted-foreground hover:text-foreground ml-auto"
             >
-              {model}
+              {modelOption.label}
               <ChevronDown className="size-3" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {MODEL_OPTIONS.map((opt) => (
               <DropdownMenuItem
-                key={opt.value}
-                onSelect={() => setModel(opt.value)}
-                className={model === opt.value ? "bg-accent" : ""}
+                key={`${opt.provider}:${opt.model}`}
+                onSelect={() => onModelChange?.(opt)}
+                className={modelOption.provider === opt.provider && modelOption.model === opt.model ? "bg-accent" : ""}
               >
                 {opt.label}
               </DropdownMenuItem>
