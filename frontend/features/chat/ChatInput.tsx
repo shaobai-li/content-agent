@@ -209,8 +209,9 @@ export function ChatInput({
         f.cacheStatus === "uploading" ||
         (f.cacheStatus === "error" && !f.cachedPath),
     ) ?? false;
+  const noModelAvailable: boolean = modelOptions.length === 0;
   const isSendDisabled: boolean =
-    isSending || filesBlockSend || (!hasFiles && !hasContent);
+    isSending || filesBlockSend || (!hasFiles && !hasContent) || noModelAvailable;
 
   const extractMentionsFromState = (state: EditorState): MentionItem[] => {
     const json = state.toJSON() as {
@@ -331,13 +332,14 @@ export function ChatInput({
               size="sm"
               variant="ghost"
               className="text-xs gap-1 px-2 font-normal text-muted-foreground hover:text-foreground ml-auto"
+              disabled={noModelAvailable}
             >
-              {modelOption.label}
+              {noModelAvailable ? "未配置" : modelOption.label}
               <ChevronDown className="size-3" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {(modelOptions.length > 0 ? modelOptions : MODEL_OPTIONS).map((opt) => (
+            {modelOptions.map((opt) => (
               <DropdownMenuItem
                 key={`${opt.provider}:${opt.model}`}
                 onSelect={() => onModelChange?.(opt)}

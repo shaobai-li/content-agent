@@ -53,7 +53,6 @@ export function ChatPage({ agentId }: ChatPageProps) {
 
   // 根据 API Key 配置过滤可用的模型选项
   const availableModelOptions = useMemo(() => {
-    if (configuredProviders.size === 0) return MODEL_OPTIONS;
     return MODEL_OPTIONS.filter((opt) => configuredProviders.has(opt.provider));
   }, [configuredProviders]);
 
@@ -79,7 +78,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
         setConfiguredProviders(configured);
       })
       .catch(() => {
-        // 请求失败时默认全部显示
+        // 请求失败，不显示任何模型
         setConfiguredProviders(new Set());
       });
   }, []);
