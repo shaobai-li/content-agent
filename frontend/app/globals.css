@@ -157,7 +157,7 @@
   background-color: var(--foreground) !important;
 }
 .react-clock__second-hand__body {
-  background-color: #f87171 !important;
+  background-color: var(--destructive) !important;
 }
 .react-clock__mark__number {
   color: var(--muted-foreground) !important;
