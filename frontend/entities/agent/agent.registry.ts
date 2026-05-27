@@ -1,5 +1,5 @@
 import { Agent } from "./model";
-import { API_BASE_URL } from "@/shared/api/config";
+import { http } from "@/shared/api/http";
 
 const DEFAULT_LAYOUT = {
   left: ["history", "knowledgebase", "document"] as Agent["layout"]["left"],
@@ -14,9 +14,7 @@ export const agentRegistry: Record<string, Agent> = {};
 /** 启动时调用：从后端 API 拉取 agent 列表并填入 agentRegistry。 */
 export async function loadAgents(): Promise<void> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/agents`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await http.get<{ agents: any[] }>('/api/agents');
     if (!Array.isArray(data?.agents)) throw new Error("unexpected response");
 
     // 清空后再填入（保持引用不变）
