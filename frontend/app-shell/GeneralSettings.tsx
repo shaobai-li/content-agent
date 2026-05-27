@@ -24,8 +24,8 @@ function GeneralSettings() {
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [dirty, setDirty] = useState<Record<string, string>>({});
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const refresh = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       const data = await http.get<EnvResponse>("/api/settings/env");
@@ -33,13 +33,13 @@ function GeneralSettings() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    refresh();
+  }, [refresh]);
 
   const getValue = useCallback(
     (envKey: string) => {
@@ -62,13 +62,13 @@ function GeneralSettings() {
     try {
       await http.put("/api/settings/env", dirty);
       setDirty({});
-      await load();
+      await refresh(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
       setSaving(false);
     }
-  }, [dirty, load]);
+  }, [dirty, refresh]);
 
   const toggleVisibility = useCallback((envKey: string) => {
     setVisible((prev) => ({ ...prev, [envKey]: !prev[envKey] }));
@@ -112,7 +112,7 @@ function GeneralSettings() {
                 placeholder={p.set ? "输入新 Key 覆盖现有值" : "输入 API Key"}
                 value={val}
                 onChange={(e) => handleChange(p.env_key, e.target.value)}
-                autoComplete="off"
+                autoComplete="new-password"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5">
                 {isDirty && val !== "" && (
