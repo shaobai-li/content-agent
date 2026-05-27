@@ -101,14 +101,16 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         default_api_base="https://api.openai.com/v1",
         supports_max_completion_tokens=True,
     ),
-    # Moonshot (Kimi): OpenAI-compatible at api.moonshot.ai
+    # Moonshot (Kimi): OpenAI-compatible at api.moonshot.cn
     ProviderSpec(
         name="moonshot",
         keywords=("moonshot", "kimi"),
         env_key="MOONSHOT_API_KEY",
         display_name="Moonshot",
         backend="openai_compat",
-        default_api_base="https://api.moonshot.ai/v1",
+        default_api_base="https://api.moonshot.cn/v1",
+        thinking_style="thinking_type",
+        supports_max_completion_tokens=True,
         model_overrides=(
             ("kimi-k2.5", {"temperature": 1.0}),
             ("kimi-k2.6", {"temperature": 1.0}),

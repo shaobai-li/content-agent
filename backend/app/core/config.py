@@ -10,6 +10,7 @@ load_dotenv()
 DATA_DIR = Path(os.getenv("DATA_DIR", ".")).resolve()
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+ENV_PATH = _PROJECT_ROOT / ".env"
 
 # ── 全局 config.yaml（顶级全局配置） ──────────────────────────────
 CONFIG_PATH = _PROJECT_ROOT / "config.yaml"
