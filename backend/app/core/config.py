@@ -4,12 +4,13 @@ import yaml
 from typing import Dict, Any, List
 
 from dotenv import load_dotenv
-load_dotenv()
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+ENV_PATH = _PROJECT_ROOT / ".env"
+load_dotenv(dotenv_path=ENV_PATH)
 
 # 绝对路径：从 .env 读取
 DATA_DIR = Path(os.getenv("DATA_DIR", ".")).resolve()
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # ── 全局 config.yaml（顶级全局配置） ──────────────────────────────
 CONFIG_PATH = _PROJECT_ROOT / "config.yaml"
