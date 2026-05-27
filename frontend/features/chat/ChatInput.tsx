@@ -158,7 +158,7 @@ export type ModelOption = {
   label: string;
 };
 
-const MODEL_OPTIONS: ModelOption[] = [
+export const MODEL_OPTIONS: ModelOption[] = [
   { provider: "deepseek", model: "deepseek-chat",   label: "DeepSeek Chat" },
   { provider: "openai",   model: "gpt-4o",          label: "GPT-4o" },
   { provider: "moonshot", model: "kimi-k2.5",       label: "Kimi K2.5" },

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useChat } from "@/features/chat/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
-import { ChatInput, type FileItem, type ModelOption } from "./ChatInput";
+import { ChatInput, type FileItem, type ModelOption, MODEL_OPTIONS } from "./ChatInput";
 import type { MentionItem } from "./MentionChip";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { ScrollArea } from "@/shared/ui/scroll-area";
@@ -46,11 +46,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
   // 管理提及标签（如知识库）
   const [mentions, setMentions] = useState<MentionItem[]>([]);
   // 当前选择的 LLM 供应商和模型
-  const [modelOption, setModelOption] = useState<ModelOption>({
-    provider: "deepseek",
-    model: "deepseek-chat",
-    label: "DeepSeek Chat",
-  });
+  const [modelOption, setModelOption] = useState<ModelOption>(MODEL_OPTIONS[0]);
 
   // 根据文件名获取文件类型
   const getFileType = (fileName: string): keyof typeof FileTypeIconMap => {
