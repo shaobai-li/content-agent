@@ -91,6 +91,29 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         default_api_base="https://api.deepseek.com",
         thinking_style="thinking_type",
     ),
+    # OpenAI: standard OpenAI API
+    ProviderSpec(
+        name="openai",
+        keywords=("openai", "gpt"),
+        env_key="OPENAI_API_KEY",
+        display_name="OpenAI",
+        backend="openai_compat",
+        default_api_base="https://api.openai.com/v1",
+        supports_max_completion_tokens=True,
+    ),
+    # Moonshot (Kimi): OpenAI-compatible at api.moonshot.ai
+    ProviderSpec(
+        name="moonshot",
+        keywords=("moonshot", "kimi"),
+        env_key="MOONSHOT_API_KEY",
+        display_name="Moonshot",
+        backend="openai_compat",
+        default_api_base="https://api.moonshot.ai/v1",
+        model_overrides=(
+            ("kimi-k2.5", {"temperature": 1.0}),
+            ("kimi-k2.6", {"temperature": 1.0}),
+        ),
+    ),
 )
 
 
