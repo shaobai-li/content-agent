@@ -145,3 +145,21 @@
     animation: file-upload-indeterminate 1.15s ease-in-out infinite;
   }
 }
+
+/* react-clock 样式覆盖 — 匹配 shadcn 主题 */
+.react-clock__face {
+  border-color: var(--border) !important;
+}
+.react-clock__mark__body {
+  background-color: var(--muted-foreground) !important;
+}
+.react-clock__hand__body {
+  background-color: var(--foreground) !important;
+}
+.react-clock__second-hand__body {
+  background-color: var(--destructive) !important;
+}
+.react-clock__mark__number {
+  color: var(--muted-foreground) !important;
+  font-size: 10px !important;
+}

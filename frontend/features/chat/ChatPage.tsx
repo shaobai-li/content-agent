@@ -4,12 +4,14 @@ import { useEffect, useState, useMemo } from "react";
 import { useChat } from "@/features/chat/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
+import { DashboardHero } from "./DashboardHero";
 import { ChatInput, type FileItem, type ModelOption, MODEL_OPTIONS } from "./ChatInput";
 import type { MentionItem } from "./MentionChip";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { API_BASE_URL } from "@/shared/api/config";
 import { uploadAgentAttachmentCache } from "@/shared/api/attachments";
+import { useDocumentCollapse } from "@/app-shell/DocumentCollapseContext";
 import { http } from "@/shared/api/http";
 
 interface ChatPageProps {
@@ -19,6 +21,8 @@ interface ChatPageProps {
 export function ChatPage({ agentId }: ChatPageProps) {
   // 根据 agentId 自动构建 API 端点
   const apiEndpoint = `${API_BASE_URL}/api/agents/${agentId}/chat`;
+
+  const { isCollapsed } = useDocumentCollapse();
   
   const { input, setInput, messages, handleSend, isSending, loadSession, startNewSession } = useChat({ 
     agentId, 
@@ -169,11 +173,15 @@ export function ChatPage({ agentId }: ChatPageProps) {
     <div className="flex h-full min-h-0 min-w-0 flex-col">
       <ChatHeader />
       <div className="flex-1 min-h-0 min-w-0 flex flex-col">
-        <ScrollArea className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
-          <div className="w-full min-w-0 max-w-full p-4">
-            <ChatMessage messages={messages} />
-          </div>
-        </ScrollArea>
+        {messages.length === 0 && isCollapsed ? (
+          <DashboardHero />
+        ) : (
+          <ScrollArea className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
+            <div className="w-full min-w-0 max-w-full p-4">
+              <ChatMessage messages={messages} />
+            </div>
+          </ScrollArea>
+        )}
         <div className="flex min-w-0 flex-col border p-4 bg-background">
           <ChatInput
             value={input}
