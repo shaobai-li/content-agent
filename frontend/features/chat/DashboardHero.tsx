@@ -39,7 +39,7 @@ export function DashboardHero() {
 
         <hr className="my-10 w-full border-border" />
 
-        <div className="flex w-full items-center justify-center gap-8">
+        <div className="flex w-full items-center pl-13 gap-10">
           <Clock
             value={now}
             size={120}
@@ -48,9 +48,9 @@ export function DashboardHero() {
             minuteHandWidth={2}
             secondHandWidth={1}
           />
-          <div className="flex items-center gap-2">
-            <span className="text-base font-medium text-muted-foreground">{weekday}</span>
-            <span className="text-lg text-foreground">{dateStr}</span>
+          <div className="flex items-center gap-10">
+            <span className="text-2xl font-medium text-muted-foreground">{weekday}</span>
+            <span className="text-2xl text-foreground">{dateStr}</span>
           </div>
         </div>
       </div>
