@@ -1,0 +1,13 @@
+bridge:
+  host: "127.0.0.1"
+  port: 8001
+  backend_url: "http://127.0.0.1:8000"
+  agent_id: "std"
+  user_id: "wechat-bridge"
+
+weixin:
+  token: ""
+  base_url: "https://ilinkai.weixin.qq.com"
+  account_id: "default"
+  long_poll_timeout_ms: 35000
+  state_dir: "./data/weixin"
