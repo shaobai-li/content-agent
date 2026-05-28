@@ -6,7 +6,6 @@ import os
 import re
 import shutil
 import sys
-import urllib.parse
 from pathlib import Path
 from typing import Any
 
@@ -202,12 +201,6 @@ class RunCommandTool(Tool):
             extra_path=extra_path,
         )
 
-        # 注入 allowed_env_keys
-        if self._allowed_env_keys:
-            for key in self._allowed_env_keys:
-                if key in os.environ:
-                    env[key] = os.environ[key]
-
         # 执行超时
         effective_timeout = self._timeout
         if timeout and timeout > 0:
@@ -303,6 +296,13 @@ class RunCommandTool(Tool):
 
         env["AGENT_WORKSPACE"] = str(ws)
         env["AGENT_SKILLS"] = agent_skills
+
+        # 注入 allowed_env_keys（不覆盖 _build_env 已显式设置的变量）
+        if self._allowed_env_keys:
+            for key in self._allowed_env_keys:
+                if key not in env and key in os.environ:
+                    env[key] = os.environ[key]
+
         return env
 
     @staticmethod
