@@ -104,6 +104,12 @@
   border-bottom: 1px solid #f0f0f0;
   font-size: 11px;
   color: #888;
+  cursor: grab;
+  user-select: none;
+}
+
+.canvas-card-header:active {
+  cursor: grabbing;
 }
 
 .canvas-card-content {
