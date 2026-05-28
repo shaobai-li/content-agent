@@ -1,8 +1,21 @@
-import { ChevronsLeft, ChevronsRight, MessageSquarePlus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronsLeft, ChevronsRight, MessageSquarePlus, Smartphone } from "lucide-react";
 import { useDocumentCollapse } from "@/app-shell/DocumentCollapseContext";
+import { WeChatBindDialog } from "./WeChatBindDialog";
+
+const BRIDGE_URL = process.env.NEXT_PUBLIC_BRIDGE_URL || "http://localhost:8001";
 
 export function ChatHeader() {
   const { isCollapsed, toggle } = useDocumentCollapse();
+  const [wechatDialogOpen, setWechatDialogOpen] = useState(false);
+  const [wechatConnected, setWechatConnected] = useState(false);
+
+  useEffect(() => {
+    fetch(`${BRIDGE_URL}/api/wechat/bridge/status`)
+      .then((r) => r.json())
+      .then((d) => setWechatConnected(d.running))
+      .catch(() => {});
+  }, []);
 
   const handleNewChat = () => {
     window.dispatchEvent(new CustomEvent("session-new"));
@@ -20,13 +33,30 @@ export function ChatHeader() {
           {isCollapsed ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}
         </button>
       </div>
-      <button
-        onClick={handleNewChat}
-        className="ml-auto p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-        title="新建对话"
-      >
-        <MessageSquarePlus size={18} />
-      </button>
+      <div className="ml-auto flex items-center gap-1">
+        <button
+          onClick={() => setWechatDialogOpen(true)}
+          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground relative"
+          title={wechatConnected ? "微信已连接" : "绑定微信"}
+        >
+          <Smartphone size={18} className={wechatConnected ? "text-green-500" : ""} />
+          {wechatConnected && (
+            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-green-500" />
+          )}
+        </button>
+        <button
+          onClick={handleNewChat}
+          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          title="新建对话"
+        >
+          <MessageSquarePlus size={18} />
+        </button>
+      </div>
+      <WeChatBindDialog
+        open={wechatDialogOpen}
+        onOpenChange={setWechatDialogOpen}
+        onBindSuccess={() => setWechatConnected(true)}
+      />
     </div>
   );
 }
