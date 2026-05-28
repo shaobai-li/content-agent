@@ -18,7 +18,6 @@ function useNow() {
 export function DashboardHero() {
   const now = useNow();
 
-  const timeStr = now.toLocaleTimeString("en-US", { hour12: false });
   const weekday = WEEKDAYS[now.getDay()];
   const dateStr = now.toLocaleDateString("en-US", {
     year: "numeric",
@@ -40,21 +39,16 @@ export function DashboardHero() {
 
         <hr className="my-10 w-full border-border" />
 
-        <div className="flex w-full items-stretch gap-8">
-          <div className="flex flex-1 items-center gap-6">
-            <Clock
-              value={now}
-              size={120}
-              renderNumbers
-              hourHandWidth={3}
-              minuteHandWidth={2}
-              secondHandWidth={1}
-            />
-            <span className="font-mono text-6xl font-light tracking-wider text-foreground tabular-nums">
-              {timeStr}
-            </span>
-          </div>
-          <div className="flex w-[38.2%] flex-col items-center justify-center gap-1">
+        <div className="flex w-full flex-col items-center gap-6">
+          <Clock
+            value={now}
+            size={120}
+            renderNumbers
+            hourHandWidth={3}
+            minuteHandWidth={2}
+            secondHandWidth={1}
+          />
+          <div className="flex flex-col items-center gap-1">
             <span className="text-base font-medium text-muted-foreground">{weekday}</span>
             <span className="text-center text-lg text-foreground">{dateStr}</span>
           </div>
