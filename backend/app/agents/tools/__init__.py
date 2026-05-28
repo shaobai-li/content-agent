@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from app.agents.tools.base import Schema, Tool, tool_parameters
-from app.agents.tools.filesystem import ReadFileTool, WriteFileTool
+from app.agents.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
 from app.agents.tools.registry import ToolRegistry
 from app.agents.tools.schema import (
     ArraySchema,
@@ -35,6 +35,8 @@ __all__ = [
     "RunCommandTool",
     "ReadFileTool",
     "WriteFileTool",
+    "EditFileTool",
+    "ListDirTool",
     "WebSearchTool",
     "WebFetchTool",
     "InvokeSkillTool",
@@ -48,6 +50,8 @@ def create_tool_registry(workspace: Path, agent_id: str) -> ToolRegistry:
     registry.register(RunCommandTool(workspace))
     registry.register(ReadFileTool(workspace))
     registry.register(WriteFileTool(workspace))
+    registry.register(EditFileTool(workspace))
+    registry.register(ListDirTool(workspace))
     registry.register(WebSearchTool())
     registry.register(WebFetchTool())
     registry.register(InvokeSkillTool(agent_id))
