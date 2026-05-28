@@ -53,7 +53,7 @@ class _FsTool(Tool):
         extra_allowed_dirs: list[Path] | None = None,
     ):
         self._workspace = workspace
-        self._allowed_dir = allowed_dir
+        self._allowed_dir = allowed_dir if allowed_dir is not None else workspace
         self._extra_allowed_dirs = extra_allowed_dirs
 
     def _resolve(self, path: str) -> Path:
@@ -442,7 +442,7 @@ def _curly_single_quotes(text: str) -> str:
         if prev_ch.isalnum() and next_ch.isalnum():
             parts.append("’")
             continue
-        parts.append("“" if opening else "”")
+        parts.append("‘" if opening else "’")
         opening = not opening
     return "".join(parts)
 
