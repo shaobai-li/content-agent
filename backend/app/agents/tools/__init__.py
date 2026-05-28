@@ -47,7 +47,11 @@ __all__ = [
 def create_tool_registry(workspace: Path, agent_id: str) -> ToolRegistry:
     """Create and populate a ToolRegistry with all standard tools."""
     registry = ToolRegistry()
-    registry.register(RunCommandTool(workspace))
+    registry.register(RunCommandTool(
+        workspace,
+        restrict_to_workspace=True,
+        allowed_env_keys=["PATH", "HOME"],
+    ))
     registry.register(ReadFileTool(workspace))
     registry.register(WriteFileTool(workspace))
     registry.register(EditFileTool(workspace))
