@@ -74,6 +74,7 @@ export function WeChatBindDialog({ open, onOpenChange, onBindSuccess }: WeChatBi
             setTimeout(poll, 2000);
             break;
           case "confirmed":
+            pollingRef.current?.abort();
             if (data.bot_token) {
               try {
                 await fetch(`${BRIDGE_URL}/api/wechat/bridge/start`, {
