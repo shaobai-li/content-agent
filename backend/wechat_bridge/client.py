@@ -77,12 +77,13 @@ class QRStatusResp:
 class IlinkClient:
     """微信 iLink Bot HTTP API 客户端。"""
 
-    def __init__(self, base_url: str, token: str, route_tag: str = ""):
+    def __init__(self, base_url: str, token: str, route_tag: str = "", lp_timeout: float = 40):
         self.base_url = base_url.rstrip("/") + "/"
         self.token = token.strip()
         self.route_tag = route_tag.strip()
+        self._lp_timeout = lp_timeout
         self._client = httpx.Client(timeout=15)
-        self._lp_client = httpx.Client(timeout=40)
+        self._lp_client = httpx.Client(timeout=lp_timeout)
 
     def _headers(self) -> dict:
         h = {
@@ -95,14 +96,15 @@ class IlinkClient:
             h["SKRouteTag"] = self.route_tag
         return h
 
-    def get_updates(self, buf: str, timeout_ms: int = 35000) -> GetUpdatesResp:
+    def get_updates(self, buf: str, timeout_ms: int | None = None) -> GetUpdatesResp:
         url = urljoin(self.base_url, "ilink/bot/getupdates")
         body = {
             "get_updates_buf": buf,
             "base_info": {"channel_version": CHANNEL_VERSION},
         }
         try:
-            resp = self._lp_client.post(url, json=body, headers=self._headers())
+            t = (timeout_ms / 1000) if timeout_ms else self._lp_timeout
+            resp = self._lp_client.post(url, json=body, headers=self._headers(), timeout=t)
             resp.raise_for_status()
             data = resp.json()
             msgs = [_parse_message(m) for m in data.get("msgs", [])]

@@ -280,6 +280,11 @@ class TestIlinkClientInit:
         client = IlinkClient("https://example.com", "tok")
         assert isinstance(client._client, httpx.Client)
         assert isinstance(client._lp_client, httpx.Client)
+        assert client._lp_timeout == 40
+
+    def test_custom_lp_timeout(self):
+        client = IlinkClient("https://example.com", "tok", lp_timeout=60)
+        assert client._lp_timeout == 60
 
 
 class TestIlinkClientHeaders:
@@ -320,12 +325,24 @@ class TestIlinkClientGetUpdates:
             assert call_args[0][0].endswith("ilink/bot/getupdates")
             assert call_args[1]["json"]["get_updates_buf"] == "prev_buf"
             assert call_args[1]["json"]["base_info"]["channel_version"] == "cc-connect-weixin/1.0"
+            # 默认 timeout 来自 _lp_timeout
+            assert call_args[1]["timeout"] == 40
 
             assert resp.ret == 0
             assert len(resp.msgs) == 1
             assert resp.msgs[0].from_user_id == "u1"
             assert resp.get_updates_buf == "buf123"
             assert resp.longpolling_timeout_ms == 35000
+
+    def test_success_with_custom_timeout_ms(self):
+        """timeout_ms 参数应覆盖构造时的默认值。"""
+        client = IlinkClient("https://example.com", "tok")
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"ret": 0}
+
+        with patch.object(client._lp_client, "post", return_value=mock_response) as mock_post:
+            client.get_updates("buf", timeout_ms=50000)
+            assert mock_post.call_args[1]["timeout"] == 50  # 50000ms → 50s
 
     def test_timeout_returns_empty_msgs_with_same_buf(self):
         client = IlinkClient("https://example.com", "tok")
