@@ -84,6 +84,7 @@ def create_app(config: AppConfig) -> FastAPI:
         client = IlinkClient(
             base_url=body.base_url,
             token=body.token,
+            lp_timeout=(config.weixin.long_poll_timeout_ms / 1000) + 5,
         )
         storage = Storage(
             state_dir=config.weixin.state_dir,
