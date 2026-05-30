@@ -1,24 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Clock from "react-clock";
+import Clock, { ClockProps } from "react-clock";
 import "react-clock/dist/Clock.css";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-function useNow() {
+function LiveClock(props: Omit<ClockProps, "value">) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  return now;
+  return <Clock value={now} {...props} />;
 }
 
 export function DashboardHero() {
-  const now = useNow();
-
-  const timeStr = now.toLocaleTimeString("en-US", { hour12: false });
+  const now = new Date();
   const weekday = WEEKDAYS[now.getDay()];
   const dateStr = now.toLocaleDateString("en-US", {
     year: "numeric",
@@ -40,23 +38,17 @@ export function DashboardHero() {
 
         <hr className="my-10 w-full border-border" />
 
-        <div className="flex w-full items-stretch gap-8">
-          <div className="flex flex-1 items-center gap-6">
-            <Clock
-              value={now}
-              size={120}
-              renderNumbers
-              hourHandWidth={3}
-              minuteHandWidth={2}
-              secondHandWidth={1}
-            />
-            <span className="font-mono text-6xl font-light tracking-wider text-foreground tabular-nums">
-              {timeStr}
-            </span>
-          </div>
-          <div className="flex w-[38.2%] flex-col items-center justify-center gap-1">
-            <span className="text-base font-medium text-muted-foreground">{weekday}</span>
-            <span className="text-center text-lg text-foreground">{dateStr}</span>
+        <div className="flex w-full items-center pl-14 gap-10">
+          <LiveClock
+            size={120}
+            renderNumbers
+            hourHandWidth={3}
+            minuteHandWidth={2}
+            secondHandWidth={1}
+          />
+          <div className="flex items-center gap-6">
+            <span className="text-2xl font-medium text-muted-foreground">{weekday}</span>
+            <span className="text-2xl text-foreground">{dateStr}</span>
           </div>
         </div>
       </div>
