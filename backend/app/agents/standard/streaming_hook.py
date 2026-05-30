@@ -97,16 +97,3 @@ class StreamingHook(AgentHook):
                         content=content[i:i + _STEP],
                     ))
             await self._queue.put(ToolExecEnd(call_id=tc.id))
-
-    async def send_canvas_card(
-        self,
-        content: str,
-        card_type: str = "html",
-        title: str = "",
-    ) -> None:
-        """发送卡片到 Canvas。"""
-        await self._queue.put(CanvasCardEvent(
-            content=content,
-            card_type=card_type,
-            title=title,
-        ))

@@ -124,7 +124,7 @@ class StandardAgent(BaseAgent):
             from app.agents.runner import AgentRunner, AgentRunSpec
             from app.agents.standard.streaming_hook import (
                 StreamingHook, TextEvent, ToolExecStart, ToolExecChunk, ToolExecEnd,
-                CanvasCardEvent, StreamSentinel,
+                StreamSentinel,
             )
             from app.service.stream_service import (
                 build_tool_exec_start, build_tool_exec_chunk, build_tool_exec_end,
@@ -167,12 +167,6 @@ class StandardAgent(BaseAgent):
                     break
                 elif isinstance(msg, TextEvent):
                     yield build_stream_chunk(msg.content)
-                elif isinstance(msg, CanvasCardEvent):
-                    yield build_canvas_card(
-                        content=msg.content,
-                        card_type=msg.card_type,
-                        title=msg.title,
-                    )
                 elif isinstance(msg, ToolExecStart):
                     tool_name_map[msg.call_id] = msg.name
                     yield build_tool_exec_start(
@@ -190,11 +184,11 @@ class StandardAgent(BaseAgent):
                     if tool_name == "generate_html":
                         html_content = collected_tool_outputs.get(msg.call_id, "")
                         if html_content.strip():
-                            await queue.put(CanvasCardEvent(
+                            yield build_canvas_card(
                                 content=html_content,
                                 card_type="html",
                                 title="HTML 生成结果",
-                            ))
+                            )
 
             result = await runner_task
 
