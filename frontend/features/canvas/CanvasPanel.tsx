@@ -339,18 +339,6 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
                       <span>🔍 点击展开</span>
                     </div>
                   </div>
-                  <div className="canvas-card-html-footer">
-                    <span className="canvas-card-html-label">📄 {card.title}</span>
-                    <button
-                      className="canvas-card-expand-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedCardId(expandedCardId === card.id ? null : card.id);
-                      }}
-                    >
-                      {expandedCardId === card.id ? "收起" : "展开"}
-                    </button>
-                  </div>
                 </div>
               ) : (
                 <ReactMarkdown
