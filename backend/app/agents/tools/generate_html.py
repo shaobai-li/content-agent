@@ -13,7 +13,7 @@ GENERATE_HTML_SYSTEM_PROMPT = """你是一个 HTML 生成专家。根据用户�
 - 使用现代化设计风格
 - 确保页面自包含、可正常运行
 - 不要添加任何外部依赖（CDN 引用除外）
-- 仅输出 HTML 代码，无需额外解释"""
+- **仅输出纯 HTML 代码，不要用 ```html 或任何 markdown 代码块包裹，不要加额外解释**"""
 
 
 class GenerateHTMLTool(Tool):
@@ -29,7 +29,7 @@ class GenerateHTMLTool(Tool):
 
     @property
     def description(self) -> str:
-        return "根据一段描述文字生成一个完整的独立 HTML 页面（含内联 CSS/JS），返回完整 HTML 源码"
+        return "生成一个完整的独立 HTML 页面（含内联 CSS/JS），并在 Canvas 面板中以可视化卡片展示。结果会自动在 Canvas 中以缩略图呈现，支持展开为全尺寸交互视图。用户要求「生成/创建一个HTML页面」「展示可视化效果」「做个网页」等场景请使用此工具，而非 write_file。"
 
     @property
     def parameters(self) -> dict[str, Any]:
@@ -38,7 +38,7 @@ class GenerateHTMLTool(Tool):
             "properties": {
                 "prompt": {
                     "type": "string",
-                    "description": "描述要生成的 HTML 内容，例如「一个数据可视化看板，展示三个指标卡片和折线图」",
+                    "description": "描述要生成的 HTML 内容，例如「一个数据可视化看板，展示三个指标卡片和折线图」。注意：不要在此参数中包含完整的 HTML 代码，而是描述你想要生成的内容",
                 },
                 "style": {
                     "type": "string",
@@ -77,4 +77,14 @@ class GenerateHTMLTool(Tool):
         )
         if response.finish_reason == "error":
             return f"Error: HTML generation failed - {response.content}"
-        return response.content or ""
+        content = response.content or ""
+        # 安全移除可能的 markdown 代码块包裹
+        content = content.strip()
+        if content.startswith("```"):
+            # 去掉开头的 ```html、``` 等
+            first_newline = content.find("\n")
+            if first_newline != -1:
+                content = content[first_newline + 1:]
+            if content.endswith("```"):
+                content = content[:-3].strip()
+        return content

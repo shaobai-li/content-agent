@@ -127,6 +127,9 @@ class ContextBuilder:
             f"\nAGENT_WORKSPACE={ws}"
             f"\nAGENT_SKILLS（skills 根目录）={skills_dir}"
             f"{kb_line}"
+            "\n\n当用户要求「生成 HTML」「做个网页」「可视化看板」等需要渲染展示的内容时，"
+            "请使用 generate_html 工具生成 HTML，生成结果会自动在 Canvas 面板中以可视化卡片展示。"
+            "不要用 write_file 代替——generate_html 的展示效果更好。"
         )
 
     def resolve_base_prompt(self) -> str:
