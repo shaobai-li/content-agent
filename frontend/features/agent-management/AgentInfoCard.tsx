@@ -17,7 +17,7 @@ export interface AgentInfoCardProps {
   stats: AgentStatItem[];
 }
 
-const statusStyles: Record<string, string> = {
+const statusStyles: Record<"Active" | "Idle", string> = {
   Active: "bg-emerald-500/10 text-emerald-600",
   Idle: "bg-muted text-muted-foreground",
 };
