@@ -4,8 +4,13 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from loguru import logger
+
 from app.agents.tools.base import Tool
 from app.providers.factory import create_provider
+
+# 自动推送到 Canvas 的 HTML 内容大小上限（字符数）
+MAX_HTML_SIZE = 200_000
 
 GENERATE_HTML_SYSTEM_PROMPT = """你是一个 HTML 生成专家。根据用户的描述生成一个完整的、可独立运行的 HTML 文件。
 要求：
@@ -83,12 +88,20 @@ class GenerateHTMLTool(Tool):
             {"role": "system", "content": GENERATE_HTML_SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ]
-        response = await provider.chat(
-            messages=messages,
-            tools=None,
-            model=self._model or provider.default_model,
-            temperature=0.3,
-        )
+        try:
+            response = await provider.chat(
+                messages=messages,
+                tools=None,
+                model=self._model or provider.default_model,
+                temperature=0.3,
+            )
+        except Exception:
+            logger.exception("GenerateHTMLTool provider.chat failed")
+            return "Error: HTML generation failed due to provider error"
         if response.finish_reason == "error":
             return f"Error: HTML generation failed - {response.content}"
-        return strip_markdown_code_block(response.content or "")
+        html = strip_markdown_code_block(response.content or "")
+        if len(html) > MAX_HTML_SIZE:
+            logger.warning("GenerateHTMLTool HTML size {} exceeds limit {}", len(html), MAX_HTML_SIZE)
+            return f"Error: Generated HTML exceeds size limit ({MAX_HTML_SIZE} chars)"
+        return html

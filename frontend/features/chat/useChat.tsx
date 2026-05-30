@@ -285,6 +285,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
             break;
           }
           case "canvas_card":
+            if (!event.data || typeof event.data.content !== "string") break;
             window.dispatchEvent(
               new CustomEvent("canvas-card", {
                 detail: {

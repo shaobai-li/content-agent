@@ -193,6 +193,9 @@ class StandardAgent(BaseAgent):
                                 card_type="html",
                                 title="HTML 生成结果",
                             )
+                    # 清理已完成工具调用，防止内存泄漏
+                    collected_tool_outputs.pop(msg.call_id, None)
+                    tool_name_map.pop(msg.call_id, None)
 
             result = await runner_task
 
