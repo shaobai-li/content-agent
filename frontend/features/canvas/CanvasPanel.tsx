@@ -278,12 +278,6 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
           </div>
         ))}
 
-        {cards.length === 0 && (
-          <div className="canvas-empty">
-            <h3>No content yet</h3>
-            <p>Start a chat — LLM responses will appear here as cards</p>
-          </div>
-        )}
       </div>
     </div>
   );
