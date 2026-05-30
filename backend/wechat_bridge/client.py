@@ -144,16 +144,6 @@ class IlinkClient:
             errmsg=data.get("errmsg", ""),
         )
 
-    def send_typing(self, user_id: str, ticket: str, status: int):
-        url = urljoin(self.base_url, "ilink/bot/sendtyping")
-        body = {
-            "ilink_user_id": user_id,
-            "typing_ticket": ticket,
-            "status": status,
-            "base_info": {"channel_version": CHANNEL_VERSION},
-        }
-        self._client.post(url, json=body, headers=self._headers())
-
     def get_config(self, user_id: str, context_token: str) -> dict:
         url = urljoin(self.base_url, "ilink/bot/getconfig")
         body = {
