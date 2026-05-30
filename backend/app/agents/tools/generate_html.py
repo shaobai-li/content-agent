@@ -48,7 +48,7 @@ class GenerateHTMLTool(Tool):
 
     @property
     def description(self) -> str:
-        return "生成独立 HTML 页面并在 Canvas 面板中以可视化卡片展示。用于「生成HTML」「做网页」「可视化看板」等场景，勿用 write_file 替代。"
+        return "生成独立 HTML 页面并在 Canvas 面板中以可视化卡片展示。"
 
     @property
     def parameters(self) -> dict[str, Any]:
