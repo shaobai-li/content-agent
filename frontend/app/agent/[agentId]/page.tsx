@@ -34,6 +34,7 @@ export default function AgentPage() {
   const leftParam = searchParams.get("left") as UIModule | null;
   const leftAllowed =
     leftParam === "settings" ||
+    (leftParam === "management" && agentId === "admin") ||
     (!!leftParam && agent.layout.left.includes(leftParam));
 
   const [leftModule, setLeftModule] = useState<UIModule>(() => {

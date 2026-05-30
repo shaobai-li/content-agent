@@ -10,6 +10,9 @@ import { KnowledgeBasePanel } from "../knowledge-base/KnowledgeBasePanel";
 import { SettingsHeader } from "../settings/SettingsHeader";
 import { SettingsPanel } from "../settings/SettingsPanel";
 
+import { ManagementHeader } from "../agent-management/ManagementHeader";
+import { ManagementPanel } from "../agent-management/ManagementPanel";
+
 import { AgentId } from "@/entities/agent/model";
 
 export type ModuleRenderResult = {
@@ -39,6 +42,11 @@ export const uiModuleRegistry: Record<
   settings: (agentId) => ({
     header: <SettingsHeader />,
     body: <SettingsPanel agentId={agentId} />,
+  }),
+
+  management: (agentId) => ({
+    header: <ManagementHeader />,
+    body: <ManagementPanel agentId={agentId} />,
   }),
 
   chat: () => ({
