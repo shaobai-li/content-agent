@@ -1,0 +1,11 @@
+name: 智能体管理员
+pinned: true
+skills: []
+layout:
+  left:
+    - history
+    - knowledgebase
+  defaultLeft: history
+  right:
+    - chat
+  defaultRight: chat
