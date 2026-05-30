@@ -79,6 +79,8 @@ def create_app(config: AppConfig) -> FastAPI:
     @app.post("/api/wechat/bridge/start")
     async def bridge_start(body: BridgeStartReq):
         nonlocal platform
+        if platform is not None:
+            return {"ok": True, "already_running": True}
         client = IlinkClient(
             base_url=body.base_url,
             token=body.token,
