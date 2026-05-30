@@ -6,6 +6,7 @@ export interface Agent {
     id: AgentId;
     name: string;
     visible: boolean;
+    pinned?: boolean;
     layout: LayoutType;
 }
 

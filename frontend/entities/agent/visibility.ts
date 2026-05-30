@@ -27,7 +27,11 @@ function saveOverrides(overrides: VisibilityOverrides): void {
 export function isAgentVisible(
   agentId: string,
   serverVisible: boolean,
+  pinned?: boolean,
 ): boolean {
+  // pinned agent 永远可见，不可被用户隐藏
+  if (pinned) return true;
+
   const overrides = loadOverrides();
   // 用户手动隐藏优先
   if (overrides.hidden.includes(agentId)) return false;
