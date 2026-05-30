@@ -15,7 +15,8 @@ export type UIModule =
     | "history"
     | "knowledgebase"
     | "document"
-    | "settings";
+    | "settings"
+    | "management";
 
 export type LayoutType = {
     left: UIModule[];
