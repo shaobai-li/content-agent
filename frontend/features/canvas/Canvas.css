@@ -206,3 +206,119 @@
   margin: 16px 0;
 }
 
+/* HTML Card Styles */
+.canvas-card-html {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.canvas-card-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.canvas-card-iframe {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+  pointer-events: none;
+}
+
+.canvas-card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s ease;
+  border-radius: 6px;
+}
+
+.canvas-card-thumbnail:hover .canvas-card-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Expanded Overlay (full-screen modal) */
+.canvas-expanded-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  animation: canvas-fadeIn 0.2s ease;
+}
+
+.canvas-expanded-container {
+  width: 90%;
+  height: 90%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: canvas-scaleIn 0.2s ease;
+}
+
+.canvas-expanded-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  background: #fafafa;
+}
+
+.canvas-expanded-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #666;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas-expanded-close:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.canvas-expanded-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+}
+
+@keyframes canvas-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes canvas-scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+

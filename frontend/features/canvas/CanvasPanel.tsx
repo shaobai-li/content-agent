@@ -12,6 +12,8 @@ interface CanvasCard {
   content: string;
   timestamp: Date;
   position: { x: number; y: number };
+  type: "markdown" | "html";
+  title: string;
 }
 
 interface CanvasPanelProps {
@@ -52,6 +54,8 @@ function createDefaultCard(): CanvasCard {
     content: SHAKESPEARE_SONNET,
     timestamp: new Date(),
     position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y },
+    type: "markdown",
+    title: "",
   };
 }
 
@@ -64,9 +68,14 @@ function loadCards(agentId: string): CanvasCard[] {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return [createDefaultCard()];
     }
-    return parsed.map((c: Record<string, unknown>) => ({
-      ...c,
+    return parsed.map((c: Record<string, unknown>): CanvasCard => ({
+      id: c.id as string,
+      stepNumber: c.stepNumber as number,
+      content: c.content as string,
       timestamp: new Date(c.timestamp as string),
+      position: c.position as { x: number; y: number },
+      type: (c.type as "markdown" | "html") || "markdown",
+      title: (c.title as string) || "",
     }));
   } catch {
     return [createDefaultCard()];
@@ -85,6 +94,7 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
   const [cards, setCards] = useState<CanvasCard[]>(() => loadCards(agentId));
   const [zoom, setZoom] = useState(100);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isPanning = useRef(false);
   const panStart = useRef({ x: 0, y: 0 });
@@ -123,6 +133,8 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
           content: article,
           timestamp: new Date(),
           position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y },
+          type: "markdown",
+          title: "",
         };
         setCards([newCard]);
       } else {
@@ -137,6 +149,8 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
             x: CANVAS_CENTER_X,
             y: CANVAS_CENTER_Y + yOffset,
           },
+          type: "markdown",
+          title: "",
         };
         setCards((prev) => [...prev, newCard]);
       }
@@ -144,6 +158,47 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
 
     window.addEventListener("article-update", handleArticleUpdate);
     return () => window.removeEventListener("article-update", handleArticleUpdate);
+  }, [agentId]);
+
+  // 监听 canvas-card 事件（来自 generate_html 工具）
+  useEffect(() => {
+    const handleCanvasCard = (event: Event) => {
+      const { agentId: eventAgentId, content, cardType, title } = (event as CustomEvent).detail;
+      if (eventAgentId !== agentId) return;
+      if (!content) return;
+
+      const currentCards = cardsRef.current;
+      const hasDefaultCard = currentCards.length === 1 && currentCards[0].id === "default-demo";
+
+      if (hasDefaultCard) {
+        const newCard: CanvasCard = {
+          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          stepNumber: 1,
+          content,
+          timestamp: new Date(),
+          position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y },
+          type: cardType || "html",
+          title: title || "HTML",
+        };
+        setCards([newCard]);
+      } else {
+        const stepNumber = cardCountRef.current + 1;
+        const yOffset = (stepNumber - 1) * CARD_GAP_Y;
+        const newCard: CanvasCard = {
+          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          stepNumber,
+          content,
+          timestamp: new Date(),
+          position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y + yOffset },
+          type: cardType || "html",
+          title: title || "HTML",
+        };
+        setCards((prev) => [...prev, newCard]);
+      }
+    };
+
+    window.addEventListener("canvas-card", handleCanvasCard);
+    return () => window.removeEventListener("canvas-card", handleCanvasCard);
   }, [agentId]);
 
   // Pan + Card drag handlers
@@ -268,17 +323,66 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
               <span>{card.timestamp.toLocaleTimeString()}</span>
             </div>
             <div className="canvas-card-content">
-              <ReactMarkdown
-                rehypePlugins={[rehypeHighlight]}
-                remarkPlugins={[remarkGfm]}
-              >
-                {card.content}
-              </ReactMarkdown>
+              {card.type === "html" ? (
+                <div className="canvas-card-html">
+                  <div
+                    className="canvas-card-thumbnail"
+                    onClick={() => setExpandedCardId(expandedCardId === card.id ? null : card.id)}
+                  >
+                    <iframe
+                      srcDoc={card.content}
+                      sandbox=""
+                      className="canvas-card-iframe"
+                      title={card.title}
+                    />
+                    <div className="canvas-card-overlay">
+                      <span>🔍 点击展开</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ReactMarkdown
+                  rehypePlugins={[rehypeHighlight]}
+                  remarkPlugins={[remarkGfm]}
+                >
+                  {card.content}
+                </ReactMarkdown>
+              )}
             </div>
           </div>
         ))}
 
       </div>
+
+      {/* 展开模态 */}
+      {expandedCardId && (
+        <div
+          className="canvas-expanded-overlay"
+          onClick={() => setExpandedCardId(null)}
+        >
+          <div
+            className="canvas-expanded-container"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="canvas-expanded-header">
+              <span>
+                {cards.find(c => c.id === expandedCardId)?.title || "HTML 预览"}
+              </span>
+              <button
+                className="canvas-expanded-close"
+                onClick={() => setExpandedCardId(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <iframe
+              srcDoc={cards.find(c => c.id === expandedCardId)?.content || ""}
+              sandbox=""
+              className="canvas-expanded-iframe"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

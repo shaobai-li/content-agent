@@ -110,7 +110,11 @@ class StandardAgent(BaseAgent):
         session_id = ctx.session_id or new_uuid()
         try:
             workspace = self._workspace_dir()
-            registry = create_tool_registry(workspace, self.agent_id)
+            registry = create_tool_registry(
+                workspace, self.agent_id,
+                provider_name=ctx.provider,
+                model=ctx.model,
+            )
             messages = self._build_loop_messages(ctx, workspace)
 
             text_preview = (ctx.user_text or "")[:100]
@@ -123,10 +127,12 @@ class StandardAgent(BaseAgent):
 
             from app.agents.runner import AgentRunner, AgentRunSpec
             from app.agents.standard.streaming_hook import (
-                StreamingHook, TextEvent, ToolExecStart, ToolExecChunk, ToolExecEnd, StreamSentinel,
+                StreamingHook, TextEvent, ToolExecStart, ToolExecChunk, ToolExecEnd,
+                StreamSentinel,
             )
             from app.service.stream_service import (
                 build_tool_exec_start, build_tool_exec_chunk, build_tool_exec_end,
+                build_canvas_card,
             )
 
             provider = _get_provider(provider_name=ctx.provider, model=ctx.model)
@@ -156,6 +162,9 @@ class StandardAgent(BaseAgent):
 
             runner_task = asyncio.create_task(run_and_signal())
 
+            collected_tool_outputs: dict[str, str] = {}
+            tool_name_map: dict[str, str] = {}
+
             while True:
                 msg = await queue.get()
                 if isinstance(msg, StreamSentinel):
@@ -163,13 +172,30 @@ class StandardAgent(BaseAgent):
                 elif isinstance(msg, TextEvent):
                     yield build_stream_chunk(msg.content)
                 elif isinstance(msg, ToolExecStart):
+                    tool_name_map[msg.call_id] = msg.name
                     yield build_tool_exec_start(
                         name=msg.name, call_id=msg.call_id, arguments=msg.arguments,
                     )
                 elif isinstance(msg, ToolExecChunk):
+                    if msg.call_id not in collected_tool_outputs:
+                        collected_tool_outputs[msg.call_id] = ""
+                    collected_tool_outputs[msg.call_id] += msg.content
                     yield build_tool_exec_chunk(call_id=msg.call_id, content=msg.content)
                 elif isinstance(msg, ToolExecEnd):
                     yield build_tool_exec_end(call_id=msg.call_id)
+                    # 检测 generate_html 工具完成，自动推送到 Canvas
+                    tool_name = tool_name_map.get(msg.call_id, "")
+                    if tool_name == "generate_html":
+                        html_content = collected_tool_outputs.get(msg.call_id, "")
+                        if html_content.strip():
+                            yield build_canvas_card(
+                                content=html_content,
+                                card_type="html",
+                                title="HTML 生成结果",
+                            )
+                    # 清理已完成工具调用，防止内存泄漏
+                    collected_tool_outputs.pop(msg.call_id, None)
+                    tool_name_map.pop(msg.call_id, None)
 
             result = await runner_task
 

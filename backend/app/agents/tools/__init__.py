@@ -6,6 +6,7 @@ from typing import Any
 
 from app.agents.tools.base import Schema, Tool, tool_parameters
 from app.agents.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
+from app.agents.tools.generate_html import GenerateHTMLTool
 from app.agents.tools.registry import ToolRegistry
 from app.agents.tools.schema import (
     ArraySchema,
@@ -40,12 +41,26 @@ __all__ = [
     "WebSearchTool",
     "WebFetchTool",
     "InvokeSkillTool",
+    "GenerateHTMLTool",
     "create_tool_registry",
 ]
 
 
-def create_tool_registry(workspace: Path, agent_id: str) -> ToolRegistry:
-    """Create and populate a ToolRegistry with all standard tools."""
+def create_tool_registry(
+    workspace: Path,
+    agent_id: str,
+    provider_name: str | None = None,
+    model: str | None = None,
+) -> ToolRegistry:
+    """Create and populate a ToolRegistry with all standard tools.
+
+    Args:
+        workspace: Agent workspace directory.
+        agent_id: Agent identifier.
+        provider_name: LLM provider name, inherited from agent context
+                       (used by tools that call LLM internally).
+        model: Model name, inherited from agent context.
+    """
     registry = ToolRegistry()
     registry.register(RunCommandTool(
         workspace,
@@ -59,4 +74,5 @@ def create_tool_registry(workspace: Path, agent_id: str) -> ToolRegistry:
     registry.register(WebSearchTool())
     registry.register(WebFetchTool())
     registry.register(InvokeSkillTool(agent_id))
+    registry.register(GenerateHTMLTool(provider_name=provider_name, model=model))
     return registry
