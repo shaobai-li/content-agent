@@ -74,17 +74,22 @@ export function WeChatBindDialog({ open, onOpenChange, onBindSuccess }: WeChatBi
             setTimeout(poll, 2000);
             break;
           case "confirmed":
-            setStatus("confirmed");
             if (data.bot_token) {
-              await fetch(`${BRIDGE_URL}/api/wechat/bridge/start`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  token: data.bot_token,
-                  base_url: data.base_url || "https://ilinkai.weixin.qq.com",
-                }),
-              });
+              try {
+                await fetch(`${BRIDGE_URL}/api/wechat/bridge/start`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    token: data.bot_token,
+                    base_url: data.base_url || "https://ilinkai.weixin.qq.com",
+                  }),
+                });
+              } catch {
+                setStatus("error");
+                break;
+              }
             }
+            setStatus("confirmed");
             onBindSuccess?.();
             break;
           case "expired":
