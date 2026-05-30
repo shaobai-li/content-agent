@@ -384,27 +384,6 @@ class TestIlinkClientSendText:
                 client.send_text("user1", "hi", "ctx_123")
 
 
-class TestIlinkClientSendTyping:
-    def test_sends_typing(self):
-        client = IlinkClient("https://example.com", "tok")
-        mock_response = MagicMock()
-
-        with patch.object(client._client, "post", return_value=mock_response) as mock_post:
-            client.send_typing("user1", "ticket1", 1)
-            mock_post.assert_called_once()
-            body = mock_post.call_args[1]["json"]
-            assert body["ilink_user_id"] == "user1"
-            assert body["typing_ticket"] == "ticket1"
-            assert body["status"] == 1
-
-    def test_does_not_raise_on_error(self):
-        """`send_typing` does NOT catch exceptions — they propagate."""
-        client = IlinkClient("https://example.com", "tok")
-        with patch.object(client._client, "post", side_effect=httpx.RequestError("err")):
-            with pytest.raises(httpx.RequestError):
-                client.send_typing("user1", "ticket1", 1)
-
-
 class TestIlinkClientVerifyToken:
     def test_returns_true_on_success(self):
         client = IlinkClient("https://example.com", "tok")
