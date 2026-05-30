@@ -6,6 +6,7 @@ export interface Agent {
     id: AgentId;
     name: string;
     visible: boolean;
+    locked?: boolean;
     layout: LayoutType;
 }
 

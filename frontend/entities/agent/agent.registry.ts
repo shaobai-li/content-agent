@@ -26,6 +26,7 @@ export async function loadAgents(): Promise<void> {
         id: item.id,
         name: item.name ?? item.id,
         visible: item.visible ?? true,
+        locked: item.locked ?? false,
         layout: item.layout ?? DEFAULT_LAYOUT,
       };
     }

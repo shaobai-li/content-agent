@@ -120,10 +120,11 @@ export function Sidebar({ routes }: SidebarProps) {
     setHiddenIds(getHiddenAgentIds());
   }, []);
 
-  // 过滤隐藏的 agent
+  // 过滤隐藏的 agent（locked agent 跳过隐藏过滤）
   const visibleRoutes = routes.filter((route) => {
     if (!route.agentId) return true;
     const agent = agentRegistry[route.agentId];
+    if (agent?.locked) return true;
     return isAgentVisible(route.agentId, agent?.visible ?? true);
   });
 
@@ -242,7 +243,7 @@ export function Sidebar({ routes }: SidebarProps) {
                             </DropdownMenuItem>
                           );
                         })}
-                        {route.agentId && (
+                        {route.agentId && !agentRegistry[route.agentId]?.locked && (
                           <>
                             <div className="h-px bg-border mx-1 my-1" />
                             <DropdownMenuItem onClick={() => handleHide(route.agentId!)}>
