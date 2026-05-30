@@ -284,6 +284,18 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
             window.dispatchEvent(new CustomEvent("session-refresh"));
             break;
           }
+          case "canvas_card":
+            window.dispatchEvent(
+              new CustomEvent("canvas-card", {
+                detail: {
+                  agentId,
+                  content: event.data.content,
+                  cardType: event.data.type || "html",
+                  title: (event.data as any).title || "",
+                },
+              })
+            );
+            break;
         }
       }
     } catch (error) {

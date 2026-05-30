@@ -44,12 +44,18 @@ export type ToolExecEndEvent = {
   data: { call_id: string };
 };
 
+export type StreamCanvasCardEvent = {
+  event: "canvas_card";
+  data: { content: string; type: string; title?: string };
+};
+
 export type StreamEvent =
   | StreamChunkEvent
   | StreamDoneEvent
   | ToolExecStartEvent
   | ToolExecChunkEvent
-  | ToolExecEndEvent;
+  | ToolExecEndEvent
+  | StreamCanvasCardEvent;
 
 export async function* readStreamLines(
   response: Response
