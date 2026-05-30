@@ -32,7 +32,7 @@ async def list_agents():
         result.append({
             "id": agent_id,
             "name": cfg.get("name", agent_id),
-            "pinned": cfg.get("pinned", False),
+            "locked": cfg.get("locked", False),
             "layout": cfg.get("layout", {
                 "left": ["history", "knowledgebase", "document"],
                 "defaultLeft": "knowledgebase",
@@ -49,7 +49,7 @@ async def list_agents():
                 result.append({
                     "id": agent_id,
                     "name": cfg.get("name", agent_id),
-                    "pinned": False,
+                    "locked": False,
                     "layout": cfg.get("layout", {
                         "left": ["history", "knowledgebase", "document"],
                         "defaultLeft": "knowledgebase",

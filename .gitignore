@@ -10,5 +10,5 @@ CLAUDE.md
 .env
 config
 !backend/config/
-!backend-rs/config/
+!backend-rs/config/agents/admin.yaml
 tasks

@@ -10,7 +10,7 @@ pub struct AgentMeta {
     pub id: String,
     pub name: String,
     pub visible: bool,
-    pub pinned: bool,
+    pub locked: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub layout: Option<serde_json::Value>,
 }
@@ -35,7 +35,7 @@ pub fn init_registry() {
                 id: id.clone(),
                 name: cfg.name.clone().unwrap_or_else(|| id.clone()),
                 visible,
-                pinned: cfg.pinned.unwrap_or(false),
+                locked: cfg.locked.unwrap_or(false),
                 layout,
             }
         })
