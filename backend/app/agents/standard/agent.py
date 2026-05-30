@@ -110,7 +110,11 @@ class StandardAgent(BaseAgent):
         session_id = ctx.session_id or new_uuid()
         try:
             workspace = self._workspace_dir()
-            registry = create_tool_registry(workspace, self.agent_id)
+            registry = create_tool_registry(
+                workspace, self.agent_id,
+                provider_name=ctx.provider,
+                model=ctx.model,
+            )
             messages = self._build_loop_messages(ctx, workspace)
 
             text_preview = (ctx.user_text or "")[:100]

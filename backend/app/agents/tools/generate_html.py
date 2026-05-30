@@ -26,9 +26,14 @@ def strip_markdown_code_block(content: str) -> str:
 
 
 class GenerateHTMLTool(Tool):
-    """根据用户描述生成独立 HTML 页面（含 CSS/JS）。"""
+    """根据用户描述生成独立 HTML 页面（含 CSS/JS）。
 
-    def __init__(self, provider_name: str = "deepseek", model: str | None = None):
+    Args:
+        provider_name: 使用的 LLM provider 名称，默认 None（由 agent 调用方传入）。
+        model: 使用的模型名称，默认 None（由 agent 调用方传入）。
+    """
+
+    def __init__(self, provider_name: str | None = None, model: str | None = None):
         self._provider_name = provider_name
         self._model = model
 
