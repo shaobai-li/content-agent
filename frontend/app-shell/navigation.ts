@@ -5,7 +5,7 @@ import type { UIModule } from "@/entities/agent/model";
 const LEFT_MODULE_LABEL_MAP: Record<Exclude<UIModule, "chat" | "settings">, string> = {
   history: "Chat History",
   knowledgebase: "Knowledge Base",
-  document: "Document View",
+  document: "Canvas",
 };
 
 export function getSidebarRoutes(): RouteItem[] {

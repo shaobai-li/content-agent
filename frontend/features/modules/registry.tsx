@@ -1,8 +1,8 @@
 import { HistoryHeader } from "../history/HistoryHeader";
 import { HistoryPanel } from "../history/HistoryPanel";
 
-import { DocumentHeader } from "../document/DocumentHeader";
-import { DocumentPanel } from "../document/DocumentPanel";
+import { CanvasHeader } from "../canvas/CanvasHeader";
+import { CanvasPanel } from "../canvas/CanvasPanel";
 
 import { KnowledgeBaseHeader } from "../knowledge-base/KnowledgeBaseHeader";
 import { KnowledgeBasePanel } from "../knowledge-base/KnowledgeBasePanel";
@@ -27,8 +27,8 @@ export const uiModuleRegistry: Record<
   }),
 
   document: (agentId) => ({
-    header: <DocumentHeader />,
-    body: <DocumentPanel agentId={agentId} />,
+    header: <CanvasHeader />,
+    body: <CanvasPanel agentId={agentId} />,
   }),
 
   knowledgebase: (agentId) => ({
