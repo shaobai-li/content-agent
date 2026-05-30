@@ -43,14 +43,6 @@ class ToolExecEnd:
 
 
 @dataclass
-class CanvasCardEvent:
-    """Agent 输出渲染到 Canvas 的卡片事件。"""
-    content: str
-    card_type: str = "html"
-    title: str = ""
-
-
-@dataclass
 class StreamSentinel:
     """Signals end of stream (sentinel, not serialised)."""
     pass
