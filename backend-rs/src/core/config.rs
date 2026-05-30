@@ -18,6 +18,7 @@ pub struct AgentLayout {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
     pub name: Option<String>,
+    pub pinned: Option<bool>,
     pub base_dir: Option<String>,
     pub sessions_file: Option<String>,
     pub messages_file: Option<String>,
