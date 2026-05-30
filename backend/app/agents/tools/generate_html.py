@@ -1,6 +1,7 @@
 """Tool: 调用大模型生成独立 HTML 页面。"""
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from app.agents.tools.base import Tool
@@ -16,6 +17,14 @@ GENERATE_HTML_SYSTEM_PROMPT = """你是一个 HTML 生成专家。根据用户�
 - **仅输出纯 HTML 代码，不要用 ```html 或任何 markdown 代码块包裹，不要加额外解释**"""
 
 
+def strip_markdown_code_block(content: str) -> str:
+    """移除 LLM 输出中可能包裹的 markdown 代码块标记。
+
+    处理 `` ```html\\n...\\n````, `` ```\\n...\\n```` 等常见格式。
+    """
+    return re.sub(r'^```.*?\n|```$', '', content.strip()).strip()
+
+
 class GenerateHTMLTool(Tool):
     """根据用户描述生成独立 HTML 页面（含 CSS/JS）。"""
 
@@ -29,7 +38,7 @@ class GenerateHTMLTool(Tool):
 
     @property
     def description(self) -> str:
-        return "生成一个完整的独立 HTML 页面（含内联 CSS/JS），并在 Canvas 面板中以可视化卡片展示。结果会自动在 Canvas 中以缩略图呈现，支持展开为全尺寸交互视图。用户要求「生成/创建一个HTML页面」「展示可视化效果」「做个网页」等场景请使用此工具，而非 write_file。"
+        return "生成独立 HTML 页面并在 Canvas 面板中以可视化卡片展示。用于「生成HTML」「做网页」「可视化看板」等场景，勿用 write_file 替代。"
 
     @property
     def parameters(self) -> dict[str, Any]:
@@ -77,14 +86,4 @@ class GenerateHTMLTool(Tool):
         )
         if response.finish_reason == "error":
             return f"Error: HTML generation failed - {response.content}"
-        content = response.content or ""
-        # 安全移除可能的 markdown 代码块包裹
-        content = content.strip()
-        if content.startswith("```"):
-            # 去掉开头的 ```html、``` 等
-            first_newline = content.find("\n")
-            if first_newline != -1:
-                content = content[first_newline + 1:]
-            if content.endswith("```"):
-                content = content[:-3].strip()
-        return content
+        return strip_markdown_code_block(response.content or "")
