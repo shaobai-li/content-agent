@@ -259,7 +259,7 @@
   align-items: center;
   justify-content: center;
   padding: 40px;
-  animation: fadeIn 0.2s ease;
+  animation: canvas-fadeIn 0.2s ease;
 }
 
 .canvas-expanded-container {
@@ -271,7 +271,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: scaleIn 0.2s ease;
+  animation: canvas-scaleIn 0.2s ease;
 }
 
 .canvas-expanded-header {
@@ -312,12 +312,12 @@
   border: none;
 }
 
-@keyframes fadeIn {
+@keyframes canvas-fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes scaleIn {
+@keyframes canvas-scaleIn {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
