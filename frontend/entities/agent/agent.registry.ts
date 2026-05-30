@@ -3,7 +3,7 @@ import { http } from "@/shared/api/http";
 
 const DEFAULT_LAYOUT = {
   left: ["history", "knowledgebase", "document"] as Agent["layout"]["left"],
-  defaultLeft: "knowledgebase" as Agent["layout"]["defaultLeft"],
+  defaultLeft: "document" as Agent["layout"]["defaultLeft"],
   right: ["chat"] as Agent["layout"]["right"],
   defaultRight: "chat" as Agent["layout"]["defaultRight"],
 };
