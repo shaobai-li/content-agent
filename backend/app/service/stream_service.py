@@ -37,6 +37,13 @@ def build_tool_exec_end(call_id: str) -> str:
     return f"event: tool_exec_end\ndata: {json.dumps({'call_id': call_id})}\n\n"
 
 
+def build_canvas_card(content: str, card_type: str = "html", title: str = "") -> str:
+    return (
+        f"event: canvas_card\n"
+        f"data: {json.dumps({'content': content, 'type': card_type, 'title': title})}\n\n"
+    )
+
+
 async def aggregate_stream_to_chat_response(
     stream: AsyncGenerator[str, None],
 ) -> Dict[str, Any]:

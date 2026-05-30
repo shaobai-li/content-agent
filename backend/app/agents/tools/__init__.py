@@ -6,6 +6,7 @@ from typing import Any
 
 from app.agents.tools.base import Schema, Tool, tool_parameters
 from app.agents.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
+from app.agents.tools.generate_html import GenerateHTMLTool
 from app.agents.tools.registry import ToolRegistry
 from app.agents.tools.schema import (
     ArraySchema,
@@ -40,6 +41,7 @@ __all__ = [
     "WebSearchTool",
     "WebFetchTool",
     "InvokeSkillTool",
+    "GenerateHTMLTool",
     "create_tool_registry",
 ]
 
@@ -59,4 +61,5 @@ def create_tool_registry(workspace: Path, agent_id: str) -> ToolRegistry:
     registry.register(WebSearchTool())
     registry.register(WebFetchTool())
     registry.register(InvokeSkillTool(agent_id))
+    registry.register(GenerateHTMLTool())
     return registry

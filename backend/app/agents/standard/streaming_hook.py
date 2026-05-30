@@ -43,6 +43,14 @@ class ToolExecEnd:
 
 
 @dataclass
+class CanvasCardEvent:
+    """Agent 输出渲染到 Canvas 的卡片事件。"""
+    content: str
+    card_type: str = "html"
+    title: str = ""
+
+
+@dataclass
 class StreamSentinel:
     """Signals end of stream (sentinel, not serialised)."""
     pass
@@ -89,3 +97,16 @@ class StreamingHook(AgentHook):
                         content=content[i:i + _STEP],
                     ))
             await self._queue.put(ToolExecEnd(call_id=tc.id))
+
+    async def send_canvas_card(
+        self,
+        content: str,
+        card_type: str = "html",
+        title: str = "",
+    ) -> None:
+        """发送卡片到 Canvas。"""
+        await self._queue.put(CanvasCardEvent(
+            content=content,
+            card_type=card_type,
+            title=title,
+        ))
