@@ -292,7 +292,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
                   agentId,
                   content: event.data.content,
                   cardType: event.data.type || "html",
-                  title: (event.data as any).title || "",
+                  title: event.data.title ?? "",
                 },
               })
             );
