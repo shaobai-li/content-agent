@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/lib/cn";
 import Image from "next/image";
-import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, LogOut, SlidersHorizontal, User, Info } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
@@ -65,7 +65,7 @@ function saveOrder(order: string[]): void {
 export interface MenuItem {
   label: string;
   href?: string;
-  icon?: "history" | "knowledgebase" | "document" | "settings";
+  icon?: "history" | "knowledgebase" | "document" | "settings" | "management";
   onClick?: () => void;
 }
 
@@ -225,6 +225,7 @@ export function Sidebar({ routes }: SidebarProps) {
                             knowledgebase: BookOpen,
                             document: FileText,
                             settings: Settings,
+                            management: Wrench,
                           };
                           const Icon = item.icon ? IconMap[item.icon] : null;
                           return (
