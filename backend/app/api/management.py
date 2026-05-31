@@ -5,17 +5,11 @@ from loguru import logger
 
 from app.core.config import AGENTS_CONFIG
 from app.core.auth import _user_agents_var
+from app.providers.factory import _default_model_for
 from app.service.sessions_service import load_sessions
 from app.service.messages_service import load_messages
 
 router = APIRouter(prefix="/api/management", tags=["management"])
-
-# 供应商 → 默认模型映射，与 app.providers.factory._default_model_for 保持同步
-_DEFAULT_MODELS: dict[str, str] = {
-    "deepseek": "deepseek-chat",
-    "openai": "gpt-4o",
-    "moonshot": "kimi-k2.5",
-}
 
 
 def _resolve_model(cfg: dict) -> str:
@@ -23,14 +17,14 @@ def _resolve_model(cfg: dict) -> str:
 
     优先级：
       1. cfg.model（YAML 中显式指定）
-      2. cfg.provider → 已知映射
+      2. cfg.provider → factory 默认映射
       3. 兜底 "deepseek-chat"
     """
     explicit = cfg.get("model")
     if explicit:
         return explicit
     provider = cfg.get("provider", "deepseek")
-    return _DEFAULT_MODELS.get(provider, f"{provider}-chat")
+    return _default_model_for(provider)
 
 
 def _build_agent_summary(agent_id: str, cfg: dict) -> dict:
