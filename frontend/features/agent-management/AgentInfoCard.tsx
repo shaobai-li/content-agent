@@ -16,7 +16,6 @@ export interface AgentInfoCardProps {
   sessionCount: number;
   lastReplyTime: string | null;
   lastSessionTitle: string | null;
-  onVisibilityChange?: () => void;
 }
 
 /** 格式化 ISO 时间为相对时间（"2m ago" / "3h ago" / "5d ago"） */
@@ -47,7 +46,6 @@ export function AgentInfoCard({
   sessionCount,
   lastReplyTime,
   lastSessionTitle,
-  onVisibilityChange,
 }: AgentInfoCardProps) {
   const statusLabel = visible ? "Active" : "Hidden";
   const statusStyle = visible
@@ -64,7 +62,6 @@ export function AgentInfoCard({
     } else {
       showAgent(agentId);
     }
-    onVisibilityChange?.();
   };
 
   return (
@@ -103,10 +100,7 @@ export function AgentInfoCard({
 
         {/* ── Zone 4: Token + Dropdown Menu ── */}
         <div className="inline-flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
-          <span>
-            <span className="font-medium text-foreground">1.2M</span>{" "}
-            <span>总Token</span>
-          </span>
+          <span>Token</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
