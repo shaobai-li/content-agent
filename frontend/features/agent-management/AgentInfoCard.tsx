@@ -1,4 +1,4 @@
-import { BadgeCheck, Bot, Ellipsis, MessageSquare, Timer } from "lucide-react";
+import { BadgeCheck, Bot, Ellipsis, EyeOff, MessageSquare, Settings, Timer } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
 import {
   DropdownMenu,
@@ -118,10 +118,17 @@ export function AgentInfoCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={4}>
               <DropdownMenuItem onClick={handleToggleVisibility}>
-                {visible ? "隐藏" : "显示"}
+                <span className="flex items-center gap-2 cursor-pointer">
+                  <EyeOff className="size-4" />
+                  {visible ? "Hide" : "Show"}
+                </span>
               </DropdownMenuItem>
+              <div className="h-px bg-border mx-1 my-1" />
               <DropdownMenuItem onClick={() => {}}>
-                配置
+                <span className="flex items-center gap-2 cursor-pointer">
+                  <Settings className="size-4" />
+                  Configure
+                </span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
