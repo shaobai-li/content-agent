@@ -80,6 +80,7 @@ export default function AgentPage() {
     <AgentPageLayout
       agentId={agentId}
       autoExpand={autoExpand}
+      leftParam={leftParam}
       leftHeader={leftHeader}
       leftBody={leftBody}
       rightBody={<ChatPage agentId={agentId} />}

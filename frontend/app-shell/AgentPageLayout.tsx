@@ -9,6 +9,7 @@ interface AgentPageLayoutProps {
     leftBody?: ReactNode;
     rightBody: ReactNode;
     autoExpand?: boolean;
+    leftParam?: string | null;
 }
 
 interface LayoutInnerProps {
@@ -16,27 +17,28 @@ interface LayoutInnerProps {
     leftBody?: ReactNode;
     rightBody: ReactNode;
     autoExpand?: boolean;
+    leftParam?: string | null;
 }
 
-export function AgentPageLayout({ agentId, leftHeader, leftBody, rightBody, autoExpand }: AgentPageLayoutProps) {
+export function AgentPageLayout({ agentId, leftHeader, leftBody, rightBody, autoExpand, leftParam }: AgentPageLayoutProps) {
     return (
         <DocumentCollapseProvider agentId={agentId} defaultCollapsed={!autoExpand}>
-            <AgentPageLayoutInner leftHeader={leftHeader} leftBody={leftBody} rightBody={rightBody} autoExpand={autoExpand} />
+            <AgentPageLayoutInner leftHeader={leftHeader} leftBody={leftBody} rightBody={rightBody} autoExpand={autoExpand} leftParam={leftParam} />
         </DocumentCollapseProvider>
     );
 }
 
-function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand }: LayoutInnerProps) {
+function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, leftParam }: LayoutInnerProps) {
     const { isCollapsed, setCollapsed } = useDocumentCollapse();
-    const prevAutoExpand = useRef(autoExpand);
+    const prevLeftParam = useRef(leftParam);
 
-    // 当 autoExpand 从 false 变为 true 时（三点菜单点击触发的同页面导航），自动展开左侧面板
+    // 三点菜单切换模块（leftParam 值变化）时，若面板折叠则自动展开
     useEffect(() => {
-        if (autoExpand && !prevAutoExpand.current && isCollapsed) {
+        if (autoExpand && leftParam !== prevLeftParam.current && isCollapsed) {
             setCollapsed(false);
         }
-        prevAutoExpand.current = autoExpand;
-    }, [autoExpand, isCollapsed, setCollapsed]);
+        prevLeftParam.current = leftParam;
+    }, [autoExpand, leftParam, isCollapsed, setCollapsed]);
 
     return (
         <div
