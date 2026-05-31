@@ -23,6 +23,13 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
 
   const refreshHiddenIds = () => setHiddenIds(getHiddenAgentIds());
 
+  // 监听来自其他组件（如 Sidebar）的 visibility 变更
+  useEffect(() => {
+    const handler = () => setHiddenIds(getHiddenAgentIds());
+    window.addEventListener("agent-visibility-changed", handler);
+    return () => window.removeEventListener("agent-visibility-changed", handler);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
