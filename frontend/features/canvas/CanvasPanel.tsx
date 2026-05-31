@@ -275,6 +275,17 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
     }
   }, []);
 
+  // 删除卡片
+  const handleDeleteCard = useCallback((cardId: string) => {
+    setCards((prev) => {
+      const filtered = prev.filter((c) => c.id !== cardId);
+      // 重新编号：按原 stepNumber 排序后从 1 开始
+      return filtered
+        .sort((a, b) => a.stepNumber - b.stepNumber)
+        .map((card, idx) => ({ ...card, stepNumber: idx + 1 }));
+    });
+  }, []);
+
   const zoomIn = () => setZoom((prev) => Math.min(400, prev + 10));
   const zoomOut = () => setZoom((prev) => Math.max(25, prev - 10));
   const zoomToFit = () => {
@@ -319,8 +330,20 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
             }}
           >
             <div className="canvas-card-header">
-              <span>{card.stepNumber === 0 ? "Demo" : `Step ${card.stepNumber}`}</span>
-              <span>{card.timestamp.toLocaleTimeString()}</span>
+              <span className="canvas-card-header-left">
+                <span>{card.stepNumber === 0 ? "Demo" : `Step ${card.stepNumber}`}</span>
+                {card.title && <span className="canvas-card-title">· {card.title}</span>}
+              </span>
+              <span className="canvas-card-header-right">
+                <span>{card.timestamp.toLocaleTimeString()}</span>
+                <button
+                  className="canvas-card-close-btn"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteCard(card.id); }}
+                  title="删除此卡片"
+                >
+                  ✕
+                </button>
+              </span>
             </div>
             <div className="canvas-card-content">
               {card.type === "html" ? (
