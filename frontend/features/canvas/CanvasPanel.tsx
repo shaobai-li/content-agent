@@ -25,48 +25,14 @@ const CANVAS_CENTER_X = 80;
 const CANVAS_CENTER_Y = 60;
 const CARD_GAP_Y = 20;
 
-const SHAKESPEARE_SONNET = `# Sonnet 18
-
-### *William Shakespeare*
-
-> Shall I compare thee to a summer's day?\
-> Thou art more lovely and more temperate:\
-> Rough winds do shake the darling buds of May,\
-> And summer's lease hath all too short a date;
-
-> Sometime too hot the eye of heaven shines,\
-> And often is his gold complexion dimm'd;\
-> And every fair from fair sometime declines,\
-> By chance or nature's changing course untrimm'd;
-
-> But thy eternal summer shall not fade,\
-> Nor lose possession of that fair thou ow'st;\
-> Nor shall death brag thou wander'st in his shade,\
-> When in eternal lines to time thou grow'st:
-
-**So long as men can breathe or eyes can see,\
-So long lives this, and this gives life to thee.**`;
-
-function createDefaultCard(): CanvasCard {
-  return {
-    id: "default-demo",
-    stepNumber: 0,
-    content: SHAKESPEARE_SONNET,
-    timestamp: new Date(),
-    position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y },
-    type: "markdown",
-    title: "",
-  };
-}
-
 function loadCards(agentId: string): CanvasCard[] {
-  if (typeof window === "undefined") return [createDefaultCard()];
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${agentId}`);
-    if (!raw) return [createDefaultCard()];
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      return [createDefaultCard()];
+      return [];
     }
     return parsed.map((c: Record<string, unknown>): CanvasCard => ({
       id: c.id as string,
@@ -78,7 +44,7 @@ function loadCards(agentId: string): CanvasCard[] {
       title: (c.title as string) || "",
     }));
   } catch {
-    return [createDefaultCard()];
+    return [];
   }
 }
 
@@ -131,38 +97,18 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
       if (eventAgentId !== agentId) return;
       if (!article) return;
 
-      const currentCards = cardsRef.current;
-      const hasDefaultCard = currentCards.length === 1 && currentCards[0].id === "default-demo";
-
-      if (hasDefaultCard) {
-        // Replace default card with first real article
-        const newCard: CanvasCard = {
-          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          stepNumber: 1,
-          content: article,
-          timestamp: new Date(),
-          position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y },
-          type: "markdown",
-          title: extractTitle(article),
-        };
-        setCards([newCard]);
-      } else {
-        const stepNumber = cardCountRef.current + 1;
-        const yOffset = (stepNumber - 1) * CARD_GAP_Y;
-        const newCard: CanvasCard = {
-          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          stepNumber,
-          content: article,
-          timestamp: new Date(),
-          position: {
-            x: CANVAS_CENTER_X,
-            y: CANVAS_CENTER_Y + yOffset,
-          },
-          type: "markdown",
-          title: extractTitle(article),
-        };
-        setCards((prev) => [...prev, newCard]);
-      }
+      const stepNumber = cardCountRef.current + 1;
+      const yOffset = (stepNumber - 1) * CARD_GAP_Y;
+      const newCard: CanvasCard = {
+        id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        stepNumber,
+        content: article,
+        timestamp: new Date(),
+        position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y + yOffset },
+        type: "markdown",
+        title: extractTitle(article),
+      };
+      setCards((prev) => [...prev, newCard]);
     };
 
     window.addEventListener("article-update", handleArticleUpdate);
@@ -176,34 +122,18 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
       if (eventAgentId !== agentId) return;
       if (!content) return;
 
-      const currentCards = cardsRef.current;
-      const hasDefaultCard = currentCards.length === 1 && currentCards[0].id === "default-demo";
-
-      if (hasDefaultCard) {
-        const newCard: CanvasCard = {
-          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          stepNumber: 1,
-          content,
-          timestamp: new Date(),
-          position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y },
-          type: cardType || "html",
-          title: title || "HTML",
-        };
-        setCards([newCard]);
-      } else {
-        const stepNumber = cardCountRef.current + 1;
-        const yOffset = (stepNumber - 1) * CARD_GAP_Y;
-        const newCard: CanvasCard = {
-          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          stepNumber,
-          content,
-          timestamp: new Date(),
-          position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y + yOffset },
-          type: cardType || "html",
-          title: title || "HTML",
-        };
-        setCards((prev) => [...prev, newCard]);
-      }
+      const stepNumber = cardCountRef.current + 1;
+      const yOffset = (stepNumber - 1) * CARD_GAP_Y;
+      const newCard: CanvasCard = {
+        id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        stepNumber,
+        content,
+        timestamp: new Date(),
+        position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y + yOffset },
+        type: cardType || "html",
+        title: title || "HTML",
+      };
+      setCards((prev) => [...prev, newCard]);
     };
 
     window.addEventListener("canvas-card", handleCanvasCard);
@@ -340,7 +270,7 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
           >
             <div className="canvas-card-header">
               <span className="canvas-card-header-left">
-                <span>{card.stepNumber === 0 ? "Demo" : `Step ${card.stepNumber}`}</span>
+                <span>{`Step ${card.stepNumber}`}</span>
                 {card.title && <span className="canvas-card-title">· {card.title}</span>}
               </span>
               <span className="canvas-card-header-right">
