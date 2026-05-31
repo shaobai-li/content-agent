@@ -40,6 +40,7 @@ import app.agents.write_agent
 from app.api.agents import router as agents_router, list_router as agents_list_router
 from app.api.agent_config import router as agent_config_router
 from app.api.settings import router as settings_router
+from app.api.management import router as management_router
 from app.core.auth import require_user_id
 from app.core.config import AGENTS_CONFIG
 from app.runtime.agent_registry import AGENT_CONFIG_REGISTRY, register_agent
@@ -100,6 +101,7 @@ app.include_router(agents_list_router, dependencies=[Depends(require_user_id)])
 app.include_router(agents_router, dependencies=[Depends(require_user_id)])
 app.include_router(agent_config_router, dependencies=[Depends(require_user_id)])
 app.include_router(settings_router, dependencies=[Depends(require_user_id)])
+app.include_router(management_router, dependencies=[Depends(require_user_id)])
 
 
 @app.on_event("startup")
