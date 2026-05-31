@@ -60,7 +60,7 @@ function saveCards(agentId: string, cards: CanvasCard[]) {
 function extractTitle(content: string): string {
   // 优先匹配第一个 # 标题
   const headingMatch = content.match(/^#\s+(.+)$/m);
-  if (headingMatch) return headingMatch[1].trim();
+  if (headingMatch) return headingMatch[1].trim().slice(0, TITLE_MAX_LENGTH);
   // 回退到第一行非空文字
   const firstLine = content.split('\n').find(line => line.trim().length > 0);
   return firstLine?.trim().slice(0, TITLE_MAX_LENGTH) || '';
