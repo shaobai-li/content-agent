@@ -2,7 +2,6 @@
 // 用户手动覆盖层：在 localStorage 中记录用户主动隐藏的 agent
 
 const STORAGE_KEY = "agent-visibility-overrides";
-const VISIBILITY_CHANGE_EVENT = "agent-visibility-changed";
 
 interface VisibilityOverrides {
   hidden: string[]; // 用户主动隐藏的 agent id
@@ -46,9 +45,6 @@ export function hideAgent(agentId: string): void {
   if (!overrides.hidden.includes(agentId)) {
     overrides.hidden.push(agentId);
     saveOverrides(overrides);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent(VISIBILITY_CHANGE_EVENT));
-    }
   }
 }
 
@@ -57,9 +53,6 @@ export function showAgent(agentId: string): void {
   const overrides = loadOverrides();
   overrides.hidden = overrides.hidden.filter((id) => id !== agentId);
   saveOverrides(overrides);
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent(VISIBILITY_CHANGE_EVENT));
-  }
 }
 
 /** 获取所有被用户隐藏的 agent id */
