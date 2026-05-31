@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import { DocumentCollapseProvider, useDocumentCollapse } from "./DocumentCollapseContext";
 
 interface AgentPageLayoutProps {
@@ -8,24 +8,35 @@ interface AgentPageLayoutProps {
     leftHeader?: ReactNode;
     leftBody?: ReactNode;
     rightBody: ReactNode;
+    autoExpand?: boolean;
 }
 
 interface LayoutInnerProps {
     leftHeader?: ReactNode;
     leftBody?: ReactNode;
     rightBody: ReactNode;
+    autoExpand?: boolean;
 }
 
-export function AgentPageLayout({ agentId, leftHeader, leftBody, rightBody }: AgentPageLayoutProps) {
+export function AgentPageLayout({ agentId, leftHeader, leftBody, rightBody, autoExpand }: AgentPageLayoutProps) {
     return (
-        <DocumentCollapseProvider agentId={agentId}>
-            <AgentPageLayoutInner leftHeader={leftHeader} leftBody={leftBody} rightBody={rightBody} />
+        <DocumentCollapseProvider agentId={agentId} defaultCollapsed={!autoExpand}>
+            <AgentPageLayoutInner leftHeader={leftHeader} leftBody={leftBody} rightBody={rightBody} autoExpand={autoExpand} />
         </DocumentCollapseProvider>
     );
 }
 
-function AgentPageLayoutInner({ leftHeader, leftBody, rightBody }: LayoutInnerProps) {
-    const { isCollapsed } = useDocumentCollapse();
+function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand }: LayoutInnerProps) {
+    const { isCollapsed, setCollapsed } = useDocumentCollapse();
+    const prevAutoExpand = useRef(autoExpand);
+
+    // 当 autoExpand 从 false 变为 true 时（三点菜单点击触发的同页面导航），自动展开左侧面板
+    useEffect(() => {
+        if (autoExpand && !prevAutoExpand.current && isCollapsed) {
+            setCollapsed(false);
+        }
+        prevAutoExpand.current = autoExpand;
+    }, [autoExpand, isCollapsed, setCollapsed]);
 
     return (
         <div

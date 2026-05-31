@@ -73,9 +73,13 @@ export default function AgentPage() {
 
   const { header: leftHeader, body: leftBody } = renderModule(agentId);
 
+  // 三点菜单触发的导航（URL 带 ?left=）时自动展开左侧面板
+  const autoExpand = leftAllowed && !!leftParam;
+
   return (
     <AgentPageLayout
       agentId={agentId}
+      autoExpand={autoExpand}
       leftHeader={leftHeader}
       leftBody={leftBody}
       rightBody={<ChatPage agentId={agentId} />}
