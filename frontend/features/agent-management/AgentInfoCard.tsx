@@ -1,14 +1,22 @@
-import { BadgeCheck, Bot, MessageSquare, Timer } from "lucide-react";
+import { BadgeCheck, Bot, Ellipsis, MessageSquare, Timer } from "lucide-react";
 import { Card, CardContent } from "@/shared/ui/card";
-import { Button } from "@/shared/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
+import { hideAgent, showAgent } from "@/entities/agent/visibility";
 
 export interface AgentInfoCardProps {
+  agentId: string;
   name: string;
   visible: boolean;
   model: string;
   sessionCount: number;
   lastReplyTime: string | null;
   lastSessionTitle: string | null;
+  onVisibilityChange?: () => void;
 }
 
 /** 格式化 ISO 时间为相对时间（"2m ago" / "3h ago" / "5d ago"） */
@@ -32,12 +40,14 @@ function formatRelativeTime(iso: string): string {
 }
 
 export function AgentInfoCard({
+  agentId,
   name,
   visible,
   model,
   sessionCount,
   lastReplyTime,
   lastSessionTitle,
+  onVisibilityChange,
 }: AgentInfoCardProps) {
   const statusLabel = visible ? "Active" : "Hidden";
   const statusStyle = visible
@@ -47,6 +57,15 @@ export function AgentInfoCard({
   const timeDisplay =
     lastReplyTime ? formatRelativeTime(lastReplyTime) : "暂无回复";
   const titleDisplay = lastSessionTitle ?? "暂无会话";
+
+  const handleToggleVisibility = () => {
+    if (visible) {
+      hideAgent(agentId);
+    } else {
+      showAgent(agentId);
+    }
+    onVisibilityChange?.();
+  };
 
   return (
     <Card className="gap-0 border-border bg-card py-3 text-card-foreground shadow-sm">
@@ -82,15 +101,30 @@ export function AgentInfoCard({
           {titleDisplay}
         </div>
 
-        {/* ── Zone 4: Token + Config Button ── */}
+        {/* ── Zone 4: Token + Dropdown Menu ── */}
         <div className="inline-flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
           <span>
             <span className="font-medium text-foreground">1.2M</span>{" "}
             <span>总Token</span>
           </span>
-          <Button variant="outline" size="sm" onClick={() => {}}>
-            配置
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex size-6 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Ellipsis className="size-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={4}>
+              <DropdownMenuItem onClick={handleToggleVisibility}>
+                {visible ? "隐藏" : "显示"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {}}>
+                配置
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
