@@ -127,7 +127,7 @@
 }
 
 .canvas-card-title {
-  font-size: 13px;
+  font-size: 12px;
   color: #555;
   max-width: 260px;
   overflow: hidden;
@@ -165,6 +165,25 @@
   color: #1a1a1a;
   overflow-y: auto;
   max-height: calc(100vh - 320px);
+  scrollbar-width: thin;
+}
+
+.canvas-card-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.canvas-card-content::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.canvas-card-content:hover::-webkit-scrollbar-thumb,
+.canvas-card-content:focus-within::-webkit-scrollbar-thumb {
+  background: #ccc;
+}
+
+.canvas-card-content::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
 }
 
 /* Card content - Markdown rendered via react-markdown */

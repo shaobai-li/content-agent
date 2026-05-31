@@ -24,6 +24,7 @@ const STORAGE_KEY_PREFIX = "canvas-cards-";
 const CANVAS_CENTER_X = 80;
 const CANVAS_CENTER_Y = 60;
 const CARD_GAP_Y = 20;
+const TITLE_MAX_LENGTH = 60;
 
 function loadCards(agentId: string): CanvasCard[] {
   if (typeof window === "undefined") return [];
@@ -62,7 +63,7 @@ function extractTitle(content: string): string {
   if (headingMatch) return headingMatch[1].trim();
   // 回退到第一行非空文字
   const firstLine = content.split('\n').find(line => line.trim().length > 0);
-  return firstLine?.trim().slice(0, 60) || '';
+  return firstLine?.trim().slice(0, TITLE_MAX_LENGTH) || '';
 }
 
 export function CanvasPanel({ agentId }: CanvasPanelProps) {
