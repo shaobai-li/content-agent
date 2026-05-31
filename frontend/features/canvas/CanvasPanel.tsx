@@ -90,6 +90,15 @@ function saveCards(agentId: string, cards: CanvasCard[]) {
   }
 }
 
+function extractTitle(content: string): string {
+  // 优先匹配第一个 # 标题
+  const headingMatch = content.match(/^#\s+(.+)$/m);
+  if (headingMatch) return headingMatch[1].trim();
+  // 回退到第一行非空文字
+  const firstLine = content.split('\n').find(line => line.trim().length > 0);
+  return firstLine?.trim().slice(0, 60) || '';
+}
+
 export function CanvasPanel({ agentId }: CanvasPanelProps) {
   const [cards, setCards] = useState<CanvasCard[]>(() => loadCards(agentId));
   const [zoom, setZoom] = useState(100);
@@ -134,7 +143,7 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
           timestamp: new Date(),
           position: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y },
           type: "markdown",
-          title: "",
+          title: extractTitle(article),
         };
         setCards([newCard]);
       } else {
@@ -150,7 +159,7 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
             y: CANVAS_CENTER_Y + yOffset,
           },
           type: "markdown",
-          title: "",
+          title: extractTitle(article),
         };
         setCards((prev) => [...prev, newCard]);
       }
