@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AgentInfoCard, type AgentInfoCardProps } from "./AgentInfoCard";
+import { AgentInfoCard } from "./AgentInfoCard";
 import {
   fetchAgentsSummary,
   type AgentSummary,
@@ -20,6 +20,8 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
   const [hiddenIds, setHiddenIds] = useState<string[]>(() =>
     getHiddenAgentIds(),
   );
+
+  const refreshHiddenIds = () => setHiddenIds(getHiddenAgentIds());
 
   useEffect(() => {
     let cancelled = false;
@@ -70,12 +72,14 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
         {agents.map((agent) => (
           <AgentInfoCard
             key={agent.id}
+            agentId={agent.id}
             name={agent.name}
             visible={!hiddenIds.includes(agent.id)}
             model={agent.model}
             sessionCount={agent.session_count}
             lastReplyTime={agent.last_reply_time}
             lastSessionTitle={agent.last_session_title}
+            onVisibilityChange={refreshHiddenIds}
           />
         ))}
       </div>
