@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { GeneralSettings } from "./GeneralSettings";
 import {
   DndContext,
@@ -118,13 +118,6 @@ export function Sidebar({ routes }: SidebarProps) {
   const handleHide = useCallback((agentId: string) => {
     hideAgent(agentId);
     setHiddenIds(getHiddenAgentIds());
-  }, []);
-
-  // 监听来自其他组件（如 ManagementPanel）的 visibility 变更
-  useEffect(() => {
-    const handler = () => setHiddenIds(getHiddenAgentIds());
-    window.addEventListener("agent-visibility-changed", handler);
-    return () => window.removeEventListener("agent-visibility-changed", handler);
   }, []);
 
   // 过滤隐藏的 agent（locked agent 跳过隐藏过滤）
