@@ -10,6 +10,28 @@ from app.service.messages_service import load_messages
 
 router = APIRouter(prefix="/api/management", tags=["management"])
 
+# 供应商 → 默认模型映射，与 app.providers.factory._default_model_for 保持同步
+_DEFAULT_MODELS: dict[str, str] = {
+    "deepseek": "deepseek-chat",
+    "openai": "gpt-4o",
+    "moonshot": "kimi-k2.5",
+}
+
+
+def _resolve_model(cfg: dict) -> str:
+    """从 agent 配置解析显示用模型名。
+
+    优先级：
+      1. cfg.model（YAML 中显式指定）
+      2. cfg.provider → 已知映射
+      3. 兜底 "deepseek-chat"
+    """
+    explicit = cfg.get("model")
+    if explicit:
+        return explicit
+    provider = cfg.get("provider", "deepseek")
+    return _DEFAULT_MODELS.get(provider, f"{provider}-chat")
+
 
 def _build_agent_summary(agent_id: str, cfg: dict) -> dict:
     """为单个 agent 构建摘要（会话数、最近回复时间、最近会话标题）。"""
@@ -30,7 +52,7 @@ def _build_agent_summary(agent_id: str, cfg: dict) -> dict:
                 last_reply_time = msg.get("created_at")
                 break
 
-    model = "deepseek-chat"  # 后续可从 provider 配置读取
+    model = _resolve_model(cfg)
 
     return {
         "id": agent_id,

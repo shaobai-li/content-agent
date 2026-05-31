@@ -98,3 +98,29 @@ class TestBuildAgentSummary:
 
         assert result["last_session_title"] == "最新会话"
         assert result["last_reply_time"] == "2026-05-01T12:00:00"
+
+    # ── model 解析 ────────────────────────────────────────────────────
+
+    def test_model_default_deepseek_chat(self):
+        """无 provider/model 时兜底 deepseek-chat。"""
+        with patch("app.api.management.load_sessions", return_value=[]):
+            result = _build_agent_summary("std", {"name": "标准"})
+        assert result["model"] == "deepseek-chat"
+
+    def test_model_explicit_from_config(self):
+        """YAML 中显式指定 model 则直接使用。"""
+        with patch("app.api.management.load_sessions", return_value=[]):
+            result = _build_agent_summary("std", {"name": "测试", "model": "gpt-4o"})
+        assert result["model"] == "gpt-4o"
+
+    def test_model_resolved_from_provider(self):
+        """配置 provider=openai → 解析为 gpt-4o。"""
+        with patch("app.api.management.load_sessions", return_value=[]):
+            result = _build_agent_summary("std", {"name": "测试", "provider": "openai"})
+        assert result["model"] == "gpt-4o"
+
+    def test_model_unknown_provider_fallback(self):
+        """未识别的 provider → {provider}-chat 格式。"""
+        with patch("app.api.management.load_sessions", return_value=[]):
+            result = _build_agent_summary("std", {"name": "测试", "provider": "custom-llm"})
+        assert result["model"] == "custom-llm-chat"
