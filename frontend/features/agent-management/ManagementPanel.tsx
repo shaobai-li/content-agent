@@ -21,8 +21,6 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
     getHiddenAgentIds(),
   );
 
-  const refreshHiddenIds = () => setHiddenIds(getHiddenAgentIds());
-
   // 监听来自其他组件（如 Sidebar）的 visibility 变更
   useEffect(() => {
     const handler = () => setHiddenIds(getHiddenAgentIds());
@@ -36,7 +34,7 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
     fetchAgentsSummary()
       .then((data) => {
         if (cancelled) return;
-        setAgents(data.filter((a) => a.id !== "admin"));
+        setAgents(data);
         setLoadingState("loaded");
       })
       .catch(() => {
@@ -86,7 +84,6 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
             sessionCount={agent.session_count}
             lastReplyTime={agent.last_reply_time}
             lastSessionTitle={agent.last_session_title}
-            onVisibilityChange={refreshHiddenIds}
           />
         ))}
       </div>
