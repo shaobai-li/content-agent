@@ -19,7 +19,9 @@
 use serde_json::Value;
 use std::collections::HashMap;
 
-const RUST_BASE: &str = "http://localhost:8001";
+fn rust_base_url() -> String {
+    std::env::var("CONTRACT_TEST_BASE_URL").unwrap_or_else(|_| "http://localhost:8001".to_string())
+}
 const SPEC_PATH: &str = "../../specs/openapi.yaml";
 
 /// 从 YAML 文件加载 OpenAPI 规范。
@@ -134,34 +136,41 @@ fn validate_json_schema_value(schema: &Value, value: &Value) -> Vec<String> {
 // ── 辅助函数 ───────────────────────────────────────────────────────
 
 /// 对 JSON 端点发起 GET 请求并校验 200 + schema。
-async fn test_get_json(path: &str) {
+/// `spec_path` 是 OpenAPI 规范中的模板路径，`url_path` 是实际请求的 URL 路径。
+async fn test_get_json_with_spec(url_path: &str, spec_path: &str) {
     let spec = load_openapi_spec();
 
-    if !is_ported(&spec, path, "get") {
-        eprintln!("SKIP: GET {} (x-status != ported)", path);
+    if !is_ported(&spec, spec_path, "get") {
+        eprintln!("SKIP: GET {} (x-status != ported)", spec_path);
         return;
     }
-    if is_sse(&spec, path, "get") {
-        eprintln!("SKIP: GET {} is SSE endpoint, use test_sse instead", path);
+    if is_sse(&spec, spec_path, "get") {
+        eprintln!("SKIP: GET {} is SSE endpoint, use test_sse instead", spec_path);
         return;
     }
 
-    let url = format!("{}{}", RUST_BASE, path);
-    let resp = reqwest::get(&url).await.expect(&format!("GET {} 请求失败", path));
-    assert_eq!(resp.status(), 200, "GET {} 应返回 200，实际返回 {}", path, resp.status());
+    let url = format!("{}{}", rust_base_url(), url_path);
+    let resp = reqwest::get(&url).await.expect(&format!("GET {} 请求失败", url_path));
+    assert_eq!(resp.status(), 200, "GET {} 应返回 200，实际返回 {}", url_path, resp.status());
 
     let body: Value = resp.json().await.expect("响应体应为有效 JSON");
-    let schema = get_response_schema(&spec, path, "get", 200)
-        .expect(&format!("规范中应定义 GET {} 的 200 响应 schema", path));
+    let schema = get_response_schema(&spec, spec_path, "get", 200)
+        .expect(&format!("规范中应定义 GET {} 的 200 响应 schema", spec_path));
 
     let errors = validate_against_schema(&body, schema);
     if !errors.is_empty() {
-        eprintln!("GET {} 响应不符合规范:", path);
+        eprintln!("GET {} 响应不符合规范:", spec_path);
         for e in &errors {
             eprintln!("  - {}", e);
         }
     }
-    assert!(errors.is_empty(), "GET {} schema 校验失败", path);
+    assert!(errors.is_empty(), "GET {} schema 校验失败", spec_path);
+}
+
+/// 对无路径参数的 JSON 端点发起 GET 请求。
+/// url_path 同时作为 HTTP 请求路径和 spec 模板路径。
+async fn test_get_json(path: &str) {
+    test_get_json_with_spec(path, path).await;
 }
 
 /// 对 SSE 端点发起 POST 请求并校验 200 + Content-Type。
@@ -182,7 +191,7 @@ async fn test_sse_post(path: &str, form_data: Vec<(&str, &str)>) {
         form = form.text(key.to_string(), value.to_string());
     }
 
-    let url = format!("{}{}", RUST_BASE, path);
+    let url = format!("{}{}", rust_base_url(), path);
     let resp = client
         .post(&url)
         .multipart(form)
@@ -220,10 +229,11 @@ async fn test_get_agents() {
 
 #[tokio::test]
 async fn test_get_sessions() {
-    let path = resolve_path("/api/agents/{agent_id}/sessions", &HashMap::from([
+    let spec_path = "/api/agents/{agent_id}/sessions";
+    let url_path = resolve_path(spec_path, &HashMap::from([
         ("agent_id", "std"),
     ]));
-    test_get_json(&path).await;
+    test_get_json_with_spec(&url_path, spec_path).await;
 }
 
 #[tokio::test]
@@ -233,7 +243,7 @@ async fn test_delete_session() {
         ("agent_id", "std"),
         ("session_id", "nonexistent-session"),
     ]));
-    let url = format!("{}{}", RUST_BASE, path);
+    let url = format!("{}{}", rust_base_url(), path);
     let client = reqwest::Client::new();
     let resp = client
         .delete(&url)
@@ -251,20 +261,19 @@ async fn test_delete_session() {
 
 #[tokio::test]
 async fn test_get_messages() {
-    let path = resolve_path(
-        "/api/agents/{agent_id}/sessions/{session_id}/messages",
+    let spec_path = "/api/agents/{agent_id}/sessions/{session_id}/messages";
+    let url_path = resolve_path(
+        spec_path,
         &HashMap::from([("agent_id", "std"), ("session_id", "nonexistent-session")]),
     );
-    test_get_json(&path).await;
+    test_get_json_with_spec(&url_path, spec_path).await;
 }
 
 #[tokio::test]
 async fn test_get_knowledge_bases() {
-    let path = resolve_path(
-        "/api/agents/{agent_id}/knowledge-bases",
-        &HashMap::from([("agent_id", "std")]),
-    );
-    test_get_json(&path).await;
+    let spec_path = "/api/agents/{agent_id}/knowledge-bases";
+    let url_path = resolve_path(spec_path, &HashMap::from([("agent_id", "std")]));
+    test_get_json_with_spec(&url_path, spec_path).await;
 }
 
 #[tokio::test]
@@ -274,7 +283,7 @@ async fn test_create_and_delete_knowledge_base() {
         &HashMap::from([("agent_id", "std")]),
     );
 
-    let url = format!("{}{}", RUST_BASE, path);
+    let url = format!("{}{}", rust_base_url(), path);
     let client = reqwest::Client::new();
 
     // Create
@@ -298,7 +307,7 @@ async fn test_create_and_delete_knowledge_base() {
             "/api/agents/{agent_id}/knowledge-bases/{kb_id}",
             &HashMap::from([("agent_id", "std"), ("kb_id", kb_id)]),
         );
-        let delete_url = format!("{}{}", RUST_BASE, delete_path);
+        let delete_url = format!("{}{}", rust_base_url(), delete_path);
         let resp = client
             .delete(&delete_url)
             .send()
@@ -310,13 +319,27 @@ async fn test_create_and_delete_knowledge_base() {
 
 #[tokio::test]
 async fn test_get_nodes() {
-    let path = resolve_path(
-        "/api/agents/{agent_id}/res/{res_name}",
+    let spec_path = "/api/agents/{agent_id}/res/{res_name}";
+    let resolved = resolve_path(
+        spec_path,
         &HashMap::from([("agent_id", "std"), ("res_name", "nodes")]),
     );
-    let url = format!("{}{}?kb_id=default", RUST_BASE, path);
+    let url = format!("{}{}?kb_id=default", rust_base_url(), resolved);
     let resp = reqwest::get(&url).await.expect("GET nodes 请求失败");
     assert_eq!(resp.status(), 200, "GET nodes 应返回 200");
+
+    let body: Value = resp.json().await.expect("响应体应为有效 JSON");
+    let spec = load_openapi_spec();
+    let schema = get_response_schema(&spec, spec_path, "get", 200)
+        .expect("规范中应定义 GET nodes 的 200 响应 schema");
+    let errors = validate_against_schema(&body, schema);
+    if !errors.is_empty() {
+        eprintln!("GET {} 响应不符合规范:", spec_path);
+        for e in &errors {
+            eprintln!("  - {}", e);
+        }
+    }
+    assert!(errors.is_empty(), "GET nodes schema 校验失败");
 }
 
 #[tokio::test]
@@ -325,7 +348,7 @@ async fn test_upload_file() {
         "/api/agents/{agent_id}/attachments/cache",
         &HashMap::from([("agent_id", "std")]),
     );
-    let url = format!("{}{}", RUST_BASE, path);
+    let url = format!("{}{}", rust_base_url(), path);
 
     let client = reqwest::Client::new();
     let form = reqwest::multipart::Form::new()
