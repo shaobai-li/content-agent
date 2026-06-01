@@ -61,7 +61,7 @@ paths:
       tags: [knowledge-bases]
       parameters:
         - $ref: "../components/parameters.yaml#/AgentId"
-        - $ref: "../components/parameters.yaml#/KbId"
+        - $ref: "../components/parameters.yaml#/KbIdPath"
       responses:
         "200":
           $ref: "../components/responses.yaml#/Success"

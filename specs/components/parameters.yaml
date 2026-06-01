@@ -22,7 +22,15 @@ KbId:
   required: true
   schema:
     type: string
-  description: 知识库 ID
+  description: 知识库 ID（查询参数，用于 resources 等端点）
+
+KbIdPath:
+  name: kb_id
+  in: path
+  required: true
+  schema:
+    type: string
+  description: 知识库 ID（路径参数，用于 DELETE /knowledge-bases/{kb_id}）
 
 ResName:
   name: res_name

@@ -52,7 +52,7 @@ Session:
 
 Message:
   type: object
-  required: [role, content]
+  required: [role]
   properties:
     role:
       type: string
