@@ -22,7 +22,7 @@ interface LayoutInnerProps {
 
 export function AgentPageLayout({ agentId, leftHeader, leftBody, rightBody, autoExpand, leftParam }: AgentPageLayoutProps) {
     return (
-        <DocumentCollapseProvider agentId={agentId} defaultCollapsed={!autoExpand}>
+        <DocumentCollapseProvider key={agentId} defaultCollapsed={!autoExpand}>
             <AgentPageLayoutInner leftHeader={leftHeader} leftBody={leftBody} rightBody={rightBody} autoExpand={autoExpand} leftParam={leftParam} />
         </DocumentCollapseProvider>
     );
@@ -32,11 +32,17 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, lef
     const { isCollapsed, setCollapsed } = useDocumentCollapse();
     const prevLeftParam = useRef(leftParam);
 
-    // 三点菜单切换模块（leftParam 值变化）时，若面板折叠则自动展开
+    // leftParam 变化时，根据 autoExpand 展开或收起左侧面板
+    // 三点菜单导航 → ?left=X  → 展开三视图；取消选择 → 收起为双视图
     useEffect(() => {
-        if (autoExpand && leftParam !== prevLeftParam.current && isCollapsed) {
+        if (leftParam === prevLeftParam.current) return;
+
+        if (autoExpand && isCollapsed) {
             setCollapsed(false);
+        } else if (!autoExpand && !isCollapsed) {
+            setCollapsed(true);
         }
+
         prevLeftParam.current = leftParam;
     }, [autoExpand, leftParam, isCollapsed, setCollapsed]);
 
