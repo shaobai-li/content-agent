@@ -1,0 +1,65 @@
+# ── Shared Parameter Definitions ──────────────────────────────────
+
+AgentId:
+  name: agent_id
+  in: path
+  required: true
+  schema:
+    type: string
+  description: Agent 标识符
+
+SessionId:
+  name: session_id
+  in: path
+  required: true
+  schema:
+    type: string
+  description: 会话 ID
+
+KbId:
+  name: kb_id
+  in: query
+  required: true
+  schema:
+    type: string
+  description: 知识库 ID（查询参数，用于 resources 等端点）
+
+KbIdPath:
+  name: kb_id
+  in: path
+  required: true
+  schema:
+    type: string
+  description: 知识库 ID（路径参数，用于 DELETE /knowledge-bases/{kb_id}）
+
+ResName:
+  name: res_name
+  in: path
+  required: true
+  schema:
+    type: string
+  description: 资源类型名称（如 "nodes"）
+
+NodeId:
+  name: node_id
+  in: path
+  required: true
+  schema:
+    type: string
+  description: 资源节点 ID
+
+Filename:
+  name: filename
+  in: path
+  required: true
+  schema:
+    type: string
+  description: 文件名
+
+SkillId:
+  name: skill_id
+  in: path
+  required: true
+  schema:
+    type: string
+  description: Skill 标识符

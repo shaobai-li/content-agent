@@ -1,0 +1,39 @@
+# /api/agents/{agent_id}/chat/stream
+
+paths:
+  /api/agents/{agent_id}/chat/stream:
+    post:
+      x-status: ported
+      x-sse: true
+      x-rust-path: /api/agents/:agent_id/chat/stream
+      summary: SSE 流式聊天
+      description: |
+        Server-Sent Events 流式端点。验证时仅检查 HTTP 状态码 200 和 Content-Type
+        `text/event-stream`，不校验响应体结构。
+      operationId: chatStream
+      tags: [chat]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: 用户输入文本
+                session_id:
+                  type: string
+                  description: 会话 ID（可选，不提供则新建）
+                history:
+                  type: string
+                  description: JSON 序列化的历史消息数组
+      responses:
+        "200":
+          description: SSE 事件流
+          content:
+            text/event-stream:
+              schema:
+                type: string

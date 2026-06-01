@@ -1,0 +1,42 @@
+# /api/settings
+
+paths:
+  /api/settings/env:
+    get:
+      x-status: not-started
+      x-rust-path: /api/settings/env
+      summary: 获取所有 provider 环境变量（值已脱敏）
+      operationId: getEnvSettings
+      tags: [settings]
+      responses:
+        "200":
+          description: Provider 环境变量列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [providers]
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      $ref: "../components/schemas.yaml#/ProviderEnvEntry"
+
+    put:
+      x-status: not-started
+      x-rust-path: /api/settings/env
+      summary: 更新环境变量（API Keys）
+      operationId: updateEnvSettings
+      tags: [settings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: 键为 env_key，值为 API key（空字符串表示删除）
+              additionalProperties:
+                type: string
+      responses:
+        "200":
+          $ref: "../components/responses.yaml#/Success"
