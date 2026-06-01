@@ -1,0 +1,46 @@
+# ── Shared Response Definitions ───────────────────────────────────
+
+NotFound:
+  description: 资源不存在
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          detail:
+            type: string
+          error:
+            type: string
+
+BadRequest:
+  description: 请求参数错误
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          detail:
+            type: string
+          error:
+            type: string
+
+Conflict:
+  description: 资源冲突（如重复创建）
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          detail:
+            type: string
+
+Success:
+  description: 操作成功
+  content:
+    application/json:
+      schema:
+        type: object
+        required: [ok]
+        properties:
+          ok:
+            type: boolean

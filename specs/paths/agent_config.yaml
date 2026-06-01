@@ -1,0 +1,145 @@
+# /api/agents/{agent_id}/prompts, /skills
+
+paths:
+  /api/agents/{agent_id}/prompts:
+    get:
+      x-status: not-started
+      x-rust-path: /api/agents/:agent_id/prompts
+      summary: 获取 Agent prompts 文件内容
+      operationId: listPrompts
+      tags: [agent-config]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+      responses:
+        "200":
+          description: prompts 文件内容
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/PromptFiles"
+
+  /api/agents/{agent_id}/prompts/{filename}:
+    parameters:
+      - $ref: "../components/parameters.yaml#/AgentId"
+      - $ref: "../components/parameters.yaml#/Filename"
+
+    put:
+      x-status: not-started
+      x-rust-path: /api/agents/:agent_id/prompts/:filename
+      summary: 保存 prompt 文件内容
+      operationId: savePrompt
+      tags: [agent-config]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+      responses:
+        "200":
+          $ref: "../components/responses.yaml#/Success"
+        "400":
+          $ref: "../components/responses.yaml#/BadRequest"
+
+  /api/agents/{agent_id}/skills:
+    get:
+      x-status: not-started
+      x-rust-path: /api/agents/:agent_id/skills
+      summary: 获取 agent skill 列表
+      operationId: listSkills
+      tags: [agent-config]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+      responses:
+        "200":
+          description: Skill 列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [skills]
+                properties:
+                  skills:
+                    type: array
+                    items:
+                      $ref: "../components/schemas.yaml#/SkillEntry"
+
+  /api/agents/{agent_id}/skills/{skill_id}/disable:
+    parameters:
+      - $ref: "../components/parameters.yaml#/AgentId"
+      - $ref: "../components/parameters.yaml#/SkillId"
+
+    put:
+      x-status: not-started
+      x-rust-path: /api/agents/:agent_id/skills/:skill_id/disable
+      summary: 切换 skill 禁用状态
+      operationId: toggleSkillDisable
+      tags: [agent-config]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [disabled]
+              properties:
+                disabled:
+                  type: boolean
+      responses:
+        "200":
+          $ref: "../components/responses.yaml#/Success"
+        "400":
+          $ref: "../components/responses.yaml#/BadRequest"
+
+  /api/agents/{agent_id}/skills/upload:
+    post:
+      x-status: not-started
+      x-rust-path: /api/agents/:agent_id/skills/upload
+      summary: 上传自定义 skill
+      operationId: uploadSkill
+      tags: [agent-config]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [folder_name, files]
+              properties:
+                folder_name:
+                  type: string
+                files:
+                  type: object
+                  additionalProperties:
+                    type: string
+      responses:
+        "200":
+          $ref: "../components/responses.yaml#/Success"
+        "400":
+          $ref: "../components/responses.yaml#/BadRequest"
+        "409":
+          $ref: "../components/responses.yaml#/Conflict"
+
+  /api/agents/{agent_id}/skills/{skill_id}:
+    delete:
+      x-status: not-started
+      x-rust-path: /api/agents/:agent_id/skills/:skill_id
+      summary: 删除用户自定义 skill
+      operationId: deleteSkill
+      tags: [agent-config]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+        - $ref: "../components/parameters.yaml#/SkillId"
+      responses:
+        "200":
+          $ref: "../components/responses.yaml#/Success"
+        "400":
+          $ref: "../components/responses.yaml#/BadRequest"
+        "404":
+          $ref: "../components/responses.yaml#/NotFound"

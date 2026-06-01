@@ -1,0 +1,23 @@
+# /api/management
+
+paths:
+  /api/management/agents-summary:
+    get:
+      x-status: not-started
+      x-rust-path: /api/management/agents-summary
+      summary: 获取所有非 admin 智能体的聚合摘要
+      operationId: getAgentsSummary
+      tags: [management]
+      responses:
+        "200":
+          description: 智能体摘要列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [agents]
+                properties:
+                  agents:
+                    type: array
+                    items:
+                      $ref: "../components/schemas.yaml#/AgentManagementSummary"

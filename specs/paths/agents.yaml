@@ -1,0 +1,23 @@
+# /api/agents
+
+paths:
+  /api/agents:
+    get:
+      x-status: ported
+      x-rust-path: /api/agents
+      summary: 获取所有 Agent 列表
+      operationId: listAgents
+      tags: [agents]
+      responses:
+        "200":
+          description: Agent 列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [agents]
+                properties:
+                  agents:
+                    type: array
+                    items:
+                      $ref: "../components/schemas.yaml#/AgentSummary"

@@ -1,0 +1,34 @@
+# /api/agents/{agent_id}/attachments/cache
+
+paths:
+  /api/agents/{agent_id}/attachments/cache:
+    post:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/attachments/cache
+      summary: 上传文件到 Agent 缓存
+      operationId: uploadAttachment
+      tags: [files]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: 上传成功，返回缓存路径
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [cached_path]
+                properties:
+                  cached_path:
+                    type: string
