@@ -71,8 +71,49 @@ paths:
 
 components:
   schemas:
-    $ref: "components/schemas.yaml"
+    AgentSummary:
+      $ref: "components/schemas.yaml#/AgentSummary"
+    AgentDetail:
+      $ref: "components/schemas.yaml#/AgentDetail"
+    Session:
+      $ref: "components/schemas.yaml#/Session"
+    Message:
+      $ref: "components/schemas.yaml#/Message"
+    Node:
+      $ref: "components/schemas.yaml#/Node"
+    KnowledgeBase:
+      $ref: "components/schemas.yaml#/KnowledgeBase"
+    AgentManagementSummary:
+      $ref: "components/schemas.yaml#/AgentManagementSummary"
+    ProviderEnvEntry:
+      $ref: "components/schemas.yaml#/ProviderEnvEntry"
+    SkillEntry:
+      $ref: "components/schemas.yaml#/SkillEntry"
+    PromptFiles:
+      $ref: "components/schemas.yaml#/PromptFiles"
   parameters:
-    $ref: "components/parameters.yaml"
+    AgentId:
+      $ref: "components/parameters.yaml#/AgentId"
+    SessionId:
+      $ref: "components/parameters.yaml#/SessionId"
+    KbId:
+      $ref: "components/parameters.yaml#/KbId"
+    KbIdPath:
+      $ref: "components/parameters.yaml#/KbIdPath"
+    ResName:
+      $ref: "components/parameters.yaml#/ResName"
+    NodeId:
+      $ref: "components/parameters.yaml#/NodeId"
+    Filename:
+      $ref: "components/parameters.yaml#/Filename"
+    SkillId:
+      $ref: "components/parameters.yaml#/SkillId"
   responses:
-    $ref: "components/responses.yaml"
+    NotFound:
+      $ref: "components/responses.yaml#/NotFound"
+    BadRequest:
+      $ref: "components/responses.yaml#/BadRequest"
+    Conflict:
+      $ref: "components/responses.yaml#/Conflict"
+    Success:
+      $ref: "components/responses.yaml#/Success"

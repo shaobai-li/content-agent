@@ -71,7 +71,9 @@ fn validate_against_schema(value: &Value, schema: &Value) -> Vec<String> {
     validate_json_schema_value(schema, value)
 }
 
-// ── JSON Schema 校验函数（复用 tools/base.rs 的相同逻辑） ───────────
+// ── JSON Schema 校验函数（复用 backend-rs/src/tools/base.rs 的相同逻辑） ─
+// 注意：此处为测试用途独立复制，未直接引用生产代码。若生产侧 validate_json_schema_value
+// 逻辑有变更，请同步更新此副本。
 
 fn json_type_name(value: &Value) -> &'static str {
     match value {
@@ -378,6 +380,87 @@ async fn test_chat_stream() {
     .await;
 }
 
+// ── 新增资源端点的 CRUD 测试，补充覆盖 ──────────────────────────
+
+/// 定义当前文件中已被测试覆盖的端点列表（method + spec_path）。
+/// 新增 ported 端点时，必须在此添加对应条目。
+const COVERED_ENDPOINTS: &[(&str, &str)] = &[
+    ("get", "/api/agents"),
+    ("get", "/api/agents/{agent_id}/sessions"),
+    ("delete", "/api/agents/{agent_id}/sessions/{session_id}"),
+    ("get", "/api/agents/{agent_id}/sessions/{session_id}/messages"),
+    ("get", "/api/agents/{agent_id}/knowledge-bases"),
+    ("post", "/api/agents/{agent_id}/knowledge-bases"),
+    ("delete", "/api/agents/{agent_id}/knowledge-bases/{kb_id}"),
+    ("get", "/api/agents/{agent_id}/res/{res_name}"),
+    ("post", "/api/agents/{agent_id}/res/{res_name}"),
+    ("delete", "/api/agents/{agent_id}/res/{res_name}/{node_id}"),
+    ("put", "/api/agents/{agent_id}/res/{res_name}/{node_id}"),
+    ("post", "/api/agents/{agent_id}/attachments/cache"),
+    ("post", "/api/agents/{agent_id}/chat/stream"),
+];
+
+#[tokio::test]
+async fn test_create_resource() {
+    let path = resolve_path(
+        "/api/agents/{agent_id}/res/{res_name}",
+        &HashMap::from([("agent_id", "std"), ("res_name", "nodes")]),
+    );
+    let url = format!("{}{}?kb_id=default", rust_base_url(), path);
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .post(&url)
+        .json(&serde_json::json!({"name": "contract-test-node"}))
+        .send()
+        .await
+        .expect("POST resource 请求失败");
+    assert_eq!(resp.status(), 200, "POST resource 应返回 200");
+}
+
+#[tokio::test]
+async fn test_delete_resource() {
+    let path = resolve_path(
+        "/api/agents/{agent_id}/res/{res_name}/{node_id}",
+        &HashMap::from([
+            ("agent_id", "std"),
+            ("res_name", "nodes"),
+            ("node_id", "nonexistent-node"),
+        ]),
+    );
+    let url = format!("{}{}?kb_id=default", rust_base_url(), path);
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .delete(&url)
+        .send()
+        .await
+        .expect("DELETE resource 请求失败");
+    assert_eq!(resp.status(), 200, "DELETE resource 应返回 200");
+}
+
+#[tokio::test]
+async fn test_update_resource() {
+    let path = resolve_path(
+        "/api/agents/{agent_id}/res/{res_name}/{node_id}",
+        &HashMap::from([
+            ("agent_id", "std"),
+            ("res_name", "nodes"),
+            ("node_id", "nonexistent-node"),
+        ]),
+    );
+    let url = format!("{}{}?kb_id=default", rust_base_url(), path);
+    let client = reqwest::Client::new();
+
+    let resp = client
+        .put(&url)
+        .json(&serde_json::json!({"name": "renamed-node"}))
+        .send()
+        .await
+        .expect("PUT resource 请求失败");
+    assert_eq!(resp.status(), 200, "PUT resource 应返回 200");
+}
+
 /// 遍历 specs/openapi.yaml 中所有 `x-status: ported` 的端点，
 /// 确保它们都已被测试覆盖。非 ported 端点跳过。
 #[test]
@@ -402,12 +485,44 @@ fn test_all_ported_endpoints_listed() {
         }
     }
 
-    // 这个测试不会自动覆盖所有端点（端口测试需要实际运行），
-    // 但会打印出所有应该被覆盖的 ported 端点列表，
-    // 以便人工检查是否遗漏。
     eprintln!("=== ported 端点（应全部被契约测试覆盖） ===");
     for ep in &ported_endpoints {
         eprintln!("  {}", ep);
     }
     eprintln!("=== 共 {} 个 ported 端点 ===", ported_endpoints.len());
+
+    // ── 断言覆盖完整性 ───────────────────────────────────────────
+    // 将规范中的 ported 端点与 COVERED_ENDPOINTS 对比，发现遗漏则直接报错。
+    let covered_set: std::collections::HashSet<String> = COVERED_ENDPOINTS
+        .iter()
+        .map(|(m, p)| format!("{} {}", m.to_uppercase(), p))
+        .collect();
+    let ported_set: std::collections::HashSet<String> = ported_endpoints.iter().cloned().collect();
+
+    let missing: Vec<&String> = ported_set.difference(&covered_set).collect();
+    let extra: Vec<&String> = covered_set.difference(&ported_set).collect();
+
+    if !missing.is_empty() {
+        eprintln!("\n=== 已标记 ported 但未被契约测试覆盖的端点 ===");
+        for ep in &missing {
+            eprintln!("  ⚠ {}", ep);
+        }
+    }
+    if !extra.is_empty() {
+        eprintln!("\n=== 已在 COVERED_ENDPOINTS 但不在规范 ported 中的端点 ===");
+        for ep in &extra {
+            eprintln!("  ⚠ {}", ep);
+        }
+    }
+
+    assert!(
+        missing.is_empty(),
+        "有 {} 个 ported 端点缺少对应的契约测试，请在 contract_tests.rs 中补充",
+        missing.len()
+    );
+    assert!(
+        extra.is_empty(),
+        "COVERED_ENDPOINTS 中有 {} 个端点不在规范 ported 列表中，请同步更新 COVERED_ENDPOINTS",
+        extra.len()
+    );
 }
