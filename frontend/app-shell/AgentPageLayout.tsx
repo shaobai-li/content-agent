@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import { DocumentCollapseProvider, useDocumentCollapse } from "./DocumentCollapseContext";
 
 interface AgentPageLayoutProps {
@@ -8,24 +8,37 @@ interface AgentPageLayoutProps {
     leftHeader?: ReactNode;
     leftBody?: ReactNode;
     rightBody: ReactNode;
+    autoExpand?: boolean;
+    leftParam?: string | null;
 }
 
 interface LayoutInnerProps {
     leftHeader?: ReactNode;
     leftBody?: ReactNode;
     rightBody: ReactNode;
+    autoExpand?: boolean;
+    leftParam?: string | null;
 }
 
-export function AgentPageLayout({ agentId, leftHeader, leftBody, rightBody }: AgentPageLayoutProps) {
+export function AgentPageLayout({ agentId, leftHeader, leftBody, rightBody, autoExpand, leftParam }: AgentPageLayoutProps) {
     return (
-        <DocumentCollapseProvider agentId={agentId}>
-            <AgentPageLayoutInner leftHeader={leftHeader} leftBody={leftBody} rightBody={rightBody} />
+        <DocumentCollapseProvider agentId={agentId} defaultCollapsed={!autoExpand}>
+            <AgentPageLayoutInner leftHeader={leftHeader} leftBody={leftBody} rightBody={rightBody} autoExpand={autoExpand} leftParam={leftParam} />
         </DocumentCollapseProvider>
     );
 }
 
-function AgentPageLayoutInner({ leftHeader, leftBody, rightBody }: LayoutInnerProps) {
-    const { isCollapsed } = useDocumentCollapse();
+function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, leftParam }: LayoutInnerProps) {
+    const { isCollapsed, setCollapsed } = useDocumentCollapse();
+    const prevLeftParam = useRef(leftParam);
+
+    // 三点菜单切换模块（leftParam 值变化）时，若面板折叠则自动展开
+    useEffect(() => {
+        if (autoExpand && leftParam !== prevLeftParam.current && isCollapsed) {
+            setCollapsed(false);
+        }
+        prevLeftParam.current = leftParam;
+    }, [autoExpand, leftParam, isCollapsed, setCollapsed]);
 
     return (
         <div
