@@ -1,0 +1,78 @@
+openapi: "3.1.0"
+info:
+  title: OmniAge Content Agent API
+  description: |
+    Python (FastAPI) ↔ Rust (Axum) 双端共享 API 契约。
+    该规范是 Python 和 Rust 两个服务对外暴露 API 的行为基准。
+  version: "0.1.0"
+
+servers:
+  - url: http://localhost:8000
+    description: Python (FastAPI) 服务
+  - url: http://localhost:8001
+    description: Rust (Axum) 服务
+
+paths:
+  # ── Agents ────────────────────────────────────────────────────
+  /api/agents:
+    $ref: "paths/agents.yaml#/paths/~1api~1agents"
+
+  # ── Sessions ──────────────────────────────────────────────────
+  /api/agents/{agent_id}/sessions:
+    $ref: "paths/sessions.yaml#/paths/~1api~1agents~1{agent_id}~1sessions"
+  /api/agents/{agent_id}/sessions/{session_id}:
+    $ref: "paths/sessions.yaml#/paths/~1api~1agents~1{agent_id}~1sessions~1{session_id}"
+
+  # ── Messages ──────────────────────────────────────────────────
+  /api/agents/{agent_id}/sessions/{session_id}/messages:
+    $ref: "paths/messages.yaml#/paths/~1api~1agents~1{agent_id}~1sessions~1{session_id}~1messages"
+
+  # ── Knowledge Bases ───────────────────────────────────────────
+  /api/agents/{agent_id}/knowledge-bases:
+    $ref: "paths/knowledge_bases.yaml#/paths/~1api~1agents~1{agent_id}~1knowledge-bases"
+  /api/agents/{agent_id}/knowledge-bases/{kb_id}:
+    $ref: "paths/knowledge_bases.yaml#/paths/~1api~1agents~1{agent_id}~1knowledge-bases~1{kb_id}"
+
+  # ── Resources (nodes) ─────────────────────────────────────────
+  /api/agents/{agent_id}/res/{res_name}:
+    $ref: "paths/resources.yaml#/paths/~1api~1agents~1{agent_id}~1res~1{res_name}"
+  /api/agents/{agent_id}/res/{res_name}/{node_id}:
+    $ref: "paths/resources.yaml#/paths/~1api~1agents~1{agent_id}~1res~1{res_name}~1{node_id}"
+
+  # ── Files ─────────────────────────────────────────────────────
+  /api/agents/{agent_id}/attachments/cache:
+    $ref: "paths/files.yaml#/paths/~1api~1agents~1{agent_id}~1attachments~1cache"
+
+  # ── Chat ──────────────────────────────────────────────────────
+  /api/agents/{agent_id}/chat/stream:
+    $ref: "paths/chat.yaml#/paths/~1api~1agents~1{agent_id}~1chat~1stream"
+
+  # ── Agent Config ──────────────────────────────────────────────
+  /api/agents/{agent_id}/prompts:
+    $ref: "paths/agent_config.yaml#/paths/~1api~1agents~1{agent_id}~1prompts"
+  /api/agents/{agent_id}/prompts/{filename}:
+    $ref: "paths/agent_config.yaml#/paths/~1api~1agents~1{agent_id}~1prompts~1{filename}"
+  /api/agents/{agent_id}/skills:
+    $ref: "paths/agent_config.yaml#/paths/~1api~1agents~1{agent_id}~1skills"
+  /api/agents/{agent_id}/skills/{skill_id}/disable:
+    $ref: "paths/agent_config.yaml#/paths/~1api~1agents~1{agent_id}~1skills~1{skill_id}~1disable"
+  /api/agents/{agent_id}/skills/upload:
+    $ref: "paths/agent_config.yaml#/paths/~1api~1agents~1{agent_id}~1skills~1upload"
+  /api/agents/{agent_id}/skills/{skill_id}:
+    $ref: "paths/agent_config.yaml#/paths/~1api~1agents~1{agent_id}~1skills~1{skill_id}"
+
+  # ── Management ────────────────────────────────────────────────
+  /api/management/agents-summary:
+    $ref: "paths/management.yaml#/paths/~1api~1management~1agents-summary"
+
+  # ── Settings ──────────────────────────────────────────────────
+  /api/settings/env:
+    $ref: "paths/settings.yaml#/paths/~1api~1settings~1env"
+
+components:
+  schemas:
+    $ref: "components/schemas.yaml"
+  parameters:
+    $ref: "components/parameters.yaml"
+  responses:
+    $ref: "components/responses.yaml"

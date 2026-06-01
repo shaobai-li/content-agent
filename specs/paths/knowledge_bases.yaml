@@ -1,0 +1,67 @@
+# /api/agents/{agent_id}/knowledge-bases
+
+paths:
+  /api/agents/{agent_id}/knowledge-bases:
+    get:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/knowledge-bases
+      summary: 获取知识库列表
+      operationId: listKnowledgeBases
+      tags: [knowledge-bases]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+      responses:
+        "200":
+          description: 知识库列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [databases]
+                properties:
+                  databases:
+                    type: array
+                    items:
+                      $ref: "../components/schemas.yaml#/KnowledgeBase"
+
+    post:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/knowledge-bases
+      summary: 创建知识库
+      operationId: createKnowledgeBase
+      tags: [knowledge-bases]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "200":
+          description: 创建的知识库信息
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/KnowledgeBase"
+
+  /api/agents/{agent_id}/knowledge-bases/{kb_id}:
+    delete:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/knowledge-bases/:kb_id
+      summary: 删除知识库
+      operationId: deleteKnowledgeBase
+      tags: [knowledge-bases]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+        - $ref: "../components/parameters.yaml#/KbId"
+      responses:
+        "200":
+          $ref: "../components/responses.yaml#/Success"

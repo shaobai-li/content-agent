@@ -1,0 +1,94 @@
+# /api/agents/{agent_id}/res/{res_name}
+
+paths:
+  /api/agents/{agent_id}/res/{res_name}:
+    parameters:
+      - $ref: "../components/parameters.yaml#/AgentId"
+      - $ref: "../components/parameters.yaml#/ResName"
+      - $ref: "../components/parameters.yaml#/KbId"
+
+    get:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/res/:res_name
+      summary: 获取资源列表（如 nodes）
+      operationId: getResources
+      tags: [resources]
+      responses:
+        "200":
+          description: 资源列表（以 res_name 为 key）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: "../components/schemas.yaml#/Node"
+
+    post:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/res/:res_name
+      summary: 创建资源节点
+      operationId: createResource
+      tags: [resources]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                parent_id:
+                  type: string
+      responses:
+        "200":
+          description: 创建的节点信息
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/Node"
+
+  /api/agents/{agent_id}/res/{res_name}/{node_id}:
+    parameters:
+      - $ref: "../components/parameters.yaml#/AgentId"
+      - $ref: "../components/parameters.yaml#/ResName"
+      - $ref: "../components/parameters.yaml#/NodeId"
+      - $ref: "../components/parameters.yaml#/KbId"
+
+    delete:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/res/:res_name/:node_id
+      summary: 删除资源节点
+      operationId: deleteResource
+      tags: [resources]
+      responses:
+        "200":
+          $ref: "../components/responses.yaml#/Success"
+
+    put:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/res/:res_name/:node_id
+      summary: 更新资源节点（移动或重命名）
+      operationId: updateResource
+      tags: [resources]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                parent_id:
+                  type: string
+      responses:
+        "200":
+          description: 更新后的节点信息
+          content:
+            application/json:
+              schema:
+                $ref: "../components/schemas.yaml#/Node"

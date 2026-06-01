@@ -1,0 +1,159 @@
+# ── Shared Schema Definitions ─────────────────────────────────────
+
+AgentSummary:
+  type: object
+  required: [id, name]
+  properties:
+    id:
+      type: string
+      description: Agent 标识符
+    name:
+      type: string
+      description: Agent 显示名称
+    locked:
+      type: boolean
+      default: false
+    layout:
+      type: object
+      properties:
+        left:
+          type: array
+          items:
+            type: string
+        defaultLeft:
+          type: string
+        right:
+          type: array
+          items:
+            type: string
+        defaultRight:
+          type: string
+
+AgentDetail:
+  type: object
+  required: [agent_id, system_prompt]
+  properties:
+    agent_id:
+      type: string
+    system_prompt:
+      type: string
+
+Session:
+  type: object
+  required: [session_id, title, created_at]
+  properties:
+    session_id:
+      type: string
+    title:
+      type: string
+    created_at:
+      type: string
+      format: date-time
+
+Message:
+  type: object
+  required: [role, content]
+  properties:
+    role:
+      type: string
+      enum: [user, assistant, tool, system]
+    content:
+      type: string
+    tool_calls:
+      type: array
+      items:
+        type: object
+    tool_call_id:
+      type: string
+    created_at:
+      type: string
+      format: date-time
+
+Node:
+  type: object
+  required: [id, name, type]
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    type:
+      type: string
+      enum: [folder, document]
+    parent_id:
+      type: string
+    children:
+      type: array
+      items:
+        $ref: "#/Node"
+
+KnowledgeBase:
+  type: object
+  required: [id, name]
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    description:
+      type: string
+
+AgentManagementSummary:
+  type: object
+  required: [id, name, model, session_count]
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    locked:
+      type: boolean
+    model:
+      type: string
+    session_count:
+      type: integer
+    last_reply_time:
+      type: string
+      format: date-time
+    last_session_title:
+      type: string
+
+ProviderEnvEntry:
+  type: object
+  required: [provider, env_key, set]
+  properties:
+    provider:
+      type: string
+    display_name:
+      type: string
+    env_key:
+      type: string
+    set:
+      type: boolean
+    masked:
+      type: string
+
+SkillEntry:
+  type: object
+  required: [id, name, description, source]
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    description:
+      type: string
+    source:
+      type: string
+      enum: [bundled, user]
+    disabled:
+      type: boolean
+
+PromptFiles:
+  type: object
+  required: [files]
+  properties:
+    files:
+      type: object
+      additionalProperties:
+        type: string
