@@ -12,3 +12,4 @@ config
 !backend/config/
 !backend-rs/config/agents/admin.yaml
 tasks
+specs/openapi-raw.json
