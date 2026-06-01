@@ -112,6 +112,50 @@
   cursor: grabbing;
 }
 
+.canvas-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.canvas-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.canvas-card-title {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvas-card-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #bbb;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.canvas-card-close-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .canvas-card-content {
   padding: 16px 20px;
   font-size: 14px;
@@ -119,6 +163,25 @@
   color: #1a1a1a;
   overflow-y: auto;
   max-height: calc(100vh - 320px);
+  scrollbar-width: thin;
+}
+
+.canvas-card-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.canvas-card-content::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.canvas-card-content:hover::-webkit-scrollbar-thumb,
+.canvas-card-content:focus-within::-webkit-scrollbar-thumb {
+  background: #ccc;
+}
+
+.canvas-card-content::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
 }
 
 /* Card content - Markdown rendered via react-markdown */
