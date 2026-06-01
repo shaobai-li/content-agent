@@ -280,6 +280,7 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
                   className="canvas-card-close-btn"
                   onClick={(e) => { e.stopPropagation(); handleDeleteCard(card.id); }}
                   title="删除此卡片"
+                  aria-label={card.title ? `删除卡片：${card.title}` : '删除此卡片'}
                 >
                   ✕
                 </button>
