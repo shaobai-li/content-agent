@@ -151,6 +151,56 @@ pub fn get_agent_config(agent_id: &str) -> Option<&'static AgentConfig> {
     get_config().agents.get(agent_id)
 }
 
+/// 获取合并了用户配置的 AgentConfig。
+/// 优先级：用户配置 > 内置配置。无用户上下文时等价于 get_agent_config()。
+pub fn get_agent_user_config(agent_id: &str) -> Option<AgentConfig> {
+    let cfg = get_config();
+    let base = cfg.agents.get(agent_id).cloned();
+
+    // 有用户上下文时尝试从用户目录加载 YAML 配置
+    if let Some(user_id) = crate::core::auth::get_current_user_id() {
+        let user_yaml = cfg
+            .data_dir
+            .join(format!("u_{}", user_id))
+            .join("agent")
+            .join(format!("{}.yaml", agent_id));
+
+        if user_yaml.exists() {
+            if let Ok(content) = std::fs::read_to_string(&user_yaml) {
+                if let Ok(user_cfg) = serde_yaml::from_str::<AgentConfig>(&content) {
+                    return Some(merge_agent_configs(base, user_cfg));
+                }
+            }
+        }
+    }
+
+    base
+}
+
+/// 合并两个 AgentConfig，user 字段优先于 base。
+fn merge_agent_configs(base: Option<AgentConfig>, user: AgentConfig) -> AgentConfig {
+    let base = match base {
+        Some(b) => b,
+        None => return user,
+    };
+    AgentConfig {
+        name: user.name.or(base.name),
+        locked: user.locked.or(base.locked),
+        base_dir: user.base_dir.or(base.base_dir),
+        sessions_file: user.sessions_file.or(base.sessions_file),
+        messages_file: user.messages_file.or(base.messages_file),
+        skills: user.skills.or(base.skills),
+        layout: user.layout.or(base.layout),
+        extra: {
+            let mut merged = base.extra.clone();
+            for (k, v) in user.extra {
+                merged.insert(k, v);
+            }
+            merged
+        },
+    }
+}
+
 pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
     let cfg = get_config();
 

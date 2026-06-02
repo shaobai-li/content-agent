@@ -78,18 +78,46 @@ pub async fn auth_middleware(
     }
 }
 
-/// 从 data_dir/users/{user_id}/agents.json 加载 custom agent
+/// 从 data_dir/u_{user_id}/agent/*.yaml 加载 custom agent（与 Python 后端一致）
 fn load_user_agents(user_id: &str) -> HashMap<String, Value> {
     load_user_agents_from(&get_config().data_dir, user_id)
 }
 
-/// 内部实现：从指定根目录加载，方便测试
+/// 内部实现：扫描指定目录下的 YAML 文件，文件名（stem）即 agent_id。
 fn load_user_agents_from(base_dir: &Path, user_id: &str) -> HashMap<String, Value> {
-    let path = base_dir.join("users").join(user_id).join("agents.json");
-    match std::fs::read_to_string(&path) {
-        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
-        Err(_) => HashMap::new(),
+    let agents_dir = base_dir.join(format!("u_{}", user_id)).join("agent");
+    let mut result = HashMap::new();
+
+    if !agents_dir.is_dir() {
+        return result;
     }
+
+    let mut entries: Vec<_> = match std::fs::read_dir(&agents_dir) {
+        Ok(entries) => entries
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().extension().is_some_and(|ext| ext == "yaml"))
+            .collect(),
+        Err(_) => return result,
+    };
+    entries.sort_by_key(|e| e.file_name());
+
+    for entry in entries {
+        let path = entry.path();
+        let agent_id = match path.file_stem().and_then(|s| s.to_str()) {
+            Some(id) => id.to_string(),
+            None => continue,
+        };
+
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            if let Ok(cfg) = serde_yaml::from_str::<Value>(&content) {
+                if cfg.is_object() {
+                    result.insert(agent_id, cfg);
+                }
+            }
+        }
+    }
+
+    result
 }
 
 // ── Tests ────────────────────────────────────────────────────────────
@@ -108,14 +136,21 @@ mod tests {
     fn test_load_user_agents_file_exists() {
         let tmp = setup_dir();
         let user_id = "test-user";
-        let agents_dir = tmp.path().join("users").join(user_id);
+        let agents_dir = tmp.path().join("u_test-user").join("agent");
         fs::create_dir_all(&agents_dir).unwrap();
 
-        let agents_json = serde_json::json!({
-            "my-agent": {"name": "My Custom Agent"},
-            "helper": {"name": "Helper Bot"}
-        });
-        fs::write(agents_dir.join("agents.json"), agents_json.to_string()).unwrap();
+        // 写入两个 YAML 文件
+        let agent1 = serde_yaml::to_string(&serde_json::json!({
+            "name": "My Custom Agent",
+            "skills": ["ingest-file"]
+        })).unwrap();
+        fs::write(agents_dir.join("my-agent.yaml"), &agent1).unwrap();
+
+        let agent2 = serde_yaml::to_string(&serde_json::json!({
+            "name": "Helper Bot",
+            "locked": false
+        })).unwrap();
+        fs::write(agents_dir.join("helper.yaml"), &agent2).unwrap();
 
         let result = load_user_agents_from(tmp.path(), user_id);
         assert_eq!(result.len(), 2);
@@ -137,24 +172,35 @@ mod tests {
     }
 
     #[test]
-    fn test_load_user_agents_invalid_json() {
+    fn test_load_user_agents_invalid_yaml() {
         let tmp = setup_dir();
         let user_id = "test-user";
-        let agents_dir = tmp.path().join("users").join(user_id);
+        let agents_dir = tmp.path().join("u_test-user").join("agent");
         fs::create_dir_all(&agents_dir).unwrap();
-        fs::write(agents_dir.join("agents.json"), "not valid json").unwrap();
+        fs::write(agents_dir.join("bad.yaml"), "not: valid: yaml: [[[").unwrap();
 
         let result = load_user_agents_from(tmp.path(), user_id);
         assert!(result.is_empty());
     }
 
     #[test]
-    fn test_load_user_agents_empty_json() {
+    fn test_load_user_agents_empty_dir() {
         let tmp = setup_dir();
         let user_id = "test-user";
-        let agents_dir = tmp.path().join("users").join(user_id);
+        let agents_dir = tmp.path().join("u_test-user").join("agent");
         fs::create_dir_all(&agents_dir).unwrap();
-        fs::write(agents_dir.join("agents.json"), "{}").unwrap();
+
+        let result = load_user_agents_from(tmp.path(), user_id);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_load_user_agents_ignores_non_yaml() {
+        let tmp = setup_dir();
+        let user_id = "test-user";
+        let agents_dir = tmp.path().join("u_test-user").join("agent");
+        fs::create_dir_all(&agents_dir).unwrap();
+        fs::write(agents_dir.join("readme.txt"), "hello").unwrap();
 
         let result = load_user_agents_from(tmp.path(), user_id);
         assert!(result.is_empty());
