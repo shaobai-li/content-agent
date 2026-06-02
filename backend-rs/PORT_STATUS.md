@@ -87,7 +87,7 @@
 | `agents/standard/agent.py` | `agent/standard.rs` | ✅ Ported | P1 | Provider Factory 动态创建 + Canvas 事件推送已集成 |
 | `agents/standard/streaming_hook.py` | (内联在 `standard.rs`) | ✅ Ported | P1 | 功能等价，Rust 内联为 `StandardStreamingHook` 结构体 |
 | `agents/standard/tools.py` | ❌ | ❌ Not Started | P2 | Python 有 agent 级别的 tool 配置逻辑（非必需） |
-| `agents/write_agent/agent.py` | ❌ | ❌ Not Started | P2 | 写 Agent 专用逻辑 |
+| `agents/write_agent/agent.py` | `agent/write_agent.rs` | ✅ Ported | P2 | 写作专用智能体，复用 tool loop + 自定义 system prompt |
 | `agents/content_detection/` | ❌ | ❌ Not Started | — | Python 侧为空目录 |
 | `agents/knowledge_base/` | ❌ | ❌ Not Started | — | Python 侧为空目录 |
 
@@ -118,8 +118,8 @@
 | `utils/llm_client.py` | ❌ (provider 已替代) | ✅ N/A | — | Python 的 `deepseek_chat` / `deepseek_chat_stream` 封装在 Rust 中被 provider 层取代 |
 | `utils/runtime.py` | ❌ | ❌ Not Started | P2 | 运行时工具 |
 | `utils/xml_stream_parser.py` | ❌ | ❌ Not Started | P2 | XML 流式解析器 |
-| `agents/skills/ingest-file/` | ❌ | ❌ Not Started | P2 | 文档导入技能（含 PDF、DOCX、PPTX 解析器） |
-| `agents/skills/memo/` | ❌ | ❌ Not Started | P2 | 备忘录 CRUD 技能 |
+| `agents/skills/ingest-file/` | `agent/skills/ingest_file.rs` | ✅ Ported | P2 | 文档导入技能（PDF/DOCX/PPTX 解析器框架已搭建） |
+| `agents/skills/memo/` | `agent/skills/memo.rs` | ✅ Ported | P2 | 备忘录 CRUD（JSON 文件持久化） |
 
 ---
 
@@ -143,9 +143,7 @@ Phase 2: P1 补齐（完整 API 功能 + skill 系统）
   （全部完成）
 
 Phase 3: P2 完善（全面功能对等）
-  ① skills: ingest-file / memo                               ← 5-7d
-  ② utils: xml_stream_parser                                ← 1d
-  ③ agents: write_agent                                     ← 3-5d
+  ① utils: xml_stream_parser                                ← 1d
 ```
 
 ### 对等期（Rust ≈ Python）
@@ -199,3 +197,4 @@ Phase 3: P2 完善（全面功能对等）
 | 2026-06-02 | P10: 实现 Agent Config API（prompts 读写 + skills CRUD 6 个端点） |
 | 2026-06-02 | P11: 实现 Management API agents-summary 端点 |
 | 2026-06-02 | P12: 实现 Settings API + file_state + article_parser + helpers |
+| 2026-06-02 | P13: 实现 ingest-file + memo skills + write_agent（追赶期结束） |

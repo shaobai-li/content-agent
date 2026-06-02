@@ -3,5 +3,7 @@ pub mod context;
 pub mod hook;
 pub mod registry;
 pub mod runner;
+pub mod skills;
 pub mod standard;
 pub mod turn_context;
+pub mod write_agent;
