@@ -5,3 +5,4 @@ pub mod registry;
 pub mod runner;
 pub mod standard;
 pub mod turn_context;
+pub mod write_agent;

@@ -48,7 +48,11 @@ pub fn init_agent_instances() {
     let config = crate::core::config::get_config();
     let mut instances: HashMap<String, Arc<dyn BaseAgent>> = HashMap::new();
     for id in config.agents.keys() {
-        instances.insert(id.clone(), Arc::new(crate::agent::standard::StandardAgent::new(id)));
+        if id.starts_with("write") {
+            instances.insert(id.clone(), Arc::new(crate::agent::write_agent::WriteAgent::new(id)));
+        } else {
+            instances.insert(id.clone(), Arc::new(crate::agent::standard::StandardAgent::new(id)));
+        }
     }
     AGENT_INSTANCES.set(instances).ok();
 }
