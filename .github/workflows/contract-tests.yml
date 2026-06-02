@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Validate OpenAPI spec
         run: |
           pip install pyyaml
@@ -29,6 +32,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Install Python deps
         run: |
           pip install pyyaml pytest requests
@@ -40,7 +46,7 @@ jobs:
             from pathlib import Path
             sys.path.insert(0, 'contract-tests')
 
-            from test_contract import get_ported_endpoints, PORTED_ENDPOINTS
+            from test_contract import get_ported_endpoints
             eps = get_ported_endpoints()
             print(f'OK: 发现 {len(eps)} 个 non-SSE ported 端点')
             for ep in eps:
@@ -59,7 +65,14 @@ jobs:
         run: |
           cd backend-rs
           cargo run &
-          sleep 10
+          # 健康检查循环，替代固定 sleep
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8001/health > /dev/null 2>&1; then
+              echo "Rust 服务就绪（${i}s）"
+              break
+            fi
+            sleep 1
+          done
       - name: Run contract tests
         run: |
           cargo test --manifest-path backend-rs/Cargo.toml --test contract_tests
