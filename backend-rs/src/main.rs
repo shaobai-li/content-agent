@@ -5,6 +5,7 @@ mod routes;
 mod service;
 mod tools;
 
+use crate::core::auth::auth_middleware;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::EnvFilter;
 
@@ -40,6 +41,7 @@ async fn main() {
         .merge(routes::nodes::router())
         .merge(routes::files::router())
         .merge(routes::chat::router())
+        .layer(axum::middleware::from_fn(auth_middleware))
         .layer(cors);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8001")
