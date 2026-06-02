@@ -3,7 +3,7 @@
 paths:
   /api/agents/{agent_id}/prompts:
     get:
-      x-status: not-started
+      x-status: ported
       x-rust-path: /api/agents/:agent_id/prompts
       summary: 获取 Agent prompts 文件内容
       operationId: listPrompts
@@ -24,7 +24,7 @@ paths:
       - $ref: "../components/parameters.yaml#/Filename"
 
     put:
-      x-status: not-started
+      x-status: ported
       x-rust-path: /api/agents/:agent_id/prompts/:filename
       summary: 保存 prompt 文件内容
       operationId: savePrompt
@@ -47,7 +47,7 @@ paths:
 
   /api/agents/{agent_id}/skills:
     get:
-      x-status: not-started
+      x-status: ported
       x-rust-path: /api/agents/:agent_id/skills
       summary: 获取 agent skill 列表
       operationId: listSkills
@@ -74,7 +74,7 @@ paths:
       - $ref: "../components/parameters.yaml#/SkillId"
 
     put:
-      x-status: not-started
+      x-status: ported
       x-rust-path: /api/agents/:agent_id/skills/:skill_id/disable
       summary: 切换 skill 禁用状态
       operationId: toggleSkillDisable
@@ -97,7 +97,7 @@ paths:
 
   /api/agents/{agent_id}/skills/upload:
     post:
-      x-status: not-started
+      x-status: ported
       x-rust-path: /api/agents/:agent_id/skills/upload
       summary: 上传自定义 skill
       operationId: uploadSkill
@@ -128,7 +128,7 @@ paths:
 
   /api/agents/{agent_id}/skills/{skill_id}:
     delete:
-      x-status: not-started
+      x-status: ported
       x-rust-path: /api/agents/:agent_id/skills/:skill_id
       summary: 删除用户自定义 skill
       operationId: deleteSkill

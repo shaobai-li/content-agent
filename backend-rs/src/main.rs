@@ -34,6 +34,7 @@ async fn main() {
         .allow_headers(tower_http::cors::Any);
 
     let app = routes::health::router()
+        .merge(routes::agent_config::router())
         .merge(routes::agents::router())
         .merge(routes::sessions::router())
         .merge(routes::messages::router())
