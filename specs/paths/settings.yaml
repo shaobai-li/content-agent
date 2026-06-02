@@ -3,7 +3,7 @@
 paths:
   /api/settings/env:
     get:
-      x-status: not-started
+      x-status: ported
       x-rust-path: /api/settings/env
       summary: 获取所有 provider 环境变量（值已脱敏）
       operationId: getEnvSettings
@@ -23,7 +23,7 @@ paths:
                       $ref: "../components/schemas.yaml#/ProviderEnvEntry"
 
     put:
-      x-status: not-started
+      x-status: ported
       x-rust-path: /api/settings/env
       summary: 更新环境变量（API Keys）
       operationId: updateEnvSettings

@@ -4,6 +4,7 @@ mod provider;
 mod routes;
 mod service;
 mod tools;
+mod utils;
 
 use crate::core::auth::auth_middleware;
 use tower_http::cors::CorsLayer;
@@ -37,6 +38,7 @@ async fn main() {
         .merge(routes::agent_config::router())
         .merge(routes::agents::router())
         .merge(routes::management::router())
+        .merge(routes::settings::router())
         .merge(routes::sessions::router())
         .merge(routes::messages::router())
         .merge(routes::knowledge_base::router())
