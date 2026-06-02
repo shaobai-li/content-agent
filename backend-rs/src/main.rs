@@ -36,6 +36,7 @@ async fn main() {
     let app = routes::health::router()
         .merge(routes::agent_config::router())
         .merge(routes::agents::router())
+        .merge(routes::management::router())
         .merge(routes::sessions::router())
         .merge(routes::messages::router())
         .merge(routes::knowledge_base::router())
