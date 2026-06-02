@@ -14,6 +14,7 @@ use crate::core::config::get_agent_workspace_dir;
 use crate::provider::base::ToolCallRequest;
 use crate::provider::factory;
 use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
+use crate::service::context_utils::get_article_context_messages;
 use crate::service::stream::{
     build_canvas_card, build_stream_chunk, build_stream_done, build_tool_exec_chunk,
     build_tool_exec_end, build_tool_exec_start,
@@ -91,7 +92,13 @@ impl BaseAgent for StandardAgent {
         let builder = ContextBuilder::new(&workspace.display().to_string(), Some(&self.agent_id));
 
         let history = history_llm_turns(&ctx.history_messages);
-        let messages = builder.build_messages(&history, &ctx.user_text, &ctx.mentions);
+        let mut messages = builder.build_messages(&history, &ctx.user_text, &ctx.mentions);
+
+        // 插入 article/url 引用上下文消息（context_utils）
+        let article_msgs = get_article_context_messages(&ctx.mentions);
+        if !article_msgs.is_empty() {
+            messages.extend(article_msgs);
+        }
 
         let provider_name = ctx.provider.as_deref().unwrap_or("deepseek");
         let model = ctx

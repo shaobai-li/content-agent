@@ -1,3 +1,4 @@
+pub mod context_utils;
 pub mod disabled_skills;
 pub mod files;
 pub mod knowledge_base;
