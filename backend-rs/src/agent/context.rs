@@ -255,10 +255,10 @@ impl ContextBuilder {
     }
 }
 
-/// Stub: discover skills XML for an agent.
-/// Full implementation requires porting skill_loader from Python.
-fn discover_skills_xml_for_agent(_agent_id: &str) -> String {
-    String::new()
+/// 发现某 agent 可用 skill，返回 XML 目录（集成 disabled_skills 过滤）
+/// 委托给 service::skill_loader
+fn discover_skills_xml_for_agent(agent_id: &str) -> String {
+    crate::service::skill_loader::discover_skills_xml_for_agent(agent_id)
 }
 
 #[cfg(test)]
