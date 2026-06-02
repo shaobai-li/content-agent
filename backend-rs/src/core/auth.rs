@@ -8,6 +8,17 @@ use serde_json::Value;
 
 use crate::core::config::get_config;
 
+// 请求级用户 ID 存储（类似 Python ContextVar）。
+// 由 auth_middleware 在请求入口设置，由 get_agent_base_dir() 消费以实现用户数据隔离。
+tokio::task_local! {
+    pub(crate) static CURRENT_USER_ID: String;
+}
+
+/// 返回当前请求的用户 ID（无 X-User-Id header 或非请求上下文中返回 None）
+pub fn get_current_user_id() -> Option<String> {
+    CURRENT_USER_ID.try_with(|id| id.clone()).ok()
+}
+
 /// 当前请求的用户上下文
 #[derive(Debug, Clone, Default)]
 pub struct UserContext {
@@ -34,6 +45,9 @@ where
 }
 
 /// 设置用户上下文的中间件 — 从 X-User-Id header 读取用户标识
+///
+/// 在 Axum 中间件层级设置 CURRENT_USER_ID task_local，
+/// 使后续所有 get_agent_base_dir() 调用能感知当前用户。
 pub async fn auth_middleware(
     mut req: axum::http::Request<Body>,
     next: axum::middleware::Next,
@@ -42,20 +56,26 @@ pub async fn auth_middleware(
         .headers()
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
+        .map(|s| s.to_string())
+        .unwrap_or_default();
 
-    let user_agents = if let Some(ref uid) = user_id {
-        load_user_agents(uid)
-    } else {
+    let user_agents = if user_id.is_empty() {
         HashMap::new()
+    } else {
+        load_user_agents(&user_id)
     };
 
     let ctx = UserContext {
-        user_id,
+        user_id: if user_id.is_empty() { None } else { Some(user_id.clone()) },
         user_agents,
     };
     req.extensions_mut().insert(ctx);
-    next.run(req).await
+
+    if user_id.is_empty() {
+        next.run(req).await
+    } else {
+        CURRENT_USER_ID.scope(user_id, next.run(req)).await
+    }
 }
 
 /// 从 data_dir/users/{user_id}/agents.json 加载 custom agent
@@ -142,9 +162,21 @@ mod tests {
 
     #[test]
     fn test_user_context_default_is_empty() {
-        // 验证 UserContext::default() 返回空上下文
         let ctx = UserContext::default();
         assert!(ctx.user_id.is_none());
         assert!(ctx.user_agents.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_current_user_id_outside_scope() {
+        // 在 scope 之外调用应返回 None
+        assert!(get_current_user_id().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_get_current_user_id_inside_scope() {
+        CURRENT_USER_ID.scope("test-user".to_string(), async {
+            assert_eq!(get_current_user_id(), Some("test-user".to_string()));
+        }).await;
     }
 }

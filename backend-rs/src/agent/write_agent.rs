@@ -111,10 +111,18 @@ impl BaseAgent for WriteAgent {
         };
 
         let runner = AgentRunner::new(provider);
+        let current_user_id = crate::core::auth::get_current_user_id();
         let sid = session_id.clone();
         tokio::spawn(async move {
-            runner.run(spec).await;
-            let _ = tx.send(build_stream_done(&sid, None));
+            let run_fut = async move {
+                runner.run(spec).await;
+                let _ = tx.send(build_stream_done(&sid, None));
+            };
+            if let Some(uid) = current_user_id {
+                crate::core::auth::CURRENT_USER_ID.scope(uid, run_fut).await;
+            } else {
+                run_fut.await;
+            }
         });
 
         Box::pin(tokio_stream::wrappers::UnboundedReceiverStream::new(rx).map(Ok))

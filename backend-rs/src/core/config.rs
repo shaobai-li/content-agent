@@ -153,8 +153,16 @@ pub fn get_agent_config(agent_id: &str) -> Option<&'static AgentConfig> {
 
 pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
     let cfg = get_config();
-    let agent_cfg = cfg.agents.get(agent_id);
-    let base_dir = agent_cfg
+
+    // 有用户上下文时优先使用用户隔离路径：data_dir/u_{user_id}/data/{agent_id}
+    if let Some(user_id) = crate::core::auth::get_current_user_id() {
+        return cfg.data_dir.join(format!("u_{}", user_id)).join("data").join(agent_id);
+    }
+
+    // 无用户上下文时保持原有全局路径（向后兼容）
+    let base_dir = cfg
+        .agents
+        .get(agent_id)
         .and_then(|a| a.base_dir.as_deref())
         .unwrap_or("agents/default");
     cfg.data_dir.join(base_dir)
