@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from "react";
 import { $getRoot, type EditorState } from "lexical";
 import { LexicalEditor, type LexicalEditorHandle } from "./LexicalEditor";
 import { Button } from "@/shared/ui/button";
 import { FileChip } from "./FileChip";
 import type { MentionItem } from "./MentionChip";
 import { FileTypeIconMap } from "@/shared/ui/icons";
-import { ChevronDown, Upload } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,10 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { AgentId } from "@/entities/agent/model";
-import {
-  hasKnowledgeBaseDragData,
-  readKnowledgeBaseDragData,
-} from "@/shared/lib/dragData";
 
 // 文件项类型
 export type FileItem = {
@@ -52,106 +48,8 @@ interface ChatInputProps {
   modelOptions?: ModelOption[];
 }
 
-type DragOverlayKind = "files" | "knowledge-base";
-
-function toMentionItem(data: ReturnType<typeof readKnowledgeBaseDragData>): MentionItem | null {
-  if (!data) {
-    return null;
-  }
-
-  return {
-    kind: data.kind,
-    id: data.id,
-    name: data.name,
-    kbId: data.kbId,
-    ...(data.kind !== "database" ? { nodeId: data.nodeId } : {}),
-    ...(data.kind === "record" ? { recordId: data.recordId } : {}),
-    ...(data.kind === "record" && data.parsed_path ? { parsed_path: data.parsed_path } : {}),
-  };
-}
-
-function getMentionKey(mention: MentionItem) {
-  return `${mention.kind || "record"}:${mention.id}`;
-}
-
-// 内部 Hook：处理文件拖拽逻辑
-function useDragAndDrop(
-  onFilesDropped?: (files: FileList) => void,
-  onMentionDropped?: (mention: MentionItem) => void,
-) {
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOverlayKind, setDragOverlayKind] = useState<DragOverlayKind>("files");
-
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOverlayKind(hasKnowledgeBaseDragData(e.dataTransfer) ? "knowledge-base" : "files");
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // 只有当离开整个容器时才取消拖拽状态
-    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-    setIsDragging(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (hasKnowledgeBaseDragData(e.dataTransfer)) {
-      setDragOverlayKind("knowledge-base");
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const mention = toMentionItem(readKnowledgeBaseDragData(e.dataTransfer));
-    if (mention) {
-      onMentionDropped?.(mention);
-      return;
-    }
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      onFilesDropped?.(files);
-    }
-  };
-
-  return {
-    isDragging,
-    dragOverlayKind,
-    dragHandlers: {
-      onDragEnter: handleDragEnter,
-      onDragLeave: handleDragLeave,
-      onDragOver: handleDragOver,
-      onDrop: handleDrop,
-    },
-  };
-}
-
-// 拖拽遮罩层组件
-function DragOverlay({
-  hasFiles,
-  kind,
-}: {
-  hasFiles: boolean;
-  kind: DragOverlayKind;
-}) {
-  return (
-    <div className={`absolute inset-0 z-10 bg-primary/5 flex ${hasFiles ? "flex-col" : "flex-row"} items-center justify-center gap-2`}>
-      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-        <Upload className="text-primary w-5 h-5" />
-      </div>
-      <span className="text-sm font-medium text-muted-foreground">
-        {kind === "knowledge-base" ? "Release to mention" : "Release to upload"}
-      </span>
-    </div>
-  );
+export interface ChatInputHandle {
+  insertMention: (mention: MentionItem) => void;
 }
 
 export type ModelOption = {
@@ -166,7 +64,7 @@ export const MODEL_OPTIONS: ModelOption[] = [
   { provider: "moonshot", model: "kimi-k2.5",       label: "Kimi K2.5" },
 ];
 
-export function ChatInput({
+export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput({
   value,
   onChange,
   onSend,
@@ -180,24 +78,26 @@ export function ChatInput({
   modelOption = MODEL_OPTIONS[0],
   onModelChange,
   modelOptions = MODEL_OPTIONS,
-}: ChatInputProps) {
+}, ref) {
   const editorRef = useRef<LexicalEditorHandle>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
-  const handleMentionDropped = (mention: MentionItem) => {
+  const handleMentionDropped = useCallback((mention: MentionItem) => {
     if (
-      mentions.some((item) => getMentionKey(item) === getMentionKey(mention)) ||
+      mentions.some(
+        (item) => `${item.kind || "record"}:${item.id}` === `${mention.kind || "record"}:${mention.id}`,
+      ) ||
       editorRef.current?.hasMention(mention)
     ) {
       return;
     }
 
     editorRef.current?.insertMention(mention);
-  };
-  const { isDragging, dragOverlayKind, dragHandlers } = useDragAndDrop(
-    onFilesDropped,
-    handleMentionDropped,
-  );
+  }, [mentions]);
+
+  useImperativeHandle(ref, () => ({
+    insertMention: handleMentionDropped,
+  }), [handleMentionDropped]);
 
   const hasFiles: boolean = (files && files.length > 0) || false;
   const hasText: boolean = value.trim().length > 0;
@@ -291,12 +191,7 @@ export function ChatInput({
   }, [value]);
 
   return (
-    <div
-      className="relative rounded-lg border shadow-sm overflow-hidden"
-      {...dragHandlers}
-    >
-      {isDragging && <DragOverlay hasFiles={hasFiles} kind={dragOverlayKind} />}
-     
+    <div className="relative rounded-lg border shadow-sm overflow-hidden">
 
       {hasFiles && (
         <div className="flex flex-wrap gap-2 p-2 border-b bg-slate-50/50">
@@ -356,6 +251,6 @@ export function ChatInput({
       </div>
     </div>
   );
-}
-    
+});
+
 
