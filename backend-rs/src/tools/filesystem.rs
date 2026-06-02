@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use super::base::Tool;
 
-fn resolve_under_workspace(workspace: &str, rel_path: &str) -> Result<PathBuf, String> {
+pub fn resolve_under_workspace(workspace: &str, rel_path: &str) -> Result<PathBuf, String> {
     let root = std::path::Path::new(workspace)
         .canonicalize()
         .map_err(|e| format!("Error: cannot resolve workspace path: {e}"))?;
