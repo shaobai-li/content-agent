@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { PlusIcon } from "@heroicons/react/24/outline";
-import { Ellipsis, Trash2 } from "lucide-react";
+import { Ellipsis, Plus, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -280,6 +279,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                   >
                     <div className="w-full border-t border-border" />
                     <div className="flex items-center justify-between pt-1.5">
+                      {/* TODO: 接入实际数据。与 AgentInfoCard 的 "Token" 标签对应，后续需展示技能词数/Token 数 */}
                       <span className="text-xs text-muted-foreground">Words</span>
                       {skill.source === "user" && (
                         <DropdownMenu>
@@ -322,7 +322,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
               )}
             >
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/45 text-muted-foreground">
-                <PlusIcon className="size-5" aria-hidden />
+                <Plus className="size-5" aria-hidden />
               </span>
               <span className="text-sm font-medium text-muted-foreground">
                 {uploading ? "上传中..." : "New Skill"}
