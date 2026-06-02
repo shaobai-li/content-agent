@@ -270,7 +270,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                     style={{ flex: "7 1 0%" }}
                   >
                     <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                    <p className="text-sm text-muted-foreground">{skill.description}</p>
+                    <p className="min-w-0 line-clamp-2 text-sm text-muted-foreground">{skill.description}</p>
                   </CardContent>
 
                   {/* 底部操作区：flex-grow 3，占 30%，不收缩 */}
