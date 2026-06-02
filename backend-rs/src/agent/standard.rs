@@ -162,7 +162,7 @@ impl BaseAgent for StandardAgent {
     }
 }
 
-fn history_llm_turns(history_messages: &[Value]) -> Vec<Value> {
+pub fn history_llm_turns(history_messages: &[Value]) -> Vec<Value> {
     let mut out: Vec<Value> = Vec::new();
     for hm in history_messages {
         let role = hm.get("role").and_then(|v| v.as_str()).unwrap_or("");
