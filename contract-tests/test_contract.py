@@ -9,6 +9,7 @@ SSE 端点（x-sse: true）跳过。
 """
 
 import os
+import re
 import sys
 import json
 import time
@@ -142,7 +143,6 @@ def _build_url(base_url, path_pattern, params):
     path = path_pattern
 
     # 收集 path 参数名（从 pattern 中的 {xxx}）
-    import re
     path_param_names = set(re.findall(r"\{(\w+)\}", path))
 
     # 替换路径参数
@@ -169,9 +169,8 @@ def _build_url(base_url, path_pattern, params):
     return f"{base_url}{path}"
 
 
-def _build_request_body(operation_id, request_body_spec):
+def _build_request_body():
     """为需要 body 的请求构建最小数据。"""
-    # 通用 fallback
     return {"name": "test-resource"}
 
 
@@ -232,11 +231,8 @@ def _endpoint_id(e):
 @pytest.mark.parametrize("ep", PORTED_ENDPOINTS, ids=_endpoint_id)
 def test_endpoint_consistency(ep, python_ready, rust_ready):
     """对同一个端点分别请求 Python 和 Rust，比较响应一致性。"""
-    py_base = python_ready
-    rs_base = rust_ready
-
-    py_url = _build_url(py_base, ep["path"], ep["parameters"])
-    rs_url = _build_url(rs_base, ep["path"], ep["parameters"])
+    py_url = _build_url(python_ready, ep["path"], ep["parameters"])
+    rs_url = _build_url(rust_ready, ep["path"], ep["parameters"])
 
     method = ep["method"]
     timeout = 30
@@ -244,9 +240,7 @@ def test_endpoint_consistency(ep, python_ready, rust_ready):
     # 构建请求参数
     kwargs = {"timeout": timeout}
     if method in ("POST", "PUT") and ep.get("request_body"):
-        kwargs["json"] = _build_request_body(
-            ep["operation_id"], ep["request_body"]
-        )
+        kwargs["json"] = _build_request_body()
 
     # 发送请求
     try:
@@ -309,8 +303,7 @@ def test_ported_endpoints_discovered():
     )
     print(f"\n[INFO] 发现 {len(PORTED_ENDPOINTS)} 个 ported 端点:")
     for ep in PORTED_ENDPOINTS:
-        sse_note = ""
-        print(f"  - {ep['method']:6s} {ep['path']}{sse_note}")
+        print(f"  - {ep['method']:6s} {ep['path']}")
 
 
 if __name__ == "__main__":
