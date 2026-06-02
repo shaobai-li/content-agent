@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Ellipsis, Plus, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
@@ -249,7 +255,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
               skills.map((skill) => (
                 <Card
                   key={skill.id}
-                  className="relative min-h-36 gap-0 border-border bg-card py-6 text-card-foreground shadow-sm"
+                  className="relative min-h-36 gap-0 border-border bg-card py-0 text-card-foreground shadow-sm"
                 >
                   <Switch
                     className="absolute right-4 top-4"
@@ -257,24 +263,48 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                     onCheckedChange={(checked) => toggleDisable(skill.id, !checked)}
                     aria-label={`${skill.disabled ? "启用" : "禁用"} ${skill.name}`}
                   />
-                  <CardContent className="flex flex-col gap-2 pb-10 pr-14 pt-0">
+                  {/* 内容区：flex-grow 7，占 70% */}
+                  <CardContent
+                    className="flex min-h-0 flex-col gap-2 overflow-visible pb-0 pr-14 pt-6"
+                    style={{ flex: "7 1 0%" }}
+                  >
                     <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                    <p className="text-sm text-muted-foreground">{skill.description}</p>
+                    <p className="min-w-0 line-clamp-2 text-sm text-muted-foreground">{skill.description}</p>
                   </CardContent>
-                  {skill.source === "user" && (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(skill.id, skill.name)}
-                      className={cn(
-                        "absolute bottom-3 right-3 rounded-md p-1.5 text-destructive outline-none transition-opacity",
-                        "opacity-0 hover:opacity-100 focus-visible:opacity-100",
-                        "hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring/50",
+
+                  {/* 底部操作区：flex-grow 3，占 30%，不收缩 */}
+                  <div
+                    className="flex min-h-0 flex-col overflow-visible px-6 pb-2"
+                    style={{ flex: "3 0 0%" }}
+                  >
+                    <div className="w-full border-t border-border" />
+                    <div className="flex items-center justify-between pt-1.5">
+                      {/* TODO: 接入实际数据。与 AgentInfoCard 的 "Token" 标签对应，后续需展示技能词数/Token 数 */}
+                      <span className="text-xs text-muted-foreground">Words</span>
+                      {skill.source === "user" && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="flex size-6 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Ellipsis className="size-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" sideOffset={4}>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => handleDelete(skill.id, skill.name)}
+                            >
+                              <Trash2 className="size-4" />
+                              删除
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
-                      aria-label={`删除 ${skill.name}`}
-                    >
-                      <TrashIcon className="size-5" aria-hidden />
-                    </button>
-                  )}
+                    </div>
+                  </div>
                 </Card>
               ))
             ) : (
@@ -292,7 +322,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
               )}
             >
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/45 text-muted-foreground">
-                <PlusIcon className="size-5" aria-hidden />
+                <Plus className="size-5" aria-hidden />
               </span>
               <span className="text-sm font-medium text-muted-foreground">
                 {uploading ? "上传中..." : "New Skill"}
