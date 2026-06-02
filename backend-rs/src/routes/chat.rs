@@ -24,6 +24,7 @@ async fn chat_stream_handler(
     let mut text = String::new();
     let mut session_id: Option<String> = None;
     let mut history_messages: Vec<serde_json::Value> = Vec::new();
+    let mut mentions: Vec<serde_json::Value> = Vec::new();
 
     while let Ok(Some(field)) = multipart.next_field().await {
         let name = field.name().unwrap_or("").to_string();
@@ -34,6 +35,13 @@ async fn chat_stream_handler(
                 if let Ok(content) = field.text().await {
                     if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
                         history_messages = arr;
+                    }
+                }
+            }
+            "mentions" => {
+                if let Ok(content) = field.text().await {
+                    if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
+                        mentions = arr;
                     }
                 }
             }
@@ -65,7 +73,8 @@ async fn chat_stream_handler(
     save_session_if_new(&agent_id, &session_id, &text);
     save_message(&agent_id, &session_id, "user", Some(&text), None, None);
 
-    let ctx = AgentTurnContext::new(&agent_id, Some(session_id.clone()), text, history_messages);
+    let mut ctx = AgentTurnContext::new(&agent_id, Some(session_id.clone()), text, history_messages);
+    ctx.mentions = mentions;
     let stream = agent.handle_chat_stream(ctx).await;
 
     Response::builder()

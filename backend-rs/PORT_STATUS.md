@@ -58,7 +58,7 @@
 | `service/stream_service.py` | `service/stream.rs` | ✅ Ported | P0 | SSE 流式格式化，功能等价；build_canvas_card 已添加 |
 | `service/file_service.py` | `service/files.rs` | ✅ Ported | P0 | 文件上传保存 |
 | `service/knowledge_base_registry_service.py` | `service/knowledge_base.rs` | ✅ Ported | P0 | KB 注册管理 |
-| `service/agent_chat_service.py` | (内联在 routes/chat.rs + agent/standard.rs) | 🔄 In Progress | P1 | Python 有独立的 `build_standard_llm_messages`/`standard_chat_stream` 函数；Rust 将逻辑内联在路由和 agent 中，功能基本等价但缺 `context_utils` 的 article mention 处理 |
+| `service/agent_chat_service.py` | (内联在 routes/chat.rs + agent/standard.rs) | 🔄 In Progress | P1 | Rust 将逻辑内联在路由和 agent 中，功能基本等价；mentions 处理已集成（context_utils） |
 | `service/skill_service.py` | ❌ | ❌ Not Started | P2 | Skill 加载逻辑（调用 skill_loader + disabled_skills），当前 InvokeSkillTool 在 Rust 侧硬编码了 skill 读取路径 |
 | `service/chat_service.py` | ❌ | ❌ Not Started | P2 | 仅有 `build_chat_response` 辅助函数，非阻塞 |
 
@@ -112,7 +112,7 @@
 |-------------|-----------|------|--------|------|
 | `utils/skill_loader.py` | `service/skill_loader.rs` | ✅ Ported | P1 | 含 SkillHead、parse_skill_md、discover_skills_xml_for_agent |
 | `utils/disabled_skills.py` | `service/disabled_skills.rs` | ✅ Ported | P2 | 禁用 skill 持久化（JSON 文件），含 set_disabled / save / load |
-| `utils/context_utils.py` | ❌ | ❌ Not Started | P1 | `get_article_context_messages` — mention 解析（article 引用），影响 chat 流的消息构建 |
+| `utils/context_utils.py` | `service/context_utils.rs` | ✅ Ported | P1 | 基础框架已移植，get_article_context_messages + resolve_mention 分阶段实现 |
 | `utils/helpers.py` | ❌ | ❌ Not Started | P2 | 杂项辅助函数 |
 | `utils/article_parser.py` | ❌ | ❌ Not Started | P2 | 文章解析（文档技能所需） |
 | `utils/llm_client.py` | ❌ (provider 已替代) | ✅ N/A | — | Python 的 `deepseek_chat` / `deepseek_chat_stream` 封装在 Rust 中被 provider 层取代 |
@@ -142,14 +142,13 @@ Phase 1: P0 补齐（补齐 partial + 高优缺失）
 Phase 2: P1 补齐（完整 API 功能 + skill 系统）
   ② api: agent_config — prompts + skills CRUD               ← 3-5d
   ③ api: management — agents-summary 接口                    ← 1-2d
-  ④ utils: context_utils — mention/article 上下文处理         ← 1-2d
 
 Phase 3: P2 完善（全面功能对等）
-  ⑤ api: settings — env key 管理                            ← 1-2d
-  ⑥ tools: file_state                                       ← 1d
-  ⑦ skills: ingest-file / memo                               ← 5-7d
-  ⑧ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
-  ⑨ agents: write_agent                                     ← 3-5d
+  ④ api: settings — env key 管理                            ← 1-2d
+  ⑤ tools: file_state                                       ← 1d
+  ⑥ skills: ingest-file / memo                               ← 5-7d
+  ⑦ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
+  ⑧ agents: write_agent                                     ← 3-5d
 ```
 
 ### 对等期（Rust ≈ Python）
@@ -199,3 +198,4 @@ Phase 3: P2 完善（全面功能对等）
 | 2026-06-02 | P06: 实现 Auth 基础（UserContext + X-User-Id 中间件 + agents 路由集成） |
 | 2026-06-02 | P07: StandardAgent 使用 Provider Factory + Canvas 事件自动推送集成 |
 | 2026-06-02 | P08: 实现 skill_loader（SkillHead + parse_skill_md + XML 目录）+ disabled_skills |
+| 2026-06-02 | P09: 实现 context_utils（get_article_context_messages + chat 流 mentions 集成） |
