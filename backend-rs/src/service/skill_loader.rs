@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use crate::core::config::{get_agent_base_dir, get_agent_config};
 use crate::service::disabled_skills::DisabledSkills;
 
 /// Skill 元信息（对应 Python SkillHead）
@@ -67,6 +69,77 @@ fn xml_text(s: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
+}
+
+/// 内置 skill 根路径（相对于 config/agents/）
+fn bundled_skills_dir() -> PathBuf {
+    std::env::current_dir()
+        .unwrap_or_default()
+        .join("config")
+        .join("agents")
+}
+
+/// 发现指定 agent 可用的所有 skill
+pub fn discover_skills_for_agent(agent_id: &str) -> Vec<SkillHead> {
+    let disabled = DisabledSkills::load(agent_id);
+    let bundled_root = bundled_skills_dir();
+    let user_root = get_agent_base_dir(agent_id).join(".agent").join("skills");
+
+    let mut merged: HashMap<String, SkillHead> = HashMap::new();
+    let mut ordered: Vec<String> = Vec::new();
+
+    // 1. 从配置中读取有序 skill 列表
+    if let Some(cfg) = get_agent_config(agent_id) {
+        if let Some(skill_ids) = &cfg.skills {
+            for skill_id in skill_ids {
+                if disabled.is_disabled(skill_id) {
+                    continue;
+                }
+                let p = bundled_root.join(skill_id).join("SKILL.md");
+                if p.is_file() {
+                    if let Some(head) = read_skill_head(skill_id, &p, "bundled") {
+                        if !merged.contains_key(skill_id) {
+                            merged.insert(skill_id.clone(), head);
+                            ordered.push(skill_id.clone());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. 扫描用户目录下的 user skill
+    if user_root.exists() {
+        let mut user_ids: Vec<String> = Vec::new();
+        if let Ok(entries) = std::fs::read_dir(&user_root) {
+            for entry in entries.flatten() {
+                let skill_id = entry.file_name().to_string_lossy().to_string();
+                if merged.contains_key(&skill_id) || disabled.is_disabled(&skill_id) {
+                    continue;
+                }
+                let p = user_root.join(&skill_id).join("SKILL.md");
+                if p.is_file() {
+                    user_ids.push(skill_id);
+                }
+            }
+        }
+        user_ids.sort();
+        for skill_id in user_ids {
+            let p = user_root.join(&skill_id).join("SKILL.md");
+            if let Some(head) = read_skill_head(&skill_id, &p, "user") {
+                merged.insert(skill_id.clone(), head);
+                ordered.push(skill_id);
+            }
+        }
+    }
+
+    ordered.into_iter().filter_map(|id| merged.remove(&id)).collect()
+}
+
+/// 发现某 agent 可用 skill（含 disable 过滤），返回 XML 字符串
+pub fn discover_skills_xml_for_agent(agent_id: &str) -> String {
+    let skills = discover_skills_for_agent(agent_id);
+    format_skills_discovery_xml(&skills)
 }
 
 /// 将 skill 列表渲染为 XML 目录
@@ -154,6 +227,13 @@ description: "quoted desc"
         assert!(xml.contains(r#"id="web-search""#));
         assert!(xml.contains(r#"name="Web Search""#));
         assert!(xml.contains("</skills>"));
+    }
+
+    #[test]
+    fn test_discover_skills_xml_for_agent_nonexistent() {
+        // 不存在的 agent 应返回空字符串
+        let xml = discover_skills_xml_for_agent("nonexistent-agent-12345");
+        assert_eq!(xml, "");
     }
 
     #[test]
