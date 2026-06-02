@@ -3,7 +3,10 @@
 /skill_bench
 backend-rs/target/
 
-.github
+.github/*
+!.github/workflows/
+__pycache__/
+*.pyc
 .cursor
 .claude
 CLAUDE.md

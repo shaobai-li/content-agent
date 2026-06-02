@@ -1,0 +1,7 @@
+python:
+  base_url: "http://localhost:8000"
+  health_endpoint: "/docs"
+rust:
+  base_url: "http://localhost:8001"
+  health_endpoint: "/health"
+timeout_seconds: 30
