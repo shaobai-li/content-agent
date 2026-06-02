@@ -1,4 +1,5 @@
 pub mod base;
+pub mod file_state;
 pub mod filesystem;
 pub mod generate_html;
 pub mod registry;
@@ -9,6 +10,7 @@ pub mod web;
 pub use base::Tool;
 pub use registry::ToolRegistry;
 
+use file_state::FileStateTool;
 use filesystem::{EditFileTool, ListDirTool, ReadFileTool, WriteFileTool};
 use generate_html::GenerateHTMLTool;
 use shell::RunCommandTool;
@@ -28,6 +30,7 @@ pub fn create_tool_registry(
     registry.register(Box::new(WriteFileTool::new(workspace)));
     registry.register(Box::new(EditFileTool::new(workspace)));
     registry.register(Box::new(ListDirTool::new(workspace)));
+    registry.register(Box::new(FileStateTool::new(workspace)));
     registry.register(Box::new(GenerateHTMLTool::new(provider_name, model)));
     registry.register(Box::new(WebSearchTool));
     registry.register(Box::new(WebFetchTool));
