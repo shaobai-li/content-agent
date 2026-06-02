@@ -110,8 +110,8 @@
 
 | Python 模块 | Rust 模块 | 状态 | 优先级 | 备注 |
 |-------------|-----------|------|--------|------|
-| `utils/skill_loader.py` | ❌ | ❌ Not Started | P1 | Skill 发现和 SKILL.md 解析 — `base_agent.get_system_prompt_for_llm` 和 `skill_loader` 被多处依赖 |
-| `utils/disabled_skills.py` | ❌ | ❌ Not Started | P2 | 已禁用的 skill 管理 |
+| `utils/skill_loader.py` | `service/skill_loader.rs` | ✅ Ported | P1 | 含 SkillHead、parse_skill_md、discover_skills_xml_for_agent |
+| `utils/disabled_skills.py` | `service/disabled_skills.rs` | ✅ Ported | P2 | 禁用 skill 持久化（JSON 文件），含 set_disabled / save / load |
 | `utils/context_utils.py` | ❌ | ❌ Not Started | P1 | `get_article_context_messages` — mention 解析（article 引用），影响 chat 流的消息构建 |
 | `utils/helpers.py` | ❌ | ❌ Not Started | P2 | 杂项辅助函数 |
 | `utils/article_parser.py` | ❌ | ❌ Not Started | P2 | 文章解析（文档技能所需） |
@@ -142,15 +142,14 @@ Phase 1: P0 补齐（补齐 partial + 高优缺失）
 Phase 2: P1 补齐（完整 API 功能 + skill 系统）
   ② api: agent_config — prompts + skills CRUD               ← 3-5d
   ③ api: management — agents-summary 接口                    ← 1-2d
-  ④ utils: skill_loader — skill 发现/解析                    ← 3-5d
-  ⑤ utils: context_utils — mention/article 上下文处理         ← 1-2d
+  ④ utils: context_utils — mention/article 上下文处理         ← 1-2d
 
 Phase 3: P2 完善（全面功能对等）
-  ⑥ api: settings — env key 管理                            ← 1-2d
-  ⑦ tools: file_state                                       ← 1d
-  ⑧ skills: ingest-file / memo                               ← 5-7d
-  ⑨ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
-  ⑩ agents: write_agent                                     ← 3-5d
+  ⑤ api: settings — env key 管理                            ← 1-2d
+  ⑥ tools: file_state                                       ← 1d
+  ⑦ skills: ingest-file / memo                               ← 5-7d
+  ⑧ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
+  ⑨ agents: write_agent                                     ← 3-5d
 ```
 
 ### 对等期（Rust ≈ Python）
@@ -199,3 +198,4 @@ Phase 3: P2 完善（全面功能对等）
 | 2026-06-02 | P05: 实现 Provider Factory（create_provider, ProviderSpec, default_model_for） |
 | 2026-06-02 | P06: 实现 Auth 基础（UserContext + X-User-Id 中间件 + agents 路由集成） |
 | 2026-06-02 | P07: StandardAgent 使用 Provider Factory + Canvas 事件自动推送集成 |
+| 2026-06-02 | P08: 实现 skill_loader（SkillHead + parse_skill_md + XML 目录）+ disabled_skills |
