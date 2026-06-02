@@ -3,7 +3,7 @@
 paths:
   /api/management/agents-summary:
     get:
-      x-status: not-started
+      x-status: ported
       x-rust-path: /api/management/agents-summary
       summary: 获取所有非 admin 智能体的聚合摘要
       operationId: getAgentsSummary

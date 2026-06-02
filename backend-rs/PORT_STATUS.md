@@ -44,7 +44,7 @@
 | — | `routes/files.rs` | ✅ Ported | P0 | 文件上传到 cache |
 | — | `routes/chat.rs` | ✅ Ported | P0 | SSE 流式聊天（从 agents.py 独立出来） |
 | `api/agent_config.py` | `routes/agent_config.rs` | ✅ Ported | P1 | 6 个端点：prompts 读写 + skills 列表/禁用/上传/删除 |
-| `api/management.py` | ❌ | ❌ Not Started | P1 | `GET /api/management/agents-summary` — 最近有活跃开发的 management 聚合接口 |
+| `api/management.py` | `routes/management.rs` | ✅ Ported | P1 | agents-summary 端点，含 session_count / last_reply_time / last_session_title |
 | `api/settings.py` | ❌ | ❌ Not Started | P2 | API Key 管理：读取/更新 `.env` 文件中的 provider keys |
 | ❌ | `routes/health.rs` | N/A (Rust-only) | — | 健康检查端点，Python 侧无对应需求 |
 
@@ -140,14 +140,14 @@ Phase 1: P0 补齐（补齐 partial + 高优缺失）
   ① core: auth 基础（用户隔离）                              ← 2-3d
 
 Phase 2: P1 补齐（完整 API 功能 + skill 系统）
-  ② api: management — agents-summary 接口                    ← 1-2d
+  （全部完成）
 
 Phase 3: P2 完善（全面功能对等）
-  ③ api: settings — env key 管理                            ← 1-2d
-  ④ tools: file_state                                       ← 1d
-  ⑤ skills: ingest-file / memo                               ← 5-7d
-  ⑥ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
-  ⑦ agents: write_agent                                     ← 3-5d
+  ① api: settings — env key 管理                            ← 1-2d
+  ② tools: file_state                                       ← 1d
+  ③ skills: ingest-file / memo                               ← 5-7d
+  ④ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
+  ⑤ agents: write_agent                                     ← 3-5d
 ```
 
 ### 对等期（Rust ≈ Python）
@@ -199,3 +199,4 @@ Phase 3: P2 完善（全面功能对等）
 | 2026-06-02 | P08: 实现 skill_loader（SkillHead + parse_skill_md + XML 目录）+ disabled_skills |
 | 2026-06-02 | P09: 实现 context_utils（get_article_context_messages + chat 流 mentions 集成） |
 | 2026-06-02 | P10: 实现 Agent Config API（prompts 读写 + skills CRUD 6 个端点） |
+| 2026-06-02 | P11: 实现 Management API agents-summary 端点 |
