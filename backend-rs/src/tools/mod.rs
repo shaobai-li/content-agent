@@ -8,7 +8,7 @@ pub mod web;
 pub use base::Tool;
 pub use registry::ToolRegistry;
 
-use filesystem::{ReadFileTool, WriteFileTool};
+use filesystem::{EditFileTool, ListDirTool, ReadFileTool, WriteFileTool};
 use shell::RunCommandTool;
 use skill::InvokeSkillTool;
 use web::{WebFetchTool, WebSearchTool};
@@ -19,6 +19,8 @@ pub fn create_tool_registry(workspace: &str, agent_id: &str) -> ToolRegistry {
     registry.register(Box::new(RunCommandTool::new(workspace, 60)));
     registry.register(Box::new(ReadFileTool::new(workspace)));
     registry.register(Box::new(WriteFileTool::new(workspace)));
+    registry.register(Box::new(EditFileTool::new(workspace)));
+    registry.register(Box::new(ListDirTool::new(workspace)));
     registry.register(Box::new(WebSearchTool));
     registry.register(Box::new(WebFetchTool));
     registry.register(Box::new(InvokeSkillTool::new(workspace, agent_id)));
