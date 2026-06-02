@@ -33,7 +33,7 @@ fn load_openapi_spec() -> Value {
 
 /// 从规范中取出指定路径、方法、状态码的响应 JSON schema。
 /// 返回 None 表示该组合未在规范中定义（测试应跳过）。
-fn get_response_schema(spec: &Value, path: &str, method: &str, status: u16) -> Option<&Value> {
+fn get_response_schema<'a>(spec: &'a Value, path: &'a str, method: &'a str, status: u16) -> Option<&'a Value> {
     let status_str = status.to_string();
     spec.pointer(&format!(
         "/paths/{}/{}/responses/{}/content/application~1json/schema",
