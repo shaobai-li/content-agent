@@ -55,7 +55,7 @@
 | `service/sessions_service.py` | `service/sessions.rs` | ✅ Ported | P0 | 功能等价 |
 | `service/messages_service.py` | `service/messages.rs` | ✅ Ported | P0 | 功能等价 |
 | `service/records_service.py` | `service/records.rs` | ✅ Ported | P0 | 功能等价 |
-| `service/stream_service.py` | `service/stream.rs` | ✅ Ported | P0 | SSE 流式格式化，功能等价 |
+| `service/stream_service.py` | `service/stream.rs` | ✅ Ported | P0 | SSE 流式格式化，功能等价；build_canvas_card 已添加 |
 | `service/file_service.py` | `service/files.rs` | ✅ Ported | P0 | 文件上传保存 |
 | `service/knowledge_base_registry_service.py` | `service/knowledge_base.rs` | ✅ Ported | P0 | KB 注册管理 |
 | `service/agent_chat_service.py` | (内联在 routes/chat.rs + agent/standard.rs) | 🔄 In Progress | P1 | Python 有独立的 `build_standard_llm_messages`/`standard_chat_stream` 函数；Rust 将逻辑内联在路由和 agent 中，功能基本等价但缺 `context_utils` 的 article mention 处理 |
@@ -84,7 +84,7 @@
 | `agents/runner.py` | `agent/runner.rs` | ✅ Ported | P0 | AgentRunSpec + AgentRunner 主循环 |
 | `runtime/agent_registry.py` | `agent/registry.rs` | ✅ Ported | P0 | Agent 注册、查找 |
 | `runtime/agent_turn_context.py` | `agent/turn_context.rs` | ✅ Ported | P0 | AgentTurnContext 数据类 |
-| `agents/standard/agent.py` | `agent/standard.rs` | 🔄 In Progress | P1 | 基础 tool loop 已移植。差异：(1) Rust 的 `_get_provider` 硬编码了 deepseek；(2) Rust 缺少 Python 的 `build_canvas_card` 推送（Canvas HTML 集成）；(3) Rust 缺少 `generate_html` 工具及其自动推送逻辑 |
+| `agents/standard/agent.py` | `agent/standard.rs` | 🔄 In Progress | P1 | 基础 tool loop 已移植。差异：(1) Rust 的 `_get_provider` 硬编码了 deepseek；(2) Rust 的 `build_canvas_card` 和 `generate_html` 工具已添加，但自动推送逻辑待集成 |
 | `agents/standard/streaming_hook.py` | (内联在 `standard.rs`) | ✅ Ported | P1 | 功能等价，Rust 内联为 `StandardStreamingHook` 结构体 |
 | `agents/standard/tools.py` | ❌ | ❌ Not Started | P2 | Python 有 agent 级别的 tool 配置逻辑（非必需） |
 | `agents/write_agent/agent.py` | ❌ | ❌ Not Started | P2 | 写 Agent 专用逻辑 |
@@ -102,9 +102,9 @@
 | `tools/skill.py` | `tools/skill.rs` | ✅ Ported | P0 | InvokeSkillTool，功能等价 |
 | `tools/web.py` | `tools/web.rs` | ✅ Ported | P0 | WebSearchTool + WebFetchTool |
 | `tools/file_state.py` | ❌ | ❌ Not Started | P2 | 文件状态追踪工具 |
-| `tools/generate_html.py` | ❌ | ❌ Not Started | P1 | HTML 生成工具 — Canvas 功能所需，近期新加。缺少则 Rust 端无法支持 Canvas HTML 卡片 |
+| `tools/generate_html.py` | ❌（直连 LLM API） | ✅ Ported | P1 | 在 Rust 中实现，使用 reqwest 直连 LLM（暂不依赖 Provider 层） |
 | `tools/schema.py` | ❌ (内联在 `tools/base.rs`) | 🔲 Partial | P2 | Python 有独立的 Schema 类型系统（ArraySchema、StringSchema 等），Rust 只在 `tools/base.rs` 实现了 `validate_json_schema_value` 函数。基本功能等价但类型系统更弱 |
-| `tools/__init__.py` (create_tool_registry) | `tools/mod.rs` | 🔲 Partial | P0 | Rust `create_tool_registry` 注册了 8 个工具（run_command、read_file、write_file、edit_file、list_dir、web_search、web_fetch、invoke_skill）。Python 注册了 8 个（多 generate_html） |
+| `tools/__init__.py` (create_tool_registry) | `tools/mod.rs` | 🔲 Partial | P0 | Rust `create_tool_registry` 注册了 9 个工具（run_command、read_file、write_file、edit_file、list_dir、generate_html、web_search、web_fetch、invoke_skill）。Python 注册了 8 个 |
 
 ## 7. Skills / Utils 层
 
@@ -137,23 +137,22 @@ Phase 0: 已有成果（已 ✅ Ported）
   → 保持同步，禁止 Python 独立修改已 ported 模块
 
 Phase 1: P0 补齐（补齐 partial + 高优缺失）
-  ① tools: GenerateHTMLTool + Canvas 推送集成               ← 新功能移植，2-3d
-  ② provider: factory 动态 Provider 创建（替代硬编码）         ← 关键，3-5d
-  ③ core: auth 基础（用户隔离）                              ← 2-3d
-  ④ agent: standard.rs 补齐 provider 注入、Canvas 事件       ← 1-2d
+  ① provider: factory 动态 Provider 创建（替代硬编码）         ← 关键，3-5d
+  ② core: auth 基础（用户隔离）                              ← 2-3d
+  ③ agent: standard.rs 补齐 provider 注入、Canvas 事件       ← 1-2d
 
 Phase 2: P1 补齐（完整 API 功能 + skill 系统）
-  ⑤ api: agent_config — prompts + skills CRUD               ← 3-5d
-  ⑥ api: management — agents-summary 接口                    ← 1-2d
-  ⑦ utils: skill_loader — skill 发现/解析                    ← 3-5d
-  ⑧ utils: context_utils — mention/article 上下文处理         ← 1-2d
+  ④ api: agent_config — prompts + skills CRUD               ← 3-5d
+  ⑤ api: management — agents-summary 接口                    ← 1-2d
+  ⑥ utils: skill_loader — skill 发现/解析                    ← 3-5d
+  ⑦ utils: context_utils — mention/article 上下文处理         ← 1-2d
 
 Phase 3: P2 完善（全面功能对等）
-  ⑨ api: settings — env key 管理                            ← 1-2d
-  ⑩ tools: file_state                                       ← 1d
-  ⑪ skills: ingest-file / memo                               ← 5-7d
-  ⑫ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
-  ⑬ agents: write_agent                                     ← 3-5d
+  ⑧ api: settings — env key 管理                            ← 1-2d
+  ⑨ tools: file_state                                       ← 1d
+  ⑩ skills: ingest-file / memo                               ← 5-7d
+  ⑪ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
+  ⑫ agents: write_agent                                     ← 3-5d
 ```
 
 ### 对等期（Rust ≈ Python）
@@ -198,3 +197,4 @@ Phase 3: P2 完善（全面功能对等）
 | 2026-06-01 | 初始化 PORT_STATUS.md，建立覆盖度矩阵和契约测试框架 |
 | 2026-06-02 | P02: 配置 CI 流水线（contract-tests.yml）+ Python 两端一致性测试框架 |
 | 2026-06-02 | P03: 实现 EditFileTool + ListDirTool，更新 tools/mod.rs 注册 |
+| 2026-06-02 | P04: 实现 GenerateHTMLTool（直连 LLM）+ build_canvas_card SSE 事件 |
