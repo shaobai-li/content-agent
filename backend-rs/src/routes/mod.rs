@@ -1,3 +1,4 @@
+pub mod agent_config;
 pub mod agents;
 pub mod chat;
 pub mod files;

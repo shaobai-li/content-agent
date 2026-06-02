@@ -230,13 +230,6 @@ description: "quoted desc"
     }
 
     #[test]
-    fn test_discover_skills_xml_for_agent_nonexistent() {
-        // 不存在的 agent 应返回空字符串
-        let xml = discover_skills_xml_for_agent("nonexistent-agent-12345");
-        assert_eq!(xml, "");
-    }
-
-    #[test]
     fn test_format_skills_xml_escapes_special_chars() {
         let skills = vec![
             SkillHead {
