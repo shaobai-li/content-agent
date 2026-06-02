@@ -23,6 +23,7 @@ function GeneralSettings() {
   const [error, setError] = useState<string | null>(null);
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [dirty, setDirty] = useState<Record<string, string>>({});
+  const [dataDir, setDataDir] = useState("content-agent-data\\data");
 
   const refresh = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -146,6 +147,22 @@ function GeneralSettings() {
       {providers.length === 0 && !loading && (
         <p className="text-sm text-muted-foreground">无可配置的 API Key</p>
       )}
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="env-DATA_DIR" className="text-sm font-medium text-foreground">
+          DATA_DIR
+        </label>
+        <div className="relative">
+          <input
+            id="env-DATA_DIR"
+            type="text"
+            className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 pr-3 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-input focus-visible:ring-0"
+            placeholder="DATA_DIR路径"
+            value={dataDir}
+            onChange={(e) => setDataDir(e.target.value)}
+          />
+        </div>
+      </div>
 
       <div className="flex justify-end mt-2">
         <button
