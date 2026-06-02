@@ -18,14 +18,7 @@ jobs:
       - name: Validate OpenAPI spec
         run: |
           pip install pyyaml
-          python -c "
-            import yaml
-            with open('specs/openapi.yaml') as f:
-              spec = yaml.safe_load(f)
-            assert 'paths' in spec, 'spec 缺少 paths'
-            assert 'openapi' in spec, 'spec 缺少 openapi 版本'
-            print(f'OK: {len(spec[\"paths\"])} 个路径定义')
-          "
+          python contract-tests/validate_spec.py
 
   # ── 2. Python 契约测试（语法 + 端点发现验证） ──────────────────────
   python-contract-tests:
@@ -40,19 +33,7 @@ jobs:
           pip install pyyaml pytest requests
       - name: Validate spec and test discovery
         run: |
-          # 验证 test_contract.py 可导入，端口扫描逻辑正常
-          python -c "
-            import sys, yaml
-            from pathlib import Path
-            sys.path.insert(0, 'contract-tests')
-
-            from test_contract import get_ported_endpoints
-            eps = get_ported_endpoints()
-            print(f'OK: 发现 {len(eps)} 个 non-SSE ported 端点')
-            for ep in eps:
-              print(f'  {ep[\"method\"]:6s} {ep[\"path\"]}')
-            assert len(eps) >= 5, 'ported 端点数量异常偏少'
-          "
+          python contract-tests/discover_endpoints.py
 
   # ── 3. Rust 内部契约测试 ──────────────────────────────────────────
   rust-contract-tests:
