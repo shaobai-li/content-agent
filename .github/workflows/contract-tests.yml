@@ -1,0 +1,65 @@
+name: Contract Tests
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'backend-rs/src/**'
+      - 'specs/**'
+
+jobs:
+  # ── 1. OpenAPI Spec 校验 ──────────────────────────────────────────
+  spec-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate OpenAPI spec
+        run: |
+          pip install pyyaml
+          python -c "
+            import yaml
+            with open('specs/openapi.yaml') as f:
+              spec = yaml.safe_load(f)
+            assert 'paths' in spec, 'spec 缺少 paths'
+            assert 'openapi' in spec, 'spec 缺少 openapi 版本'
+            print(f'OK: {len(spec[\"paths\"])} 个路径定义')
+          "
+
+  # ── 2. Python 契约测试（语法 + 端点发现验证） ──────────────────────
+  python-contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python deps
+        run: |
+          pip install pyyaml pytest requests
+      - name: Validate spec and test discovery
+        run: |
+          # 验证 test_contract.py 可导入，端口扫描逻辑正常
+          python -c "
+            import sys, yaml
+            from pathlib import Path
+            sys.path.insert(0, 'contract-tests')
+
+            from test_contract import get_ported_endpoints, PORTED_ENDPOINTS
+            eps = get_ported_endpoints()
+            print(f'OK: 发现 {len(eps)} 个 non-SSE ported 端点')
+            for ep in eps:
+              print(f'  {ep[\"method\"]:6s} {ep[\"path\"]}')
+            assert len(eps) >= 5, 'ported 端点数量异常偏少'
+          "
+
+  # ── 3. Rust 内部契约测试 ──────────────────────────────────────────
+  rust-contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Rust
+        run: cargo build --manifest-path backend-rs/Cargo.toml
+      - name: Start Rust server
+        run: |
+          cd backend-rs
+          cargo run &
+          sleep 10
+      - name: Run contract tests
+        run: |
+          cargo test --manifest-path backend-rs/Cargo.toml --test contract_tests
