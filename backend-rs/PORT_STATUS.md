@@ -45,7 +45,7 @@
 | — | `routes/chat.rs` | ✅ Ported | P0 | SSE 流式聊天（从 agents.py 独立出来） |
 | `api/agent_config.py` | `routes/agent_config.rs` | ✅ Ported | P1 | 6 个端点：prompts 读写 + skills 列表/禁用/上传/删除 |
 | `api/management.py` | `routes/management.rs` | ✅ Ported | P1 | agents-summary 端点，含 session_count / last_reply_time / last_session_title |
-| `api/settings.py` | ❌ | ❌ Not Started | P2 | API Key 管理：读取/更新 `.env` 文件中的 provider keys |
+| `api/settings.py` | `routes/settings.rs` | ✅ Ported | P2 | GET/PUT /api/settings/env，含掩码 + .env 持久化 |
 | ❌ | `routes/health.rs` | N/A (Rust-only) | — | 健康检查端点，Python 侧无对应需求 |
 
 ## 3. Service 层
@@ -101,10 +101,10 @@
 | `tools/shell.py` | `tools/shell.rs` | ✅ Ported | P0 | RunCommandTool，功能等价 |
 | `tools/skill.py` | `tools/skill.rs` | ✅ Ported | P0 | InvokeSkillTool，功能等价 |
 | `tools/web.py` | `tools/web.rs` | ✅ Ported | P0 | WebSearchTool + WebFetchTool |
-| `tools/file_state.py` | ❌ | ❌ Not Started | P2 | 文件状态追踪工具 |
+| `tools/file_state.py` | `tools/file_state.rs` | ✅ Ported | P2 | 文件状态追踪（mtime + size 对比） |
 | `tools/generate_html.py` | ❌（直连 LLM API） | ✅ Ported | P1 | 在 Rust 中实现，使用 reqwest 直连 LLM（暂不依赖 Provider 层） |
 | `tools/schema.py` | ❌ (内联在 `tools/base.rs`) | 🔲 Partial | P2 | Python 有独立的 Schema 类型系统（ArraySchema、StringSchema 等），Rust 只在 `tools/base.rs` 实现了 `validate_json_schema_value` 函数。基本功能等价但类型系统更弱 |
-| `tools/__init__.py` (create_tool_registry) | `tools/mod.rs` | 🔲 Partial | P0 | Rust `create_tool_registry` 注册了 9 个工具（run_command、read_file、write_file、edit_file、list_dir、generate_html、web_search、web_fetch、invoke_skill）。Python 注册了 8 个 |
+| `tools/__init__.py` (create_tool_registry) | `tools/mod.rs` | 🔲 Partial | P0 | Rust `create_tool_registry` 注册了 10 个工具（run_command、read_file、write_file、edit_file、list_dir、file_state、generate_html、web_search、web_fetch、invoke_skill）。Python 注册了 8 个 |
 
 ## 7. Skills / Utils 层
 
@@ -113,8 +113,8 @@
 | `utils/skill_loader.py` | `service/skill_loader.rs` | ✅ Ported | P1 | 含 SkillHead、parse_skill_md、discover_skills_xml_for_agent |
 | `utils/disabled_skills.py` | `service/disabled_skills.rs` | ✅ Ported | P2 | 禁用 skill 持久化（JSON 文件），含 set_disabled / save / load |
 | `utils/context_utils.py` | `service/context_utils.rs` | ✅ Ported | P1 | 基础框架已移植，get_article_context_messages + resolve_mention 分阶段实现 |
-| `utils/helpers.py` | ❌ | ❌ Not Started | P2 | 杂项辅助函数 |
-| `utils/article_parser.py` | ❌ | ❌ Not Started | P2 | 文章解析（文档技能所需） |
+| `utils/helpers.py` | `utils/helpers.rs` | ✅ Ported | P2 | 通用函数：truncate_text、sanitize_filename、now_iso_string |
+| `utils/article_parser.py` | `service/article_parser.rs` | ✅ Ported | P2 | 基础版：Markdown 文章结构提取（标题 + 章节） |
 | `utils/llm_client.py` | ❌ (provider 已替代) | ✅ N/A | — | Python 的 `deepseek_chat` / `deepseek_chat_stream` 封装在 Rust 中被 provider 层取代 |
 | `utils/runtime.py` | ❌ | ❌ Not Started | P2 | 运行时工具 |
 | `utils/xml_stream_parser.py` | ❌ | ❌ Not Started | P2 | XML 流式解析器 |
@@ -143,11 +143,9 @@ Phase 2: P1 补齐（完整 API 功能 + skill 系统）
   （全部完成）
 
 Phase 3: P2 完善（全面功能对等）
-  ① api: settings — env key 管理                            ← 1-2d
-  ② tools: file_state                                       ← 1d
-  ③ skills: ingest-file / memo                               ← 5-7d
-  ④ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
-  ⑤ agents: write_agent                                     ← 3-5d
+  ① skills: ingest-file / memo                               ← 5-7d
+  ② utils: xml_stream_parser                                ← 1d
+  ③ agents: write_agent                                     ← 3-5d
 ```
 
 ### 对等期（Rust ≈ Python）
@@ -200,3 +198,4 @@ Phase 3: P2 完善（全面功能对等）
 | 2026-06-02 | P09: 实现 context_utils（get_article_context_messages + chat 流 mentions 集成） |
 | 2026-06-02 | P10: 实现 Agent Config API（prompts 读写 + skills CRUD 6 个端点） |
 | 2026-06-02 | P11: 实现 Management API agents-summary 端点 |
+| 2026-06-02 | P12: 实现 Settings API + file_state + article_parser + helpers |
