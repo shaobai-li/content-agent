@@ -42,7 +42,7 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({ agentId }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<SettingsTabId>("system");
-  const { skills, loading: skillsLoading, error: skillsError, toggleDisable, upload } = useSkills(agentId);
+  const { skills, loading: skillsLoading, error: skillsError, toggleDisable, upload, remove } = useSkills(agentId);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -89,6 +89,16 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     } finally {
       setUploading(false);
       e.target.value = "";
+    }
+  };
+
+  const handleDelete = async (skillId: string, skillName: string) => {
+    if (!window.confirm(`确定要删除 skill「${skillName}」吗？`)) return;
+    setUploadError(null);
+    try {
+      await remove(skillId);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "删除失败");
     }
   };
 
@@ -288,10 +298,15 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                               刷新
                             </span>
                           </DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onClick={() => {}}>
+                          {skill.source === "user" && (
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => handleDelete(skill.id, skill.name)}
+                            >
                               <Trash2 className="size-4" />
                               删除
-                          </DropdownMenuItem>
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
