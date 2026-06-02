@@ -86,6 +86,8 @@ async def update_env_settings(payload: dict = Body(...)):
     data_dir_val = payload.get("DATA_DIR")
     if isinstance(data_dir_val, str) and data_dir_val.strip():
         p = Path(data_dir_val.strip())
+        if not p.is_absolute():
+            raise HTTPException(status_code=400, detail=f"请输入绝对路径: {data_dir_val}")
         if not p.exists():
             raise HTTPException(status_code=400, detail=f"路径不存在: {data_dir_val}")
         if not p.is_dir():
