@@ -1,10 +1,11 @@
-"""Global settings API: env vars (API keys) management."""
+"""Global settings API: env vars (API keys) and DATA_DIR management."""
 
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, HTTPException
 from app.core.config import ENV_PATH
 from app.providers.registry import PROVIDERS
 
@@ -62,26 +63,42 @@ async def get_env_settings():
             "set": bool(value),
             "masked": _mask_key(value) if value else "",
         })
-    return {"providers": result}
+    return {"providers": result, "data_dir": os.environ.get("DATA_DIR", "")}
 
 
 @router.put("/env")
 async def update_env_settings(payload: dict = Body(...)):
-    """Update env vars. Keys are env_key names, values are API keys.
+    """Update env vars and DATA_DIR.
 
-    Empty string removes the env var. Non-empty sets it.
+    - Provider API keys: key is env_key name, value is the key.
+    - DATA_DIR: key is "DATA_DIR", value is an absolute path.
+
+    Empty string removes the entry. Non-empty sets it.
     Both os.environ and .env file are updated so the change survives restart.
 
+    When DATA_DIR is provided and non-empty, the path is validated to exist
+    on disk before saving.
+
     Example:
-        { "DEEPSEEK_API_KEY": "sk-xxx", "OPENAI_API_KEY": "" }
+        { "DEEPSEEK_API_KEY": "sk-xxx", "DATA_DIR": "D:/data" }
     """
+    # Validate DATA_DIR first (if present and non-empty)
+    data_dir_val = payload.get("DATA_DIR")
+    if isinstance(data_dir_val, str) and data_dir_val.strip():
+        p = Path(data_dir_val.strip())
+        if not p.exists():
+            raise HTTPException(status_code=400, detail=f"路径不存在: {data_dir_val}")
+        if not p.is_dir():
+            raise HTTPException(status_code=400, detail=f"路径不是目录: {data_dir_val}")
+
     updates: dict[str, str | None] = {}
     for key, value in payload.items():
         if not isinstance(value, str):
             continue
-        updates[key] = value if value else None
-        if value:
-            os.environ[key] = value
+        v = value.strip()
+        updates[key] = v if v else None
+        if v:
+            os.environ[key] = v
         else:
             os.environ.pop(key, None)
 
