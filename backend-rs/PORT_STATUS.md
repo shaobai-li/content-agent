@@ -69,10 +69,10 @@
 | `providers/base.py` | `provider/base.rs` | ✅ Ported | P0 | Provider trait 定义 |
 | `providers/registry.py` | `provider/registry.rs` | ✅ Ported | P0 | Provider 注册表 |
 | `providers/openai_compat_provider.py` | `provider/openai_compat.rs` | ✅ Ported | P0 | OpenAI 兼容请求构建与流式解析 |
-| `providers/factory.py` | ❌ | ❌ Not Started | P1 | Python 的 `create_provider(provider_name)` 工厂函数根据注册表和 env 动态创建 Provider 实例。Rust 当前在 `standard.rs` 中硬编码 `DEEPSEEK_API_KEY` 和 `deepseek-reasoner` 模型 |
+| `providers/factory.py` | `provider/factory.rs` | ✅ Ported | P1 | 含 create_provider、default_model_for、ProviderSpec 列表（deepseek/openai/moonshot） |
 | `providers/__init__.py` | ❌ (无对应) | ❌ Not Started | P2 | 仅有模块导出，非必需 |
 
-**关键差异**：Rust 的 Provider 当前硬编码了 `DEEPSEEK_API_KEY` 和 `deepseek-reasoner` 模型，Python 的 factory 支持根据配置动态选择 provider。这是 Rust 达到对等期的关键阻塞项。
+**关键差异**：Rust 的 Provider Factory 已实现（P05），但 standard.rs 尚未切换使用它（待 P07）。
 
 ## 5. Agent 层
 
@@ -137,22 +137,21 @@ Phase 0: 已有成果（已 ✅ Ported）
   → 保持同步，禁止 Python 独立修改已 ported 模块
 
 Phase 1: P0 补齐（补齐 partial + 高优缺失）
-  ① provider: factory 动态 Provider 创建（替代硬编码）         ← 关键，3-5d
-  ② core: auth 基础（用户隔离）                              ← 2-3d
-  ③ agent: standard.rs 补齐 provider 注入、Canvas 事件       ← 1-2d
+  ① core: auth 基础（用户隔离）                              ← 2-3d
+  ② agent: standard.rs 补齐 provider 注入、Canvas 事件       ← 1-2d
 
 Phase 2: P1 补齐（完整 API 功能 + skill 系统）
-  ④ api: agent_config — prompts + skills CRUD               ← 3-5d
-  ⑤ api: management — agents-summary 接口                    ← 1-2d
-  ⑥ utils: skill_loader — skill 发现/解析                    ← 3-5d
-  ⑦ utils: context_utils — mention/article 上下文处理         ← 1-2d
+  ③ api: agent_config — prompts + skills CRUD               ← 3-5d
+  ④ api: management — agents-summary 接口                    ← 1-2d
+  ⑤ utils: skill_loader — skill 发现/解析                    ← 3-5d
+  ⑥ utils: context_utils — mention/article 上下文处理         ← 1-2d
 
 Phase 3: P2 完善（全面功能对等）
-  ⑧ api: settings — env key 管理                            ← 1-2d
-  ⑨ tools: file_state                                       ← 1d
-  ⑩ skills: ingest-file / memo                               ← 5-7d
-  ⑪ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
-  ⑫ agents: write_agent                                     ← 3-5d
+  ⑦ api: settings — env key 管理                            ← 1-2d
+  ⑧ tools: file_state                                       ← 1d
+  ⑨ skills: ingest-file / memo                               ← 5-7d
+  ⑩ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
+  ⑪ agents: write_agent                                     ← 3-5d
 ```
 
 ### 对等期（Rust ≈ Python）
@@ -198,3 +197,4 @@ Phase 3: P2 完善（全面功能对等）
 | 2026-06-02 | P02: 配置 CI 流水线（contract-tests.yml）+ Python 两端一致性测试框架 |
 | 2026-06-02 | P03: 实现 EditFileTool + ListDirTool，更新 tools/mod.rs 注册 |
 | 2026-06-02 | P04: 实现 GenerateHTMLTool（直连 LLM）+ build_canvas_card SSE 事件 |
+| 2026-06-02 | P05: 实现 Provider Factory（create_provider, ProviderSpec, default_model_for） |
