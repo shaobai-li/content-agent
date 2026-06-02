@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { PlusIcon } from "@heroicons/react/24/outline";
-import { Ellipsis, Trash2, RefreshCw } from "lucide-react";
+import { Ellipsis, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -281,24 +281,18 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                     <div className="w-full border-t border-border" />
                     <div className="flex items-center justify-between pt-1.5">
                       <span className="text-xs text-muted-foreground">Words</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            className="flex size-6 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Ellipsis className="size-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" sideOffset={4}>
-                          <DropdownMenuItem onClick={() => {}}>
-                            <span className="flex items-center gap-2 cursor-pointer">
-                              <RefreshCw className="size-4" />
-                              刷新
-                            </span>
-                          </DropdownMenuItem>
-                          {skill.source === "user" && (
+                      {skill.source === "user" && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="flex size-6 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Ellipsis className="size-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" sideOffset={4}>
                             <DropdownMenuItem
                               variant="destructive"
                               onClick={() => handleDelete(skill.id, skill.name)}
@@ -306,9 +300,9 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                               <Trash2 className="size-4" />
                               删除
                             </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   </div>
                 </Card>
