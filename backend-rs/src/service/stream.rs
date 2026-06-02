@@ -45,3 +45,14 @@ pub fn build_tool_exec_end(call_id: &str) -> String {
         serde_json::json!({"call_id": call_id})
     )
 }
+
+pub fn build_canvas_card(content: &str, card_type: &str, title: &str) -> String {
+    format!(
+        "event: canvas_card\ndata: {}\n\n",
+        serde_json::json!({
+            "content": content,
+            "card_type": card_type,
+            "title": title,
+        })
+    )
+}
