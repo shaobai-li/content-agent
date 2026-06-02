@@ -29,7 +29,7 @@
 |-------------|-----------|------|--------|------|
 | `core/config.py` | `core/config.rs` | ✅ Ported | P0 | 配置加载（YAML + env） |
 | `core/ids.py` | `core/ids.rs` | ✅ Ported | P0 | UUID 生成 |
-| `core/auth.py` | ❌ | ❌ Not Started | P1 | 用户认证、`_user_agents_var`；当前 Rust 未做用户隔离 |
+| `core/auth.py` | `core/auth.rs` | ✅ Ported | P1 | 简化版：X-User-Id header + UserContext + auth_middleware |
 | ❌ | `core/error.rs` | N/A (Rust-only) | — | Rust 统一错误处理，Python 侧无对应需求 |
 
 ## 2. API 路由层
@@ -198,3 +198,4 @@ Phase 3: P2 完善（全面功能对等）
 | 2026-06-02 | P03: 实现 EditFileTool + ListDirTool，更新 tools/mod.rs 注册 |
 | 2026-06-02 | P04: 实现 GenerateHTMLTool（直连 LLM）+ build_canvas_card SSE 事件 |
 | 2026-06-02 | P05: 实现 Provider Factory（create_provider, ProviderSpec, default_model_for） |
+| 2026-06-02 | P06: 实现 Auth 基础（UserContext + X-User-Id 中间件 + agents 路由集成） |
