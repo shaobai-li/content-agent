@@ -16,14 +16,19 @@ use skill::InvokeSkillTool;
 use web::{WebFetchTool, WebSearchTool};
 
 /// Create and populate a ToolRegistry with all standard tools.
-pub fn create_tool_registry(workspace: &str, agent_id: &str) -> ToolRegistry {
+pub fn create_tool_registry(
+    workspace: &str,
+    agent_id: &str,
+    provider_name: Option<&str>,
+    model: Option<&str>,
+) -> ToolRegistry {
     let mut registry = ToolRegistry::new();
     registry.register(Box::new(RunCommandTool::new(workspace, 60)));
     registry.register(Box::new(ReadFileTool::new(workspace)));
     registry.register(Box::new(WriteFileTool::new(workspace)));
     registry.register(Box::new(EditFileTool::new(workspace)));
     registry.register(Box::new(ListDirTool::new(workspace)));
-    registry.register(Box::new(GenerateHTMLTool::new(None, None)));
+    registry.register(Box::new(GenerateHTMLTool::new(provider_name, model)));
     registry.register(Box::new(WebSearchTool));
     registry.register(Box::new(WebFetchTool));
     registry.register(Box::new(InvokeSkillTool::new(workspace, agent_id)));

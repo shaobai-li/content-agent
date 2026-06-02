@@ -72,7 +72,7 @@
 | `providers/factory.py` | `provider/factory.rs` | ✅ Ported | P1 | 含 create_provider、default_model_for、ProviderSpec 列表（deepseek/openai/moonshot） |
 | `providers/__init__.py` | ❌ (无对应) | ❌ Not Started | P2 | 仅有模块导出，非必需 |
 
-**关键差异**：Rust 的 Provider Factory 已实现（P05），但 standard.rs 尚未切换使用它（待 P07）。
+**关键差异**：Rust 的 Provider Factory 已实现（P05），StandardAgent 已切换使用（P07）。
 
 ## 5. Agent 层
 
@@ -84,7 +84,7 @@
 | `agents/runner.py` | `agent/runner.rs` | ✅ Ported | P0 | AgentRunSpec + AgentRunner 主循环 |
 | `runtime/agent_registry.py` | `agent/registry.rs` | ✅ Ported | P0 | Agent 注册、查找 |
 | `runtime/agent_turn_context.py` | `agent/turn_context.rs` | ✅ Ported | P0 | AgentTurnContext 数据类 |
-| `agents/standard/agent.py` | `agent/standard.rs` | 🔄 In Progress | P1 | 基础 tool loop 已移植。差异：(1) Rust 的 `_get_provider` 硬编码了 deepseek；(2) Rust 的 `build_canvas_card` 和 `generate_html` 工具已添加，但自动推送逻辑待集成 |
+| `agents/standard/agent.py` | `agent/standard.rs` | ✅ Ported | P1 | Provider Factory 动态创建 + Canvas 事件推送已集成 |
 | `agents/standard/streaming_hook.py` | (内联在 `standard.rs`) | ✅ Ported | P1 | 功能等价，Rust 内联为 `StandardStreamingHook` 结构体 |
 | `agents/standard/tools.py` | ❌ | ❌ Not Started | P2 | Python 有 agent 级别的 tool 配置逻辑（非必需） |
 | `agents/write_agent/agent.py` | ❌ | ❌ Not Started | P2 | 写 Agent 专用逻辑 |
@@ -138,20 +138,19 @@ Phase 0: 已有成果（已 ✅ Ported）
 
 Phase 1: P0 补齐（补齐 partial + 高优缺失）
   ① core: auth 基础（用户隔离）                              ← 2-3d
-  ② agent: standard.rs 补齐 provider 注入、Canvas 事件       ← 1-2d
 
 Phase 2: P1 补齐（完整 API 功能 + skill 系统）
-  ③ api: agent_config — prompts + skills CRUD               ← 3-5d
-  ④ api: management — agents-summary 接口                    ← 1-2d
-  ⑤ utils: skill_loader — skill 发现/解析                    ← 3-5d
-  ⑥ utils: context_utils — mention/article 上下文处理         ← 1-2d
+  ② api: agent_config — prompts + skills CRUD               ← 3-5d
+  ③ api: management — agents-summary 接口                    ← 1-2d
+  ④ utils: skill_loader — skill 发现/解析                    ← 3-5d
+  ⑤ utils: context_utils — mention/article 上下文处理         ← 1-2d
 
 Phase 3: P2 完善（全面功能对等）
-  ⑦ api: settings — env key 管理                            ← 1-2d
-  ⑧ tools: file_state                                       ← 1d
-  ⑨ skills: ingest-file / memo                               ← 5-7d
-  ⑩ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
-  ⑪ agents: write_agent                                     ← 3-5d
+  ⑥ api: settings — env key 管理                            ← 1-2d
+  ⑦ tools: file_state                                       ← 1d
+  ⑧ skills: ingest-file / memo                               ← 5-7d
+  ⑨ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
+  ⑩ agents: write_agent                                     ← 3-5d
 ```
 
 ### 对等期（Rust ≈ Python）
@@ -199,3 +198,4 @@ Phase 3: P2 完善（全面功能对等）
 | 2026-06-02 | P04: 实现 GenerateHTMLTool（直连 LLM）+ build_canvas_card SSE 事件 |
 | 2026-06-02 | P05: 实现 Provider Factory（create_provider, ProviderSpec, default_model_for） |
 | 2026-06-02 | P06: 实现 Auth 基础（UserContext + X-User-Id 中间件 + agents 路由集成） |
+| 2026-06-02 | P07: StandardAgent 使用 Provider Factory + Canvas 事件自动推送集成 |

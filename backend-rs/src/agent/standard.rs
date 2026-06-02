@@ -12,10 +12,11 @@ use crate::agent::runner::{AgentRunner, AgentRunSpec};
 use crate::agent::turn_context::AgentTurnContext;
 use crate::core::config::get_agent_workspace_dir;
 use crate::provider::base::ToolCallRequest;
+use crate::provider::factory;
 use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
 use crate::service::stream::{
-    build_stream_chunk, build_stream_done, build_tool_exec_chunk, build_tool_exec_end,
-    build_tool_exec_start,
+    build_canvas_card, build_stream_chunk, build_stream_done, build_tool_exec_chunk,
+    build_tool_exec_end, build_tool_exec_start,
 };
 use crate::tools::create_tool_registry;
 
@@ -49,6 +50,11 @@ impl AgentHook for StandardStreamingHook {
                 let _ = self.tx.send(build_tool_exec_chunk(&tc.id, chunk));
             }
             let _ = self.tx.send(build_tool_exec_end(&tc.id));
+
+            // 检测 generate_html 工具完成，推送 Canvas 事件
+            if tc.name == "generate_html" && !result.starts_with("Error") && !result.trim().is_empty() {
+                let _ = self.tx.send(build_canvas_card(result, "html", "HTML 生成结果"));
+            }
         }
     }
 }
@@ -86,16 +92,31 @@ impl BaseAgent for StandardAgent {
 
         let history = history_llm_turns(&ctx.history_messages);
         let messages = builder.build_messages(&history, &ctx.user_text, &ctx.mentions);
-        let registry = create_tool_registry(&workspace.display().to_string(), &self.agent_id);
 
-        let api_key = std::env::var("DEEPSEEK_API_KEY").ok();
-        let provider = Arc::new(OpenAICompatProvider::new(
-            api_key,
-            None,
-            Some("deepseek-reasoner".to_string()),
-            None,
-            Some(ProviderConfig::default()),
-        ));
+        let provider_name = ctx.provider.as_deref().unwrap_or("deepseek");
+        let model = ctx
+            .model
+            .as_deref()
+            .unwrap_or_else(|| factory::default_model_for(provider_name));
+
+        let registry =
+            create_tool_registry(&workspace.display().to_string(), &self.agent_id, Some(provider_name), Some(model));
+
+        // 使用 Provider Factory 动态创建（P05）
+        let provider = match factory::create_provider(provider_name, None, None, Some(model.to_string())) {
+            Ok(p) => Arc::new(p) as Arc<dyn crate::provider::base::LLMProvider>,
+            Err(e) => {
+                tracing::warn!("创建 provider {provider_name} 失败: {e}，降级到 deepseek");
+                let api_key = std::env::var("DEEPSEEK_API_KEY").ok();
+                Arc::new(OpenAICompatProvider::new(
+                    api_key,
+                    None,
+                    Some("deepseek-chat".to_string()),
+                    None,
+                    Some(ProviderConfig::default()),
+                )) as Arc<dyn crate::provider::base::LLMProvider>
+            }
+        };
 
         let (tx, rx) = mpsc::unbounded_channel::<String>();
         let hook = Arc::new(StandardStreamingHook { tx: tx.clone() });
@@ -107,7 +128,7 @@ impl BaseAgent for StandardAgent {
         let spec = AgentRunSpec {
             initial_messages: messages,
             tools: registry,
-            model: "deepseek-reasoner".to_string(),
+            model: model.to_string(),
             max_iterations: MAX_TOOL_ROUNDS,
             max_tool_result_chars: 100_000,
             temperature: None,
