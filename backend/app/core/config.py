@@ -61,8 +61,8 @@ def get_agent_workspace_dir(agent_id: str) -> Path:
 
 
 def get_agent_local_data_dir(agent_id: str) -> Path:
-    """用户数据根目录：<base>/knowledge_base/（知识库、注册表等）。"""
-    local_data = get_agent_base_dir(agent_id) / "knowledge_base"
+    """用户数据根目录：<base>/.local/knowledge_base/（知识库、注册表等）。"""
+    local_data = get_agent_workspace_dir(agent_id) / "knowledge_base"
     local_data.mkdir(parents=True, exist_ok=True)
     return local_data
 
