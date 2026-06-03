@@ -22,24 +22,17 @@ export default function AgentPage() {
   // 从注册表获取 agent 配置
   const agent = agentRegistry[agentId];
 
-  if (!agent) {
-    return (
-      <div className="flex h-full items-center justify-center text-gray-400">
-        Agent not found
-      </div>
-    );
-  }
-
-  // URL ?left= 优先，否则用 defaultLeft（首次渲染与 SSR 一致，避免 hydration 不匹配）
+  // URL ?left= 优先，否则用 defaultLeft
   const leftParam = searchParams.get("left") as UIModule | null;
   const leftAllowed =
     leftParam === "settings" ||
     (leftParam === "management" && agentId === "admin") ||
-    (!!leftParam && agent.layout.left.includes(leftParam));
+    (!!leftParam && (agent?.layout?.left?.includes(leftParam) ?? false));
 
+  // Hooks must be called unconditionally (before early return)
   const [leftModule, setLeftModule] = useState<UIModule>(() => {
     if (leftAllowed && leftParam) return leftParam;
-    return leftModuleCache.get(agentId) ?? agent.layout.defaultLeft;
+    return leftModuleCache.get(agentId) ?? agent?.layout?.defaultLeft ?? "history";
   });
 
   // 检测 agentId 切换：保存上一个 agent 的状态，恢复当前 agent 的状态
@@ -49,7 +42,7 @@ export default function AgentPage() {
     if (prev !== agentId) {
       // leftModule 在当前 render 闭包中仍是上一个 agent 的值
       leftModuleCache.set(prev, leftModule);
-      if (!leftParam) {
+      if (!leftParam && agent) {
         setLeftModule(leftModuleCache.get(agentId) ?? agent.layout.defaultLeft);
       }
     }
@@ -66,8 +59,18 @@ export default function AgentPage() {
 
   // 持久化当前模块选择
   useEffect(() => {
-    leftModuleCache.set(agentId, leftModule);
+    if (agent) {
+      leftModuleCache.set(agentId, leftModule);
+    }
   }, [agentId, leftModule]);
+
+  if (!agent) {
+    return (
+      <div className="flex h-full items-center justify-center text-gray-400">
+        Agent not found
+      </div>
+    );
+  }
 
   const renderModule = uiModuleRegistry[leftModule];
 
