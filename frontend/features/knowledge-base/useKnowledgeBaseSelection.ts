@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 const DATABASE_QUERY_KEY = "db";
 
 export function useKnowledgeBaseSelection() {
-  const pathname = usePathname();
-  const router = useRouter();
+  const pathname = useLocation().pathname;
+  const navigate = useNavigate();
   const searchParams = useSearchParams();
 
   const databaseId = searchParams.get(DATABASE_QUERY_KEY);
@@ -22,8 +22,8 @@ export function useKnowledgeBaseSelection() {
     }
 
     const query = nextParams.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
-  }, [pathname, router, searchParams]);
+    navigate(query ? `${pathname}?${query}` : pathname, { replace: true });
+  }, [pathname, navigate, searchParams]);
 
   const selectDatabase = useCallback((nextDatabaseId: string) => {
     updateDatabaseId(nextDatabaseId);
