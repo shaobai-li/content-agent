@@ -8,7 +8,8 @@ pub trait AgentHook: Send + Sync {
         false
     }
 
-    async fn on_stream(&self, _delta: &str) {}
+    /// 同步调用——内部实现必须是即时返回的（仅做 mpsc::send 之类操作）。
+    fn on_stream(&self, _delta: &str) {}
 
     async fn before_execute_tools(&self, _tool_calls: &[ToolCallRequest]) {}
 

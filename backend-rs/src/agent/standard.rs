@@ -33,7 +33,7 @@ impl AgentHook for StandardStreamingHook {
         true
     }
 
-    async fn on_stream(&self, delta: &str) {
+    fn on_stream(&self, delta: &str) {
         let _ = self.tx.send(build_stream_chunk(delta));
     }
 
