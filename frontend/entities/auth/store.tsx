@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { getMe, getToken, clearToken as apiClearToken } from '@/shared/api/auth'
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
@@ -20,11 +20,11 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-const AUTH_ENABLED = process.env.NEXT_PUBLIC_AUTH_ENABLED === 'true'
+const AUTH_ENABLED = import.meta.env.VITE_AUTH_ENABLED === 'true'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ user: null, status: 'loading' })
-  const router = useRouter()
+  const navigate = useNavigate()
 
   // 初始化：检查 token 是否有效
   useEffect(() => {
@@ -54,8 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     apiClearToken()
     setState({ user: null, status: 'unauthenticated' })
-    router.replace('/login')
-  }, [router])
+    navigate('/login', { replace: true })
+  }, [navigate])
 
   return (
     <AuthContext.Provider
@@ -74,18 +74,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const auth = useAuth()
-  const router = useRouter()
-  const pathname = usePathname()
+  const navigate = useNavigate()
+  const pathname = useLocation().pathname
 
   useEffect(() => {
     if (auth.loading || !auth.enabled) return
     if (auth.status === 'unauthenticated' && pathname !== '/login') {
-      router.replace('/login')
+      navigate('/login', { replace: true })
     }
     if (auth.status === 'authenticated' && pathname === '/login') {
-      router.replace('/')
+      navigate('/', { replace: true })
     }
-  }, [auth.status, auth.loading, auth.enabled, pathname, router])
+  }, [auth.status, auth.loading, auth.enabled, pathname, navigate])
 
   if (auth.enabled && auth.loading) return null
   if (auth.enabled && auth.status === 'unauthenticated' && pathname !== '/login') return null
