@@ -72,14 +72,23 @@ fn find_project_root() -> PathBuf {
 
 fn find_config_dir(project_root: &Path) -> PathBuf {
     // 如果从 backend-rs 下运行，配置在 ../config/
-    let parent_config = project_root.join("config");
-    if parent_config.exists() {
-        return parent_config;
+    let cfg_dir = project_root.join("config");
+    if cfg_dir.exists() {
+        return cfg_dir;
     }
     // 如果从项目根运行，配置在 backend/config/
     let backend_config = project_root.join("backend").join("config");
     if backend_config.exists() {
         return backend_config;
+    }
+    // 如果从 src-tauri（Tauri 桌面）下运行，配置在 ../backend-rs/config/
+    if project_root.file_name().and_then(|n| n.to_str()) == Some("src-tauri") {
+        if let Some(parent) = project_root.parent() {
+            let backend_cfg = parent.join("backend-rs").join("config");
+            if backend_cfg.exists() {
+                return backend_cfg;
+            }
+        }
     }
     project_root.join("config")
 }
@@ -129,6 +138,7 @@ pub fn init_config() {
     let config_dir = find_config_dir(&project_root);
 
     let agents = load_agent_yamls(&config_dir);
+
     let visibility = load_visibility_yaml(&config_dir);
 
     let config = AppConfig { data_dir, agents, visibility };
