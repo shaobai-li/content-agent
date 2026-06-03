@@ -8,7 +8,7 @@ const DATABASE_QUERY_KEY = "db";
 export function useKnowledgeBaseSelection() {
   const pathname = useLocation().pathname;
   const navigate = useNavigate();
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const databaseId = searchParams.get(DATABASE_QUERY_KEY);
 
