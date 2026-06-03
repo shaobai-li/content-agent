@@ -1,7 +1,6 @@
 "use client";
 
 import { LoginForm } from './LoginForm'
-import Image from 'next/image'
 
 export function LoginPage() {
   return (
@@ -13,7 +12,7 @@ export function LoginPage() {
               <p className="text-center text-sm font-semibold text-black -mb-7">
                 Welcome to login
               </p>
-              <Image
+              <img
                 src="/OmniAge_Logo_4K.svg"
                 alt="OmniAge Logo"
                 width={200}
