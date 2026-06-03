@@ -3,6 +3,9 @@ name = "omniage-backend-rs"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "omniage_backend_rs"
+
 [dependencies]
 axum = { version = "0.7", features = ["multipart"] }
 tokio = { version = "1", features = ["full"] }
