@@ -28,16 +28,18 @@ async fn get_env_settings() -> Json<Value> {
 
     for spec in PROVIDERS.iter() {
         let value = std::env::var(spec.env_key).ok();
-        let masked = value.as_deref().map(mask_key);
+        let masked = value.as_deref().map(mask_key).unwrap_or_default();
+        let is_set = value.is_some();
         settings.push(json!({
-            "key": spec.env_key,
-            "name": spec.display_name,
-            "value": masked,
-            "configured": value.is_some(),
+            "provider": spec.name,
+            "display_name": spec.display_name,
+            "env_key": spec.env_key,
+            "set": is_set,
+            "masked": if is_set { masked } else { String::new() },
         }));
     }
 
-    Json(json!({"env": settings}))
+    Json(json!({"providers": settings}))
 }
 
 #[derive(Deserialize)]

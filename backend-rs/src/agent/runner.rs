@@ -220,11 +220,10 @@ impl AgentRunner {
         if let Some(hook) = &spec.hook {
             if hook.wants_streaming() {
                 let hook = hook.clone();
+                // on_stream 是同步调用（内部仅做 mpsc::send），
+                // 直接调用即可保证 SSE chunk 按原始顺序送达。
                 let on_delta: Option<Box<dyn Fn(String) + Send>> = Some(Box::new(move |delta| {
-                    let hook = hook.clone();
-                    tokio::spawn(async move {
-                        hook.on_stream(&delta).await;
-                    });
+                    hook.on_stream(&delta);
                 }));
                 return self
                     .provider
