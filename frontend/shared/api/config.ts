@@ -3,7 +3,7 @@
  * 所有 agent 的 API 端点都遵循统一的模式
  */
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /**
  * Agent ID 映射

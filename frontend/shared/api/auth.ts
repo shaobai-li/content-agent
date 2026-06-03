@@ -1,9 +1,8 @@
 const TOKEN_KEY = 'auth_token'
 
 function getBaseUrl(): string {
-  // 配置了 AUTH_API_URL 时使用 Next.js 代理转发（同源），避免 CORS
-  // 未配置时直连 localhost:3001 用于本地纯后端开发
-  return process.env.NEXT_PUBLIC_AUTH_API_URL ? '' : 'http://localhost:3001'
+  // Auth API 请求走 Vite proxy（开发）或同源（生产），无需配置 base URL
+  return ''
 }
 
 export function getToken(): string | null {

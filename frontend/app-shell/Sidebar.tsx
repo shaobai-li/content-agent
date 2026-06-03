@@ -2,10 +2,9 @@
 
 import { Card, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/cn";
-import Image from "next/image";
 import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
@@ -109,7 +108,7 @@ function SortableRoute({ route, isActive, children }: { route: RouteItem; isActi
 }
 
 export function Sidebar({ routes }: SidebarProps) {
-  const currentPath = usePathname();
+  const currentPath = useLocation().pathname;
   const [hiddenIds, setHiddenIds] = useState<string[]>(() => getHiddenAgentIds());
   const { user, logout, enabled: authEnabled } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -185,13 +184,12 @@ export function Sidebar({ routes }: SidebarProps) {
     <>
       <Card className="w-70 shrink-0 flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
       <div className="flex items-center px-3">
-        <Image
+        <img
           className="mb-[-20px]"
           src="/OmniAge_Logo_4K.svg"
           alt="OmniAge Logo"
           width={190}
           height={80}
-          priority
         />
       </div>
       <CardContent className="flex-grow flex flex-col p-4 gap-0">
@@ -210,7 +208,7 @@ export function Sidebar({ routes }: SidebarProps) {
 
               return (
                 <SortableRoute key={route.href} route={route} isActive={isActive}>
-                  <Link href={route.href} className="flex-1 px-2 py-2 flex items-center gap-3">
+                  <Link to={route.href} className="flex-1 px-2 py-2 flex items-center gap-3">
                     <Monitor className="size-4 shrink-0" />
                     <span className="truncate max-w-[130px]">{route.label}</span>
                   </Link>
@@ -238,7 +236,7 @@ export function Sidebar({ routes }: SidebarProps) {
                           return (
                             <DropdownMenuItem key={index} asChild={!!item.href}>
                               {item.href ? (
-                                <Link href={item.href} className="flex items-center gap-2">
+                                <Link to={item.href} className="flex items-center gap-2">
                                   {Icon && <Icon className="size-4" />}
                                   {item.label}
                                 </Link>
