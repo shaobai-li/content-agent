@@ -3,7 +3,7 @@ import { ChevronsLeft, ChevronsRight, MessageSquarePlus, Smartphone } from "luci
 import { useDocumentCollapse } from "@/app-shell/DocumentCollapseContext";
 import { WeChatBindDialog } from "./WeChatBindDialog";
 
-const BRIDGE_URL = process.env.NEXT_PUBLIC_BRIDGE_URL || "http://localhost:8001";
+const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || "http://localhost:8001";
 
 export function ChatHeader() {
   const { isCollapsed, toggle } = useDocumentCollapse();

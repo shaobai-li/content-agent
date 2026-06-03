@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams } from "react-router-dom";
 import { useSessionList } from "@/entities/session/useSessionList";
 import { usePagination } from "@/shared/lib/usePagination";
 import { deleteSession } from "@/entities/session/api";

@@ -4,13 +4,13 @@ import { Sidebar } from "@/app-shell/Sidebar";
 import { getSidebarRoutes } from "@/app-shell/navigation";
 import { loadAgents } from "@/entities/agent/agent.registry";
 import { AuthProvider, AuthGate } from "@/entities/auth/store";
-import { usePathname } from "next/navigation";
+import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { RouteItem } from "@/app-shell/Sidebar";
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isLoginPage = pathname === "/login";
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/login";
   const [routes, setRoutes] = useState<RouteItem[]>([]);
   const [ready, setReady] = useState(false);
 

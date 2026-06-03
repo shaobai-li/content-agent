@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/di
 import { Button } from "@/shared/ui/button";
 import { RefreshCw } from "lucide-react";
 
-const BRIDGE_URL = process.env.NEXT_PUBLIC_BRIDGE_URL || "http://localhost:8001";
+const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || "http://localhost:8001";
 
 type QRStatus = "loading" | "wait" | "scanned" | "confirmed" | "expired" | "error";
 
