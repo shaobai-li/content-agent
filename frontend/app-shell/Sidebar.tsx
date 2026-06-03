@@ -208,7 +208,7 @@ export function Sidebar({ routes }: SidebarProps) {
 
               return (
                 <SortableRoute key={route.href} route={route} isActive={isActive}>
-                  <Link href={route.href} className="flex-1 px-2 py-2 flex items-center gap-3">
+                  <Link to={route.href} className="flex-1 px-2 py-2 flex items-center gap-3">
                     <Monitor className="size-4 shrink-0" />
                     <span className="truncate max-w-[130px]">{route.label}</span>
                   </Link>
@@ -236,7 +236,7 @@ export function Sidebar({ routes }: SidebarProps) {
                           return (
                             <DropdownMenuItem key={index} asChild={!!item.href}>
                               {item.href ? (
-                                <Link href={item.href} className="flex items-center gap-2">
+                                <Link to={item.href} className="flex items-center gap-2">
                                   {Icon && <Icon className="size-4" />}
                                   {item.label}
                                 </Link>
