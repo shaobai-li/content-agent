@@ -2321,12 +2321,14 @@ dependencies = [
 name = "omniage-desktop"
 version = "0.1.0"
 dependencies = [
+ "dotenvy",
  "omniage-backend-rs",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tokio",
+ "tracing-subscriber",
 ]
 
 [[package]]

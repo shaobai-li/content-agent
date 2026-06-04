@@ -1,5 +1,6 @@
 pub mod agent_config;
 pub mod agents;
+pub mod auth;
 pub mod management;
 pub mod settings;
 pub mod chat;

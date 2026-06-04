@@ -23,6 +23,7 @@ pub fn build_app() -> axum::Router {
         "http://192.168.1.3:3000".parse().unwrap(),
         "http://localhost:5173".parse().unwrap(),
         // Tauri 桌面端 webview 来源
+        "http://tauri.localhost".parse().unwrap(),
         "https://tauri.localhost".parse().unwrap(),
         "tauri://localhost".parse().unwrap(),
     ];
@@ -32,8 +33,12 @@ pub fn build_app() -> axum::Router {
         .allow_methods(tower_http::cors::Any)
         .allow_headers(tower_http::cors::Any);
 
-    routes::health::router()
-        .merge(routes::agent_config::router())
+    // 公开路由（无需认证）：health、auth proxy
+    let public = routes::health::router()
+        .merge(routes::auth::router());
+
+    // 需要认证的路由
+    let protected = routes::agent_config::router()
         .merge(routes::agents::router())
         .merge(routes::management::router())
         .merge(routes::settings::router())
@@ -43,8 +48,9 @@ pub fn build_app() -> axum::Router {
         .merge(routes::nodes::router())
         .merge(routes::files::router())
         .merge(routes::chat::router())
-        .layer(axum::middleware::from_fn(auth_middleware))
-        .layer(cors)
+        .layer(axum::middleware::from_fn(auth_middleware));
+
+    public.merge(protected).layer(cors)
 }
 
 /// 在指定端口启动 HTTP 服务
