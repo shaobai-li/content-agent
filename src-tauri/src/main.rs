@@ -14,6 +14,9 @@ fn show_notification(message: String) {
 }
 
 fn main() {
+    // 先加载 .env 文件（此时 CWD 是 src-tauri/）
+    dotenvy::dotenv().ok();
+
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -23,6 +26,20 @@ fn main() {
 
     tauri::Builder::default()
         .setup(|_app| {
+            // 将数据目录设置在 src-tauri 外部，避免运行时文件写入触发 Tauri 的 rebuild
+            if std::env::var("DATA_DIR").is_err() {
+                let cwd = std::env::current_dir().unwrap_or_default();
+                // 从 src-tauri/ -> 项目根目录 (content-agent/)
+                let data_dir = cwd
+                    .parent()
+                    .map(|p| p.join("runtime-data"))
+                    .unwrap_or_else(|| cwd.join(".runtime-data"));
+                std::env::set_var(
+                    "DATA_DIR",
+                    data_dir.to_string_lossy().to_string(),
+                );
+            }
+
             // 初始化 backend-rs（配置、agent 注册）
             omniage_backend_rs::initialize();
             // 在后台启动 Axum server
