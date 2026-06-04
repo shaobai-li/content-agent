@@ -1,7 +1,12 @@
 const TOKEN_KEY = 'auth_token'
 
 function getBaseUrl(): string {
-  // Auth API 请求走 Vite proxy（开发）或同源（生产），无需配置 base URL
+  // Tauri 环境下通过 Rust 后端（localhost:8001）代理 auth 请求，
+  // 避免直接请求远程 auth 服务器时的 CORS 问题
+  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+    return 'http://localhost:8001'
+  }
+  // 开发环境使用 Vite proxy
   return ''
 }
 
