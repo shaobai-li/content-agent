@@ -31,6 +31,13 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "resources": [
+      "config/visibility.yaml",
+      "config/agents/std.yaml",
+      "config/agents/admin.yaml",
+      "config/agents/skills/ingest-file/SKILL.md",
+      "config/agents/skills/memo/SKILL.md"
     ]
   }
 }
