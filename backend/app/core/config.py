@@ -6,14 +6,15 @@ from typing import Dict, Any, List
 from dotenv import load_dotenv
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-ENV_PATH = _PROJECT_ROOT / ".env"
+OMNIAGE_ROOT = Path(os.getenv("OMNIAGE_ROOT", _PROJECT_ROOT.parent))
+ENV_PATH = OMNIAGE_ROOT / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
 # 绝对路径：从 .env 读取
 DATA_DIR = Path(os.getenv("DATA_DIR", ".")).resolve()
 
 # ── 全局 config.yaml（顶级全局配置） ──────────────────────────────
-CONFIG_PATH = _PROJECT_ROOT / "config.yaml"
+CONFIG_PATH = OMNIAGE_ROOT / "config.yaml"
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     config = yaml.safe_load(f) or {}
 
@@ -21,7 +22,7 @@ with open(CONFIG_PATH, "r", encoding="utf-8") as f:
 # ── 加载 per‑agent YAML（config/agents/<agent_id>.yaml） ─────────
 def _load_agent_yamls() -> Dict[str, Dict[str, Any]]:
     """扫描 config/agents/*.yaml，文件名（不含扩展名）即为 agent_id。"""
-    agents_dir = _PROJECT_ROOT / "config" / "agents"
+    agents_dir = OMNIAGE_ROOT / "config" / "agents"
     result: Dict[str, Dict[str, Any]] = {}
     if not agents_dir.is_dir():
         return result
