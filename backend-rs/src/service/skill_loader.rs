@@ -71,12 +71,11 @@ fn xml_text(s: &str) -> String {
         .replace('\'', "&apos;")
 }
 
-/// 内置 skill 根路径（相对于 config/agents/）
+/// 内置 skill 根路径（统一 config/agents/skills/）
 fn bundled_skills_dir() -> PathBuf {
-    std::env::current_dir()
-        .unwrap_or_default()
-        .join("config")
+    crate::core::config::get_config_dir()
         .join("agents")
+        .join("skills")
 }
 
 /// 发现指定 agent 可用的所有 skill

@@ -5,6 +5,7 @@ use std::sync::OnceLock;
 use serde::{Deserialize, Serialize};
 
 static CONFIG: OnceLock<AppConfig> = OnceLock::new();
+static CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,40 +58,25 @@ pub struct AppConfig {
     pub visibility: VisibilityConfig,
 }
 
-fn find_project_root() -> PathBuf {
-    if let Ok(path) = std::env::current_exe() {
-        let mut p = path.parent();
-        while let Some(dir) = p {
-            if dir.join("Cargo.toml").exists() || dir.join("config.yaml").exists() {
-                return dir.to_path_buf();
-            }
-            p = dir.parent();
+/// 定位项目根目录（content-agent/）
+fn find_omniage_root() -> PathBuf {
+    // 1. 环境变量 OMNIAGE_ROOT 优先（Tauri 生产环境会设这个）
+    if let Ok(root) = std::env::var("OMNIAGE_ROOT") {
+        return PathBuf::from(root);
+    }
+    // 2. 从 exe 或 CWD 向上找 .env 作为项目根标记
+    let start = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+    let mut p = Some(start.as_path());
+    while let Some(dir) = p {
+        if dir.join(".env").exists() {
+            return dir.to_path_buf();
         }
+        p = dir.parent();
     }
-    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-}
-
-fn find_config_dir(project_root: &Path) -> PathBuf {
-    // 如果从 backend-rs 下运行，配置在 ../config/
-    let cfg_dir = project_root.join("config");
-    if cfg_dir.exists() {
-        return cfg_dir;
-    }
-    // 如果从项目根运行，配置在 backend/config/
-    let backend_config = project_root.join("backend").join("config");
-    if backend_config.exists() {
-        return backend_config;
-    }
-    // 如果从 src-tauri（Tauri 桌面）下运行，配置在 ../backend-rs/config/
-    if project_root.file_name().and_then(|n| n.to_str()) == Some("src-tauri") {
-        if let Some(parent) = project_root.parent() {
-            let backend_cfg = parent.join("backend-rs").join("config");
-            if backend_cfg.exists() {
-                return backend_cfg;
-            }
-        }
-    }
-    project_root.join("config")
+    start
 }
 
 fn load_agent_yamls(config_dir: &Path) -> HashMap<String, AgentConfig> {
@@ -129,13 +115,14 @@ fn load_agent_yamls(config_dir: &Path) -> HashMap<String, AgentConfig> {
 }
 
 pub fn init_config() {
+    let root = find_omniage_root();
+    let config_dir = root.join("config");
+    CONFIG_DIR.set(config_dir.clone()).ok();
+
     let data_dir = std::env::var("DATA_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("."));
+        .unwrap_or_else(|_| root.join("data"));
     let data_dir = data_dir.canonicalize().unwrap_or(data_dir);
-
-    let project_root = find_project_root();
-    let config_dir = find_config_dir(&project_root);
 
     let agents = load_agent_yamls(&config_dir);
 
@@ -155,6 +142,10 @@ fn load_visibility_yaml(config_dir: &Path) -> VisibilityConfig {
 
 pub fn get_config() -> &'static AppConfig {
     CONFIG.get().expect("config not initialized, call init_config() first")
+}
+
+pub fn get_config_dir() -> &'static Path {
+    CONFIG_DIR.get().expect("config not initialized, call init_config() first").as_path()
 }
 
 pub fn get_agent_config(agent_id: &str) -> Option<&'static AgentConfig> {
