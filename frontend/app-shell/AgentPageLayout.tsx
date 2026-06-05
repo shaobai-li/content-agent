@@ -1,7 +1,9 @@
 "use client"
 
 import { ReactNode, useEffect, useRef } from "react";
+import { Menu } from "lucide-react";
 import { DocumentCollapseProvider, useDocumentCollapse } from "./DocumentCollapseContext";
+import { useSidebarToggle } from "./SidebarContext";
 
 interface AgentPageLayoutProps {
     agentId: string;
@@ -30,6 +32,7 @@ export function AgentPageLayout({ agentId, leftHeader, leftBody, rightBody, auto
 
 function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, leftParam }: LayoutInnerProps) {
     const { isCollapsed, setCollapsed } = useDocumentCollapse();
+    const toggleSidebar = useSidebarToggle();
     const prevLeftParam = useRef(leftParam);
 
     // leftParam 变化时，根据 autoExpand 展开或收起左侧面板
@@ -58,7 +61,14 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, lef
         >
             {/* 左侧面板 */}
             <div className="overflow-hidden flex flex-col min-w-0">
-                <div className="flex h-16 px-8 border bg-card shrink-0">
+                <div className="flex h-16 px-8 border bg-card shrink-0 items-center gap-2">
+                    <button
+                        onClick={toggleSidebar}
+                        className="lg:hidden p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
+                        aria-label="打开侧边栏"
+                    >
+                        <Menu className="size-5" />
+                    </button>
                     {leftHeader}
                 </div>
                 <div className="flex min-h-0 flex-1 flex-col p-6 border bg-neutral-50">
