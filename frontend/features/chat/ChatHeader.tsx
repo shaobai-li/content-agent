@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { ChevronsLeft, ChevronsRight, MessageSquarePlus, Smartphone } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Menu, MessageSquarePlus, Smartphone } from "lucide-react";
 import { useDocumentCollapse } from "@/app-shell/DocumentCollapseContext";
+import { useSidebarToggle } from "@/app-shell/SidebarContext";
 import { WeChatBindDialog } from "./WeChatBindDialog";
 
 const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || "http://localhost:8001";
 
 export function ChatHeader() {
   const { isCollapsed, toggle } = useDocumentCollapse();
+  const toggleSidebar = useSidebarToggle();
   const [wechatDialogOpen, setWechatDialogOpen] = useState(false);
   const [wechatConnected, setWechatConnected] = useState(false);
 
@@ -24,6 +26,15 @@ export function ChatHeader() {
   return (
     <div className="flex items-center h-16 px-4 border">
       <div className="flex items-center gap-1">
+        {isCollapsed && (
+          <button
+            onClick={toggleSidebar}
+            className="lg:hidden p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
+            aria-label="打开侧边栏"
+          >
+            <Menu className="size-5" />
+          </button>
+        )}
         <h2 className="text-sm font-semibold text-foreground">CHAT</h2>
         <button
           onClick={toggle}
