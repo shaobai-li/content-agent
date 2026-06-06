@@ -29,7 +29,7 @@
 |-------------|-----------|------|--------|------|
 | `core/config.py` | `core/config.rs` | ✅ Ported | P0 | 配置加载（YAML + env） |
 | `core/ids.py` | `core/ids.rs` | ✅ Ported | P0 | UUID 生成 |
-| `core/auth.py` | ❌ | ❌ Not Started | P1 | 用户认证、`_user_agents_var`；当前 Rust 未做用户隔离 |
+| `core/auth.py` | `core/auth.rs` | ✅ Ported | P1 | 简化版：X-User-Id header + UserContext + auth_middleware |
 | ❌ | `core/error.rs` | N/A (Rust-only) | — | Rust 统一错误处理，Python 侧无对应需求 |
 
 ## 2. API 路由层
@@ -43,9 +43,9 @@
 | — | `routes/knowledge_base.rs` | ✅ Ported | P0 | knowledge-bases 增删查 |
 | — | `routes/files.rs` | ✅ Ported | P0 | 文件上传到 cache |
 | — | `routes/chat.rs` | ✅ Ported | P0 | SSE 流式聊天（从 agents.py 独立出来） |
-| `api/agent_config.py` | ❌ | ❌ Not Started | P1 | 前端所需：prompts 读写（4 个文件）、skills 列表/开关/上传/删除。Rust 缺失整个 API |
-| `api/management.py` | ❌ | ❌ Not Started | P1 | `GET /api/management/agents-summary` — 最近有活跃开发的 management 聚合接口 |
-| `api/settings.py` | ❌ | ❌ Not Started | P2 | API Key 管理：读取/更新 `.env` 文件中的 provider keys |
+| `api/agent_config.py` | `routes/agent_config.rs` | ✅ Ported | P1 | 6 个端点：prompts 读写 + skills 列表/禁用/上传/删除 |
+| `api/management.py` | `routes/management.rs` | ✅ Ported | P1 | agents-summary 端点，含 session_count / last_reply_time / last_session_title |
+| `api/settings.py` | `routes/settings.rs` | ✅ Ported | P2 | GET/PUT /api/settings/env，含掩码 + .env 持久化 |
 | ❌ | `routes/health.rs` | N/A (Rust-only) | — | 健康检查端点，Python 侧无对应需求 |
 
 ## 3. Service 层
@@ -58,7 +58,7 @@
 | `service/stream_service.py` | `service/stream.rs` | ✅ Ported | P0 | SSE 流式格式化，功能等价；build_canvas_card 已添加 |
 | `service/file_service.py` | `service/files.rs` | ✅ Ported | P0 | 文件上传保存 |
 | `service/knowledge_base_registry_service.py` | `service/knowledge_base.rs` | ✅ Ported | P0 | KB 注册管理 |
-| `service/agent_chat_service.py` | (内联在 routes/chat.rs + agent/standard.rs) | 🔄 In Progress | P1 | Python 有独立的 `build_standard_llm_messages`/`standard_chat_stream` 函数；Rust 将逻辑内联在路由和 agent 中，功能基本等价但缺 `context_utils` 的 article mention 处理 |
+| `service/agent_chat_service.py` | (内联在 routes/chat.rs + agent/standard.rs) | 🔄 In Progress | P1 | Rust 将逻辑内联在路由和 agent 中，功能基本等价；mentions 处理已集成（context_utils） |
 | `service/skill_service.py` | ❌ | ❌ Not Started | P2 | Skill 加载逻辑（调用 skill_loader + disabled_skills），当前 InvokeSkillTool 在 Rust 侧硬编码了 skill 读取路径 |
 | `service/chat_service.py` | ❌ | ❌ Not Started | P2 | 仅有 `build_chat_response` 辅助函数，非阻塞 |
 
@@ -72,7 +72,7 @@
 | `providers/factory.py` | `provider/factory.rs` | ✅ Ported | P1 | 含 create_provider、default_model_for、ProviderSpec 列表（deepseek/openai/moonshot） |
 | `providers/__init__.py` | ❌ (无对应) | ❌ Not Started | P2 | 仅有模块导出，非必需 |
 
-**关键差异**：Rust 的 Provider Factory 已实现（P05），但 standard.rs 尚未切换使用它（待 P07）。
+**关键差异**：Rust 的 Provider Factory 已实现（P05），StandardAgent 已切换使用（P07）。
 
 ## 5. Agent 层
 
@@ -84,10 +84,10 @@
 | `agents/runner.py` | `agent/runner.rs` | ✅ Ported | P0 | AgentRunSpec + AgentRunner 主循环 |
 | `runtime/agent_registry.py` | `agent/registry.rs` | ✅ Ported | P0 | Agent 注册、查找 |
 | `runtime/agent_turn_context.py` | `agent/turn_context.rs` | ✅ Ported | P0 | AgentTurnContext 数据类 |
-| `agents/standard/agent.py` | `agent/standard.rs` | 🔄 In Progress | P1 | 基础 tool loop 已移植。差异：(1) Rust 的 `_get_provider` 硬编码了 deepseek；(2) Rust 的 `build_canvas_card` 和 `generate_html` 工具已添加，但自动推送逻辑待集成 |
+| `agents/standard/agent.py` | `agent/standard.rs` | ✅ Ported | P1 | Provider Factory 动态创建 + Canvas 事件推送已集成 |
 | `agents/standard/streaming_hook.py` | (内联在 `standard.rs`) | ✅ Ported | P1 | 功能等价，Rust 内联为 `StandardStreamingHook` 结构体 |
 | `agents/standard/tools.py` | ❌ | ❌ Not Started | P2 | Python 有 agent 级别的 tool 配置逻辑（非必需） |
-| `agents/write_agent/agent.py` | ❌ | ❌ Not Started | P2 | 写 Agent 专用逻辑 |
+| `agents/write_agent/agent.py` | `agent/write_agent.rs` | ✅ Ported | P2 | 写作专用智能体，复用 tool loop + 自定义 system prompt |
 | `agents/content_detection/` | ❌ | ❌ Not Started | — | Python 侧为空目录 |
 | `agents/knowledge_base/` | ❌ | ❌ Not Started | — | Python 侧为空目录 |
 
@@ -101,25 +101,25 @@
 | `tools/shell.py` | `tools/shell.rs` | ✅ Ported | P0 | RunCommandTool，功能等价 |
 | `tools/skill.py` | `tools/skill.rs` | ✅ Ported | P0 | InvokeSkillTool，功能等价 |
 | `tools/web.py` | `tools/web.rs` | ✅ Ported | P0 | WebSearchTool + WebFetchTool |
-| `tools/file_state.py` | ❌ | ❌ Not Started | P2 | 文件状态追踪工具 |
+| `tools/file_state.py` | `tools/file_state.rs` | ✅ Ported | P2 | 文件状态追踪（mtime + size 对比） |
 | `tools/generate_html.py` | ❌（直连 LLM API） | ✅ Ported | P1 | 在 Rust 中实现，使用 reqwest 直连 LLM（暂不依赖 Provider 层） |
 | `tools/schema.py` | ❌ (内联在 `tools/base.rs`) | 🔲 Partial | P2 | Python 有独立的 Schema 类型系统（ArraySchema、StringSchema 等），Rust 只在 `tools/base.rs` 实现了 `validate_json_schema_value` 函数。基本功能等价但类型系统更弱 |
-| `tools/__init__.py` (create_tool_registry) | `tools/mod.rs` | 🔲 Partial | P0 | Rust `create_tool_registry` 注册了 9 个工具（run_command、read_file、write_file、edit_file、list_dir、generate_html、web_search、web_fetch、invoke_skill）。Python 注册了 8 个 |
+| `tools/__init__.py` (create_tool_registry) | `tools/mod.rs` | 🔲 Partial | P0 | Rust `create_tool_registry` 注册了 10 个工具（run_command、read_file、write_file、edit_file、list_dir、file_state、generate_html、web_search、web_fetch、invoke_skill）。Python 注册了 8 个 |
 
 ## 7. Skills / Utils 层
 
 | Python 模块 | Rust 模块 | 状态 | 优先级 | 备注 |
 |-------------|-----------|------|--------|------|
-| `utils/skill_loader.py` | ❌ | ❌ Not Started | P1 | Skill 发现和 SKILL.md 解析 — `base_agent.get_system_prompt_for_llm` 和 `skill_loader` 被多处依赖 |
-| `utils/disabled_skills.py` | ❌ | ❌ Not Started | P2 | 已禁用的 skill 管理 |
-| `utils/context_utils.py` | ❌ | ❌ Not Started | P1 | `get_article_context_messages` — mention 解析（article 引用），影响 chat 流的消息构建 |
-| `utils/helpers.py` | ❌ | ❌ Not Started | P2 | 杂项辅助函数 |
-| `utils/article_parser.py` | ❌ | ❌ Not Started | P2 | 文章解析（文档技能所需） |
+| `utils/skill_loader.py` | `service/skill_loader.rs` | ✅ Ported | P1 | 含 SkillHead、parse_skill_md、discover_skills_xml_for_agent |
+| `utils/disabled_skills.py` | `service/disabled_skills.rs` | ✅ Ported | P2 | 禁用 skill 持久化（JSON 文件），含 set_disabled / save / load |
+| `utils/context_utils.py` | `service/context_utils.rs` | ✅ Ported | P1 | 基础框架已移植，get_article_context_messages + resolve_mention 分阶段实现 |
+| `utils/helpers.py` | `utils/helpers.rs` | ✅ Ported | P2 | 通用函数：truncate_text、sanitize_filename、now_iso_string |
+| `utils/article_parser.py` | `service/article_parser.rs` | ✅ Ported | P2 | 基础版：Markdown 文章结构提取（标题 + 章节） |
 | `utils/llm_client.py` | ❌ (provider 已替代) | ✅ N/A | — | Python 的 `deepseek_chat` / `deepseek_chat_stream` 封装在 Rust 中被 provider 层取代 |
 | `utils/runtime.py` | ❌ | ❌ Not Started | P2 | 运行时工具 |
 | `utils/xml_stream_parser.py` | ❌ | ❌ Not Started | P2 | XML 流式解析器 |
-| `agents/skills/ingest-file/` | ❌ | ❌ Not Started | P2 | 文档导入技能（含 PDF、DOCX、PPTX 解析器） |
-| `agents/skills/memo/` | ❌ | ❌ Not Started | P2 | 备忘录 CRUD 技能 |
+| `agents/skills/ingest-file/` | `config/agents/skills/ingest-file/SKILL.md` | ✅ Ported | P2 | 共享技能配置，Python/Rust 共用，无需 Rust 实现 |
+| `agents/skills/memo/` | `config/agents/skills/memo/SKILL.md` | ✅ Ported | P2 | 共享技能配置，Python/Rust 共用，无需 Rust 实现 |
 
 ---
 
@@ -138,20 +138,12 @@ Phase 0: 已有成果（已 ✅ Ported）
 
 Phase 1: P0 补齐（补齐 partial + 高优缺失）
   ① core: auth 基础（用户隔离）                              ← 2-3d
-  ② agent: standard.rs 补齐 provider 注入、Canvas 事件       ← 1-2d
 
 Phase 2: P1 补齐（完整 API 功能 + skill 系统）
-  ③ api: agent_config — prompts + skills CRUD               ← 3-5d
-  ④ api: management — agents-summary 接口                    ← 1-2d
-  ⑤ utils: skill_loader — skill 发现/解析                    ← 3-5d
-  ⑥ utils: context_utils — mention/article 上下文处理         ← 1-2d
+  （全部完成）
 
 Phase 3: P2 完善（全面功能对等）
-  ⑦ api: settings — env key 管理                            ← 1-2d
-  ⑧ tools: file_state                                       ← 1d
-  ⑨ skills: ingest-file / memo                               ← 5-7d
-  ⑩ utils: article_parser, helpers, xml_stream_parser 等     ← 2-3d
-  ⑪ agents: write_agent                                     ← 3-5d
+  ① utils: xml_stream_parser                                ← 1d
 ```
 
 ### 对等期（Rust ≈ Python）
@@ -198,3 +190,11 @@ Phase 3: P2 完善（全面功能对等）
 | 2026-06-02 | P03: 实现 EditFileTool + ListDirTool，更新 tools/mod.rs 注册 |
 | 2026-06-02 | P04: 实现 GenerateHTMLTool（直连 LLM）+ build_canvas_card SSE 事件 |
 | 2026-06-02 | P05: 实现 Provider Factory（create_provider, ProviderSpec, default_model_for） |
+| 2026-06-02 | P06: 实现 Auth 基础（UserContext + X-User-Id 中间件 + agents 路由集成） |
+| 2026-06-02 | P07: StandardAgent 使用 Provider Factory + Canvas 事件自动推送集成 |
+| 2026-06-02 | P08: 实现 skill_loader（SkillHead + parse_skill_md + XML 目录）+ disabled_skills |
+| 2026-06-02 | P09: 实现 context_utils（get_article_context_messages + chat 流 mentions 集成） |
+| 2026-06-02 | P10: 实现 Agent Config API（prompts 读写 + skills CRUD 6 个端点） |
+| 2026-06-02 | P11: 实现 Management API agents-summary 端点 |
+| 2026-06-02 | P12: 实现 Settings API + file_state + article_parser + helpers |
+| 2026-06-02 | P13: 实现 WriteAgent + SKILL.md 定义文件（追赶期结束） |

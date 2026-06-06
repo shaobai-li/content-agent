@@ -1,5 +1,4 @@
 import { FileTypeIconMap } from "@/shared/ui/icons";
-import Image from "next/image";
 import { X } from "lucide-react";
 
 type FileType = keyof typeof FileTypeIconMap;
@@ -31,7 +30,7 @@ export function FileChip({
 
   return (
     <div className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded-md max-w-[240px] group">
-      <Image src={Icon} alt={fileType} width={16} height={16} className="flex-shrink-0" />
+      <img src={Icon} alt={fileType} width={16} height={16} className="flex-shrink-0" />
       <span
         className="text-xs text-muted-foreground truncate min-w-0"
         title={statusHint ? `${fileName} — ${statusHint}` : fileName}

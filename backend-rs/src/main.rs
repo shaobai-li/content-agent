@@ -1,11 +1,3 @@
-mod agent;
-mod core;
-mod provider;
-mod routes;
-mod service;
-mod tools;
-
-use tower_http::cors::CorsLayer;
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
@@ -17,34 +9,17 @@ async fn main() {
         )
         .init();
 
-    dotenvy::dotenv().ok();
-    core::config::init_config();
-    agent::registry::init_registry();
-    agent::registry::init_agent_instances();
+    // 确定项目根目录（OMNIAGE_ROOT），所有路径以此为锚点
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let omniage_root = cwd.parent().unwrap_or(&cwd).to_path_buf();
+    std::env::set_var("OMNIAGE_ROOT", omniage_root.to_string_lossy().to_string());
 
-    let origins = [
-        "http://localhost:3000".parse().unwrap(),
-        "http://192.168.1.3:3000".parse().unwrap(),
-    ];
+    // 加载 .env（相对于 OMNIAGE_ROOT）
+    let env_path = omniage_root.join(".env");
+    dotenvy::from_path(&env_path).ok();
+    std::env::set_var("ENV_PATH", env_path.to_string_lossy().to_string());
 
-    let cors = CorsLayer::new()
-        .allow_origin(origins)
-        .allow_methods(tower_http::cors::Any)
-        .allow_headers(tower_http::cors::Any);
-
-    let app = routes::health::router()
-        .merge(routes::agents::router())
-        .merge(routes::sessions::router())
-        .merge(routes::messages::router())
-        .merge(routes::knowledge_base::router())
-        .merge(routes::nodes::router())
-        .merge(routes::files::router())
-        .merge(routes::chat::router())
-        .layer(cors);
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8001")
-        .await
-        .unwrap();
-    tracing::info!("server starting on 0.0.0.0:8001");
-    axum::serve(listener, app).await.unwrap();
+    omniage_backend_rs::initialize();
+    let app = omniage_backend_rs::build_app();
+    omniage_backend_rs::run_server(8001, app).await;
 }

@@ -1,9 +1,13 @@
 const TOKEN_KEY = 'auth_token'
 
 function getBaseUrl(): string {
-  // 配置了 AUTH_API_URL 时使用 Next.js 代理转发（同源），避免 CORS
-  // 未配置时直连 localhost:3001 用于本地纯后端开发
-  return process.env.NEXT_PUBLIC_AUTH_API_URL ? '' : 'http://localhost:3001'
+  // Tauri 环境下通过 Rust 后端（localhost:8001）代理 auth 请求，
+  // 避免直接请求远程 auth 服务器时的 CORS 问题
+  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+    return 'http://localhost:8001'
+  }
+  // 开发环境使用 Vite proxy
+  return ''
 }
 
 export function getToken(): string | null {

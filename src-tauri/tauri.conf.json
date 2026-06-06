@@ -1,0 +1,43 @@
+{
+  "productName": "OmniAge",
+  "version": "0.1.0",
+  "identifier": "com.omniage.content-agent",
+  "build": {
+    "frontendDist": "../frontend/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "cd ../frontend && pnpm dev",
+    "beforeBuildCommand": "cd ../frontend && pnpm build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "OmniAge",
+        "width": 1400,
+        "height": 900,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "config/visibility.yaml",
+      "config/agents/std.yaml",
+      "config/agents/admin.yaml",
+      "config/agents/skills/ingest-file/SKILL.md",
+      "config/agents/skills/memo/SKILL.md"
+    ]
+  }
+}

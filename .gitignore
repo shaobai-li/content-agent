@@ -11,9 +11,6 @@ __pycache__/
 .claude
 CLAUDE.md
 .env
-config
-!backend/config/
-!backend-rs/config/agents/admin.yaml
 tasks
 specs/openapi-raw.json
 
@@ -22,3 +19,11 @@ frontend/dist/
 
 # Generated/imported assets
 frontend/public/shipm-bio-ai-computers.png
+
+# Tauri build output
+src-tauri/target/
+src-tauri/gen/
+src-tauri/u_*/
+
+# Data directory
+/data/

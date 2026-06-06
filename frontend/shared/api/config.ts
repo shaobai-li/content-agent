@@ -3,7 +3,19 @@
  * 所有 agent 的 API 端点都遵循统一的模式
  */
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+/**
+ * 运行时获取 API base URL。
+ * Tauri 环境下直连 Rust 后端（8001），
+ * 浏览器/Vite 环境下走 Vite proxy（同源请求，返回空字符串或原始 API_BASE_URL）。
+ */
+export function getApiBaseUrl(): string {
+  if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+    return "http://localhost:8001";
+  }
+  return API_BASE_URL;
+}
 
 /**
  * Agent ID 映射

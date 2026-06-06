@@ -2,7 +2,7 @@
  * HTTP client for API requests
  */
 
-import { API_BASE_URL, getUserId } from "./config";
+import { getApiBaseUrl, getUserId } from "./config";
 
 interface HttpResponse<T = any> {
   data: T;
@@ -17,8 +17,8 @@ export function authHeaders(): Record<string, string> {
 class HttpClient {
   private baseURL: string;
 
-  constructor(baseURL: string = API_BASE_URL) {
-    this.baseURL = baseURL;
+  constructor(baseURL?: string) {
+    this.baseURL = baseURL ?? getApiBaseUrl();
   }
 
   private async _handleResponse<T>(response: Response): Promise<T> {

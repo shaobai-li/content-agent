@@ -9,6 +9,8 @@ pub struct AgentTurnContext {
     pub user_text: String,
     pub resolved_attachment_paths: Vec<String>,
     pub history_messages: Vec<Value>,
+    pub provider: Option<String>,
+    pub model: Option<String>,
 }
 
 impl AgentTurnContext {
@@ -25,6 +27,8 @@ impl AgentTurnContext {
             user_text,
             resolved_attachment_paths: Vec::new(),
             history_messages,
+            provider: None,
+            model: None,
         }
     }
 }
