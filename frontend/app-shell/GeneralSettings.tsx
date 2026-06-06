@@ -14,6 +14,7 @@ interface ProviderEnv {
 
 interface EnvResponse {
   providers: ProviderEnv[];
+  data_dir: string;
 }
 
 function GeneralSettings() {
@@ -23,6 +24,9 @@ function GeneralSettings() {
   const [error, setError] = useState<string | null>(null);
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [dirty, setDirty] = useState<Record<string, string>>({});
+  const DEFAULT_DATA_DIR = "";
+  const [dataDir, setDataDir] = useState(DEFAULT_DATA_DIR);
+  const [dataDirOriginal, setDataDirOriginal] = useState(DEFAULT_DATA_DIR);
 
   const refresh = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -30,6 +34,10 @@ function GeneralSettings() {
     try {
       const data = await http.get<EnvResponse>("/api/settings/env");
       setProviders(data.providers);
+      if (data.data_dir) {
+        setDataDir(data.data_dir);
+        setDataDirOriginal(data.data_dir);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     } finally {
@@ -60,19 +68,27 @@ function GeneralSettings() {
     setSaving(true);
     setError(null);
     try {
-      await http.put("/api/settings/env", dirty);
+      const payload: Record<string, string> = { ...dirty };
+      if (dataDir !== dataDirOriginal) {
+        payload.DATA_DIR = dataDir;
+      }
+      await http.put("/api/settings/env", payload);
       setDirty({});
+      setDataDirOriginal(dataDir);
       await refresh(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
       setSaving(false);
     }
-  }, [dirty, refresh]);
+  }, [dirty, refresh, dataDir, dataDirOriginal]);
 
   const toggleVisibility = useCallback((envKey: string) => {
     setVisible((prev) => ({ ...prev, [envKey]: !prev[envKey] }));
   }, []);
+
+  const hasChanges =
+    Object.keys(dirty).length > 0 || dataDir !== dataDirOriginal;
 
   if (loading) {
     return (
@@ -147,11 +163,27 @@ function GeneralSettings() {
         <p className="text-sm text-muted-foreground">无可配置的 API Key</p>
       )}
 
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="env-DATA_DIR" className="text-sm font-medium text-foreground">
+          DATA_DIR
+        </label>
+        <div className="relative">
+          <input
+            id="env-DATA_DIR"
+            type="text"
+            className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 pr-3 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-input focus-visible:ring-0"
+            placeholder="DATA_DIR路径"
+            value={dataDir}
+            onChange={(e) => setDataDir(e.target.value)}
+          />
+        </div>
+      </div>
+
       <div className="flex justify-end mt-2">
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving || Object.keys(dirty).length === 0}
+          disabled={saving || !hasChanges}
           className="rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-1.5"
         >
           {saving && <Loader2 className="size-3.5 animate-spin" />}
