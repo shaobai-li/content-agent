@@ -14,7 +14,16 @@ CLAUDE.md
 tasks
 specs/openapi-raw.json
 
+# Frontend build output
+frontend/dist/
+
+# Generated/imported assets
+frontend/public/shipm-bio-ai-computers.png
+
+# Tauri build output
 src-tauri/target/
 src-tauri/gen/
 src-tauri/u_*/
+
+# Data directory
 /data/
