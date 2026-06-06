@@ -2,9 +2,9 @@
 
 import { Sidebar } from "@/app-shell/Sidebar";
 import { getSidebarRoutes } from "@/app-shell/navigation";
-import { loadAgents } from "@/entities/agent/agent.registry";
+import { loadAgents, agentRegistry } from "@/entities/agent/agent.registry";
 import { AuthProvider, AuthGate } from "@/entities/auth/store";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { cn } from "@/shared/lib/cn";
 import { SidebarToggleContext } from "@/app-shell/SidebarContext";
@@ -12,6 +12,7 @@ import type { RouteItem } from "@/app-shell/Sidebar";
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const isLoginPage = location.pathname === "/login";
   const [routes, setRoutes] = useState<RouteItem[]>([]);
   const [ready, setReady] = useState(false);
@@ -28,6 +29,25 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         setReady(true);
       });
   }, []);
+
+  // agent 加载完成后，若当前处于根路由则自动导航到 admin agent
+  useEffect(() => {
+    if (!ready) return;
+
+    const isRoot = location.pathname === "/" || location.pathname === "";
+    if (!isRoot) return;
+
+    const adminExists = Object.values(agentRegistry).some((a) => a.id === "admin");
+    if (adminExists) {
+      navigate("/agent/admin", { replace: true });
+    } else {
+      // 回退：导航到第一个可用的 agent
+      const firstAgent = Object.values(agentRegistry)[0];
+      if (firstAgent) {
+        navigate(`/agent/${firstAgent.id}`, { replace: true });
+      }
+    }
+  }, [ready, location.pathname, navigate]);
 
   // 路由切换时自动关闭移动端侧边栏
   useEffect(() => {
