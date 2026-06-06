@@ -78,6 +78,7 @@ class HttpClient {
 
   async delete<T = any>(url: string): Promise<T> {
     const response = await fetch(`${this.baseURL}${url}`, {
+      method: "DELETE",
       headers: { ...authHeaders() },
     });
     return this._handleResponse<T>(response);

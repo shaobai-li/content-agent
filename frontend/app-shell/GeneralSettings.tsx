@@ -24,8 +24,7 @@ function GeneralSettings() {
   const [error, setError] = useState<string | null>(null);
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [dirty, setDirty] = useState<Record<string, string>>({});
-  // Default value designed by developer
-  const DEFAULT_DATA_DIR = "content-agent-data\\data";
+  const DEFAULT_DATA_DIR = "";
   const [dataDir, setDataDir] = useState(DEFAULT_DATA_DIR);
   const [dataDirOriginal, setDataDirOriginal] = useState(DEFAULT_DATA_DIR);
 

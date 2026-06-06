@@ -16,3 +16,9 @@ config
 !backend-rs/config/agents/admin.yaml
 tasks
 specs/openapi-raw.json
+
+# Frontend build output
+frontend/dist/
+
+# Generated/imported assets
+frontend/public/shipm-bio-ai-computers.png
