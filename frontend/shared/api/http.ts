@@ -21,14 +21,25 @@ class HttpClient {
     this.baseURL = baseURL ?? getApiBaseUrl();
   }
 
+  private async _handleResponse<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+      let detail = `HTTP ${response.status}`;
+      try {
+        const body = await response.json();
+        if (body && body.detail) {
+          detail = body.detail;
+        }
+      } catch { /* ignore parse errors */ }
+      throw new Error(detail);
+    }
+    return response.json();
+  }
+
   async get<T = any>(url: string): Promise<T> {
     const response = await fetch(`${this.baseURL}${url}`, {
       headers: { ...authHeaders() },
     });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    return this._handleResponse<T>(response);
   }
 
   async post<T = any>(url: string, data?: any): Promise<T> {
@@ -40,10 +51,7 @@ class HttpClient {
       },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    return this._handleResponse<T>(response);
   }
 
   /** 上传 FormData（不设 Content-Type，让浏览器自动处理 multipart/form-data boundary）。 */
@@ -53,10 +61,7 @@ class HttpClient {
       headers: { ...authHeaders() },
       body: formData,
     });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    return this._handleResponse<T>(response);
   }
 
   async put<T = any>(url: string, data?: any): Promise<T> {
@@ -68,10 +73,7 @@ class HttpClient {
       },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    return this._handleResponse<T>(response);
   }
 
   async delete<T = any>(url: string): Promise<T> {
@@ -79,10 +81,7 @@ class HttpClient {
       method: "DELETE",
       headers: { ...authHeaders() },
     });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    return this._handleResponse<T>(response);
   }
 }
 
