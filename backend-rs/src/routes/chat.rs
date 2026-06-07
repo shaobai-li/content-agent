@@ -1,12 +1,15 @@
+use std::sync::Arc;
+
 use axum::{
-    extract::{Multipart, Path},
+    extract::{Extension, Multipart, Path},
     response::Response,
     routing::post,
     Router,
 };
 
-use crate::agent::registry::get_agent;
+use crate::agent::registry::{get_agent, register_agent};
 use crate::agent::turn_context::AgentTurnContext;
+use crate::core::auth::UserContext;
 use crate::service::messages::save_message;
 use crate::service::sessions::save_session_if_new;
 use crate::service::stream::build_stream_done;
@@ -19,6 +22,7 @@ pub fn router() -> Router {
 
 async fn chat_stream_handler(
     Path(agent_id): Path<String>,
+    Extension(ctx): Extension<UserContext>,
     mut multipart: Multipart,
 ) -> Response {
     let mut text = String::new();
@@ -51,8 +55,24 @@ async fn chat_stream_handler(
 
     let session_id = session_id.unwrap_or_else(|| uuid::Uuid::new_v4().simple().to_string());
 
-    // Check agent exists
-    let agent = match get_agent(&agent_id) {
+    // 获取 agent 实例（Python: agent_config = get_agent_config(agent_id)）
+    let mut agent = get_agent(&agent_id);
+
+    // Python: if not agent_config: 检查 custom agent 并动态创建
+    if agent.is_none() {
+        if ctx.user_agents.contains_key(&agent_id) {
+            // Python: instance = StandardAgent(agent_id=agent_id); register_agent(instance)
+            let instance = Arc::new(crate::agent::standard::StandardAgent::new(&agent_id))
+                as Arc<dyn crate::agent::base::BaseAgent>;
+            register_agent(&agent_id, instance);
+            // Python: agent_config = get_agent_config(agent_id) — 重新从 registry 获取
+            agent = get_agent(&agent_id);
+            tracing::info!("dynamically created StandardAgent for custom agent: {}", agent_id);
+        }
+    }
+
+    // Python: if not agent_config: "Unknown agent" error
+    let agent = match agent {
         Some(a) => a,
         None => {
             use std::convert::Infallible;
