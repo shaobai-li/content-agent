@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, OnceLock, RwLock};
 
 use serde::Serialize;
 
@@ -16,7 +16,7 @@ pub struct AgentMeta {
 }
 
 static AGENT_LIST: OnceLock<Vec<AgentMeta>> = OnceLock::new();
-static AGENT_INSTANCES: OnceLock<HashMap<String, Arc<dyn BaseAgent>>> = OnceLock::new();
+static AGENT_INSTANCES: OnceLock<RwLock<HashMap<String, Arc<dyn BaseAgent>>>> = OnceLock::new();
 
 pub fn init_registry() {
     let config = crate::core::config::get_config();
@@ -54,13 +54,25 @@ pub fn init_agent_instances() {
             instances.insert(id.clone(), Arc::new(crate::agent::standard::StandardAgent::new(id)));
         }
     }
-    AGENT_INSTANCES.set(instances).ok();
+    AGENT_INSTANCES.set(RwLock::new(instances)).ok();
+}
+
+/// 动态注册 agent 实例（供 custom agent 使用）
+pub fn register_agent(agent_id: &str, agent: Arc<dyn BaseAgent>) {
+    if let Some(instances) = AGENT_INSTANCES.get() {
+        if let Ok(mut guard) = instances.write() {
+            guard.insert(agent_id.to_string(), agent);
+        }
+    }
 }
 
 pub fn list_agents() -> &'static Vec<AgentMeta> {
     AGENT_LIST.get().expect("registry not initialized")
 }
 
-pub fn get_agent(agent_id: &str) -> Option<&'static Arc<dyn BaseAgent>> {
-    AGENT_INSTANCES.get().and_then(|instances| instances.get(agent_id))
+pub fn get_agent(agent_id: &str) -> Option<Arc<dyn BaseAgent>> {
+    AGENT_INSTANCES
+        .get()
+        .and_then(|instances| instances.read().ok())
+        .and_then(|guard| guard.get(agent_id).cloned())
 }
