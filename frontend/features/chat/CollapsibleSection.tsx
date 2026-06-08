@@ -25,43 +25,62 @@ export function CollapsibleSection({
   const toggleExpanded = () => setIsExpanded(!isExpanded);
 
   const hasContent = content.length > 0;
+  const displayContent = hasContent
+    ? content
+        .replace(/\r\n/g, "\n")      // 统一换行符
+        .replace(/\n{3,}/g, "\n\n")  // 3+连续换行折叠为一个空行
+    : "";
 
   return (
     <div className="mb-2 min-w-0 rounded-lg overflow-hidden">
-      <button
-        type="button"
-        onClick={toggleExpanded}
-        className={cn(
-          "w-full min-w-0 flex items-center gap-2 px-3 py-2 text-sm font-medium",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-        )}
-      >
-        {isExpanded ? (
-          <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
-        )}
-        <span className="min-w-0 max-w-full flex-1 break-all text-left text-slate-700">{title}</span>
-        {isStreaming && (
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse delay-75" />
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse delay-150" />
-          </span>
-        )}
-      </button>
+      <div className="grid grid-cols-[20px_1fr]">
+        {/* 左侧图标列 */}
+        <button
+          type="button"
+          onClick={toggleExpanded}
+          className="flex justify-center pt-[10px] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400"
+          aria-label={isExpanded ? "折叠" : "展开"}
+        >
+          {isExpanded ? (
+            <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+          )}
+        </button>
 
-      {isExpanded && (
-        <div className="px-3 pb-3">
-          <div className="min-w-0 max-w-full whitespace-pre-wrap break-all text-sm text-slate-600">
-            {hasContent ? (
-              content
-            ) : (
-              <span className="text-slate-400 italic">{emptyLabel}</span>
+        {/* 右侧内容列 */}
+        <div className="min-w-0">
+          <button
+            type="button"
+            onClick={toggleExpanded}
+            className={cn(
+              "w-full text-left py-2 pr-3 text-sm font-medium",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400"
             )}
-          </div>
+          >
+            <span className="break-all text-slate-700">{title}</span>
+            {isStreaming && (
+              <span className="ml-2 inline-flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse delay-75" />
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse delay-150" />
+              </span>
+            )}
+          </button>
+
+          {isExpanded && (
+            <div className="pr-3 pb-3">
+              <div className="min-w-0 max-w-full whitespace-pre-wrap break-all text-sm text-slate-600 leading-snug">
+                {hasContent ? (
+                  displayContent
+                ) : (
+                  <span className="text-slate-400 italic">{emptyLabel}</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
