@@ -28,7 +28,6 @@ export function CollapsibleSection({
   const displayContent = hasContent
     ? content
         .replace(/\r\n/g, "\n")      // 统一换行符
-        .replace(/\n{3,}/g, "\n\n")  // 3+连续换行折叠为一个空行
     : "";
 
   return (
@@ -70,9 +69,16 @@ export function CollapsibleSection({
 
           {isExpanded && (
             <div className="pr-3 pb-3">
-              <div className="min-w-0 max-w-full whitespace-pre-wrap break-all text-sm text-slate-600 leading-snug">
+              <div className="text-sm text-slate-600 leading-snug">
                 {hasContent ? (
-                  displayContent
+                  displayContent.split(/\n{2,}/).filter(Boolean).map((paragraph, i) => (
+                    <div
+                      key={i}
+                      className="min-w-0 max-w-full whitespace-pre-wrap break-all mb-6 last:mb-0"
+                    >
+                      {paragraph}
+                    </div>
+                  ))
                 ) : (
                   <span className="text-slate-400 italic">{emptyLabel}</span>
                 )}
