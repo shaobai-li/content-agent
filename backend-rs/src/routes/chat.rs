@@ -7,6 +7,8 @@ use axum::{
     Router,
 };
 
+use tracing::warn;
+
 use crate::agent::registry::{get_agent, register_agent};
 use crate::agent::turn_context::AgentTurnContext;
 use crate::core::auth::UserContext;
@@ -54,7 +56,11 @@ async fn chat_stream_handler(
                 if let Ok(content) = field.text().await {
                     if let Ok(arr) = serde_json::from_str::<Vec<String>>(&content) {
                         attachment_paths = arr;
+                    } else {
+                        warn!("attachment_paths 字段 JSON 解析失败: {}", content);
                     }
+                } else {
+                    warn!("attachment_paths 字段读取失败");
                 }
             }
             _ => {}
