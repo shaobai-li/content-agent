@@ -54,7 +54,12 @@ function useFileDragAndDrop(
   const onTauriFilesDroppedRef = useRef(onTauriFilesDropped);
   onTauriFilesDroppedRef.current = onTauriFilesDropped;
 
+  // 互斥锁：Tauri onDragDropEvent 与 HTML5 onDrop 都会触发，
+  // 但只需处理第一个到的 drop 事件，另一个直接跳过
+  const dropClaimedRef = useRef(false);
+
   const handleDragEnter = useCallback((e: React.DragEvent) => {
+    dropClaimedRef.current = false;
     e.preventDefault();
     e.stopPropagation();
     setDragOverlayKind(hasKnowledgeBaseDragData(e.dataTransfer) ? "knowledge-base" : "files");
@@ -81,6 +86,10 @@ function useFileDragAndDrop(
     e.stopPropagation();
     setIsDragging(false);
 
+    // 互斥：已被 Tauri onDragDropEvent 处理则跳过
+    if (dropClaimedRef.current) return;
+    dropClaimedRef.current = true;
+
     // 优先处理知识库拖拽
     const mention = (() => {
       const data = readKnowledgeBaseDragData(e.dataTransfer);
@@ -101,10 +110,7 @@ function useFileDragAndDrop(
       return;
     }
 
-    // Tauri 环境下外部文件拖拽已由 onDragDropEvent 处理，跳过 HTML5 路径避免重复
-    if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) return;
-
-    // 处理文件拖拽（仅浏览器/开发环境）
+    // 处理文件拖拽
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       onFilesDropped?.(files);
@@ -125,12 +131,18 @@ function useFileDragAndDrop(
           const { type, paths } = event.payload;
 
           if (type === 'enter' || type === 'over') {
+            dropClaimedRef.current = false;
             setDragOverlayKind('files');
             setIsDragging(true);
           } else if (type === 'leave') {
             setIsDragging(false);
           } else if (type === 'drop') {
             setIsDragging(false);
+
+            // 互斥：已被 HTML5 onDrop 处理则跳过
+            if (dropClaimedRef.current) return;
+            dropClaimedRef.current = true;
+
             if (paths.length > 0 && onTauriFilesDroppedRef.current) {
               onTauriFilesDroppedRef.current(paths);
             }
