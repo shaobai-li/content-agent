@@ -15,6 +15,8 @@ import {
   hasKnowledgeBaseDragData,
   readKnowledgeBaseDragData,
 } from "@/shared/lib/dragData";
+import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import type { MentionItem } from "./MentionChip";
 import { useDocumentCollapse } from "@/app-shell/DocumentCollapseContext";
 import { http } from "@/shared/api/http";
@@ -43,11 +45,21 @@ function DragOverlay({ kind }: { kind: DragOverlayKind }) {
 function useFileDragAndDrop(
   onFilesDropped?: (files: FileList) => void,
   onMentionDropped?: (mention: MentionItem) => void,
+  onTauriFilesDropped?: (paths: string[]) => void,
 ) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOverlayKind, setDragOverlayKind] = useState<DragOverlayKind>("files");
 
+  // 用 ref 持有回调，避免 useEffect 因回调引用变化而重复执行
+  const onTauriFilesDroppedRef = useRef(onTauriFilesDropped);
+  onTauriFilesDroppedRef.current = onTauriFilesDropped;
+
+  // 互斥锁：Tauri onDragDropEvent 与 HTML5 onDrop 都会触发，
+  // 但只需处理第一个到的 drop 事件，另一个直接跳过
+  const dropClaimedRef = useRef(false);
+
   const handleDragEnter = useCallback((e: React.DragEvent) => {
+    dropClaimedRef.current = false;
     e.preventDefault();
     e.stopPropagation();
     setDragOverlayKind(hasKnowledgeBaseDragData(e.dataTransfer) ? "knowledge-base" : "files");
@@ -73,6 +85,10 @@ function useFileDragAndDrop(
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+
+    // 互斥：已被 Tauri onDragDropEvent 处理则跳过
+    if (dropClaimedRef.current) return;
+    dropClaimedRef.current = true;
 
     // 优先处理知识库拖拽
     const mention = (() => {
@@ -100,6 +116,49 @@ function useFileDragAndDrop(
       onFilesDropped?.(files);
     }
   }, [onFilesDropped, onMentionDropped]);
+
+  // Tauri 拖拽事件监听（仅 Tauri 环境有效）
+  useEffect(() => {
+    const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+    if (!isTauri) return;
+
+    let unlisten: (() => void) | undefined;
+
+    const setup = async () => {
+      try {
+        const appWindow = getCurrentWebviewWindow();
+        unlisten = await appWindow.onDragDropEvent((event: { payload: { type: string; paths: string[] } }) => {
+          const { type, paths } = event.payload;
+
+          if (type === 'enter' || type === 'over') {
+            dropClaimedRef.current = false;
+            setDragOverlayKind('files');
+            setIsDragging(true);
+          } else if (type === 'leave') {
+            setIsDragging(false);
+          } else if (type === 'drop') {
+            setIsDragging(false);
+
+            // 互斥：已被 HTML5 onDrop 处理则跳过
+            if (dropClaimedRef.current) return;
+            dropClaimedRef.current = true;
+
+            if (paths.length > 0 && onTauriFilesDroppedRef.current) {
+              onTauriFilesDroppedRef.current(paths);
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to set up Tauri drag-drop listener:', err);
+      }
+    };
+
+    setup();
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
 
   return {
     isDragging,
@@ -241,9 +300,53 @@ export function ChatPage({ agentId }: ChatPageProps) {
   // 文件拖拽
   const [pendingMention, setPendingMention] = useState<MentionItem | null>(null);
   const chatInputRef = useRef<{ insertMention: (mention: MentionItem) => void }>(null);
+
+  // Tauri 拖拽：通过文件路径直接复制到缓存
+  const handleTauriFilesDropped = useCallback(async (paths: string[]) => {
+    const newFiles: FileItem[] = paths.map((path) => {
+      const fileName = path.replace(/^.*[/\\]/, '');
+      return {
+        file: new File([], fileName),
+        fileName,
+        fileType: getFileType(fileName),
+        id: `${Date.now()}-${Math.random()}`,
+        cacheStatus: "uploading" as const,
+      };
+    });
+
+    setPendingFiles((prev) => [...prev, ...newFiles]);
+
+    await Promise.all(
+      newFiles.map(async (item, index) => {
+        try {
+          const cachedPath = await invoke<string>("copy_attachment_to_cache", {
+            agentId,
+            sourcePath: paths[index],
+          });
+          setPendingFiles((prev) =>
+            prev.map((f) =>
+              f.id === item.id
+                ? { ...f, cachedPath, cacheStatus: "ready" as const }
+                : f,
+            ),
+          );
+        } catch {
+          setPendingFiles((prev) =>
+            prev.map((f) =>
+              f.id === item.id
+                ? { ...f, cacheStatus: "error" as const, cacheError: "上传失败" }
+                : f,
+            ),
+          );
+        }
+      }),
+    );
+  }, [agentId]);
+
   const { isDragging, dragOverlayKind, dragHandlers } = useFileDragAndDrop(
     handleFilesDropped,
     handleMentionDropped,
+    handleTauriFilesDropped,
   );
 
   // 消费待插入的知识库提及
