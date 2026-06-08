@@ -101,7 +101,10 @@ function useFileDragAndDrop(
       return;
     }
 
-    // 处理文件拖拽
+    // Tauri 环境下外部文件拖拽已由 onDragDropEvent 处理，跳过 HTML5 路径避免重复
+    if (typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) return;
+
+    // 处理文件拖拽（仅浏览器/开发环境）
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       onFilesDropped?.(files);
