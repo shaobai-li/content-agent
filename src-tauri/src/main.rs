@@ -15,6 +15,23 @@ fn show_notification(message: String) {
     println!("{}", message);
 }
 
+/// 将外部文件（通过绝对路径）复制到指定 Agent 的附件缓存目录，
+/// 返回缓存后的绝对路径。供 Tauri onDragDropEvent 拖拽流程调用。
+#[tauri::command]
+async fn copy_attachment_to_cache(agent_id: String, source_path: String) -> Result<String, String> {
+    let data = tokio::fs::read(&source_path).await.map_err(|e| e.to_string())?;
+    let filename = std::path::Path::new(&source_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("unnamed");
+    let path = omniage_backend_rs::service::files::save_upload_to_agent_cache_keep_name(
+        &agent_id,
+        filename,
+        &data,
+    );
+    Ok(path.to_string_lossy().to_string())
+}
+
 fn resolve_omniage_root() -> std::path::PathBuf {
     if cfg!(not(debug_assertions)) {
         // ── 生产环境 ─────────────────────────────────────────
@@ -134,6 +151,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             open_file_dialog,
             show_notification,
+            copy_attachment_to_cache,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
