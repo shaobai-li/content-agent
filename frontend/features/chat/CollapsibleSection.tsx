@@ -27,13 +27,12 @@ export function CollapsibleSection({
   const hasContent = content.length > 0;
 
   return (
-    <div className="mb-2 min-w-0 border border-slate-200 rounded-lg overflow-hidden bg-slate-50/50">
+    <div className="mb-2 min-w-0 rounded-lg overflow-hidden">
       <button
         type="button"
         onClick={toggleExpanded}
         className={cn(
           "w-full min-w-0 flex items-center gap-2 px-3 py-2 text-sm font-medium",
-          "hover:bg-slate-100 transition-colors",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
         )}
       >
