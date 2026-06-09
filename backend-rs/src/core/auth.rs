@@ -233,4 +233,20 @@ mod tests {
             assert_eq!(get_current_user_id(), Some("test-user".to_string()));
         }).await;
     }
+
+    #[tokio::test]
+    async fn test_with_user_context_sets_user_id() {
+        let result = with_user_context("alice".to_string(), async {
+            get_current_user_id()
+        }).await;
+        assert_eq!(result, Some("alice".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_with_user_context_returns_value() {
+        let answer = with_user_context("bob".to_string(), async {
+            42
+        }).await;
+        assert_eq!(answer, 42);
+    }
 }

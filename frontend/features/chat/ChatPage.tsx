@@ -110,7 +110,6 @@ function useFileDragAndDrop(
 
     // 处理文件拖拽
     const files = e.dataTransfer.files;
-    console.log('[HTML5-onDrop] files.length:', files.length, files);
     if (files.length > 0) {
       if (dropClaimedRef.current) return;
       dropClaimedRef.current = true;
@@ -143,13 +142,8 @@ function useFileDragAndDrop(
           } else if (type === 'drop') {
             setIsDragging(false);
 
-            console.log('[Tauri-onDragDropEvent] drop 触发, paths:', paths);
-
             // 互斥：已被 HTML5 onDrop 处理则跳过
-            if (dropClaimedRef.current) {
-              console.log('[Tauri-onDragDropEvent] 被互斥锁拦截, dropClaimedRef=true');
-              return;
-            }
+            if (dropClaimedRef.current) return;
             dropClaimedRef.current = true;
 
             if (paths.length > 0 && onTauriFilesDroppedRef.current) {
@@ -328,13 +322,11 @@ export function ChatPage({ agentId }: ChatPageProps) {
     await Promise.all(
       newFiles.map(async (item, index) => {
         try {
-          console.log('[handleTauriFilesDropped] 开始 invoke:', paths[index]);
           const cachedPath = await invoke<string>("copy_attachment_to_cache", {
             agentId,
             sourcePath: paths[index],
             userId: getUserId() || null,
           });
-          console.log('[handleTauriFilesDropped] invoke 成功, cachedPath:', cachedPath);
           setPendingFiles((prev) =>
             prev.map((f) =>
               f.id === item.id
@@ -342,8 +334,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
                 : f,
             ),
           );
-        } catch (err) {
-          console.error('[handleTauriFilesDropped] invoke 失败:', err);
+        } catch {
           setPendingFiles((prev) =>
             prev.map((f) =>
               f.id === item.id
