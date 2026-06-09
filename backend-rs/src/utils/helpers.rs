@@ -77,3 +77,44 @@ pub fn parse_kv_pairs(input: &str) -> std::collections::HashMap<String, String> 
     }
     map
 }
+
+// ── Tests ────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Windows 条件编译：构造带 \\?\ 前缀的路径，验证剥离逻辑
+    #[cfg(windows)]
+    #[test]
+    fn test_normalize_path_with_verbatim_drive() {
+        let raw = PathBuf::from(r"\\?\D:\foo\bar.txt");
+        let result = normalize_path(raw);
+        assert_eq!(result, PathBuf::from(r"D:\foo\bar.txt"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_normalize_path_without_prefix_unchanged() {
+        let raw = PathBuf::from(r"D:\foo\bar.txt");
+        let result = normalize_path(raw);
+        assert_eq!(result, PathBuf::from(r"D:\foo\bar.txt"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_normalize_path_verbatim_unc() {
+        let raw = PathBuf::from(r"\\?\UNC\server\share\path");
+        let result = normalize_path(raw);
+        assert_eq!(result, PathBuf::from(r"\\server\share\path"));
+    }
+
+    // 非 Windows 平台：normalize_path 是恒等函数
+    #[cfg(not(windows))]
+    #[test]
+    fn test_normalize_path_identity() {
+        let raw = PathBuf::from("/tmp/test.txt");
+        let result = normalize_path(raw);
+        assert_eq!(result, PathBuf::from("/tmp/test.txt"));
+    }
+}

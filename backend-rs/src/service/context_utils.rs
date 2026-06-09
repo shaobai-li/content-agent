@@ -52,7 +52,7 @@ fn resolve_url_content(_url: &str) -> Option<String> {
 ///
 /// ```text
 /// [Attached files — server cache]
-/// - D:/.../workspace/local_data/cache/doc.pdf
+/// - D:/.../.local/cache/doc.pdf
 /// ```
 pub fn append_attachments_to_user_text(user_text: &str, absolute_paths: &[String]) -> String {
     if absolute_paths.is_empty() {
