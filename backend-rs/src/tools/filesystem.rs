@@ -7,18 +7,22 @@ use serde_json::Value;
 use super::base::Tool;
 
 pub fn resolve_under_workspace(workspace: &str, rel_path: &str) -> Result<PathBuf, String> {
-    let root = std::path::Path::new(workspace)
-        .canonicalize()
-        .map_err(|e| format!("Error: cannot resolve workspace path: {e}"))?;
+    let root = crate::utils::helpers::normalize_path(
+        std::path::Path::new(workspace)
+            .canonicalize()
+            .map_err(|e| format!("Error: cannot resolve workspace path: {e}"))?,
+    );
 
     let full = root.join(rel_path);
     let full = if full.exists() {
-        full.canonicalize()
-            .map_err(|e| format!("Error: cannot resolve path: {e}"))?
+        crate::utils::helpers::normalize_path(
+            full.canonicalize()
+                .map_err(|e| format!("Error: cannot resolve path: {e}"))?,
+        )
     } else {
         let parent = full
             .parent()
-            .map(|p| p.canonicalize())
+            .map(|p| p.canonicalize().map(crate::utils::helpers::normalize_path))
             .transpose()
             .map_err(|e| format!("Error: cannot resolve parent path: {e}"))?
             .unwrap_or_else(|| root.clone());

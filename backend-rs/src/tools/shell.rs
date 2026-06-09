@@ -45,9 +45,13 @@ fn resolve_run_cwd(workspace: &str, cwd_mode: &str, skill_name: &str) -> Result<
             if !skills_dir.exists() {
                 return Err(format!("Error: Skills directory not found: {}", skills_dir.display()));
             }
-            Ok(skills_dir.canonicalize().map_err(|e| format!("Error: {e}"))?)
+            Ok(crate::utils::helpers::normalize_path(
+                skills_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+            ))
         }
-        _ => Ok(ws.canonicalize().map_err(|e| format!("Error: {e}"))?),
+        _ => Ok(crate::utils::helpers::normalize_path(
+            ws.canonicalize().map_err(|e| format!("Error: {e}"))?,
+        )),
     }
 }
 

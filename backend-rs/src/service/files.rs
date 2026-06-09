@@ -40,7 +40,7 @@ pub fn resolve_validated_cache_paths(agent_id: &str, path_strings: &[String]) ->
             cache_root.join(p)
         };
         let resolved = match resolved.canonicalize() {
-            Ok(r) => r,
+            Ok(r) => crate::utils::helpers::normalize_path(r),
             Err(_) => {
                 warn!("path resolve error: {} for agent {}", s, agent_id);
                 continue;

@@ -1,4 +1,36 @@
+use std::path::PathBuf;
+
 use chrono::Utc;
+
+/// 移除 Windows 规范路径中的 `\\?\` 前缀（verbatim prefix）。
+///
+/// Rust 的 `std::fs::canonicalize()` 在 Windows 上会通过 `GetFinalPathNameByHandleW`
+/// 返回带 `\\?\` 前缀的路径。此前缀在大多数用户场景中不必要且会导致路径不美观，
+/// 在传给 LLM 或显示给用户时尤其需要去除。
+///
+/// 非 Windows 平台直接返回原路径。
+#[cfg(windows)]
+pub fn normalize_path(path: PathBuf) -> PathBuf {
+    let s = path.to_string_lossy().to_string();
+    // 处理 \\?\C:\... 和 \\?\UNC\server\share\...
+    if s.starts_with("\\\\?\\") {
+        let without_prefix = &s[4..];
+        // \\?\UNC\server\share → \\server\share
+        if without_prefix.starts_with("UNC\\") || without_prefix.starts_with("UNC/") {
+            PathBuf::from(format!("\\{}", &without_prefix[3..]))
+        } else {
+            PathBuf::from(without_prefix)
+        }
+    } else {
+        path
+    }
+}
+
+/// 非 Windows 平台：原样返回。
+#[cfg(not(windows))]
+pub fn normalize_path(path: PathBuf) -> PathBuf {
+    path
+}
 
 /// 截断文本到指定长度，超过时末尾添加 "..."
 pub fn truncate_text(text: &str, max_len: usize) -> String {
