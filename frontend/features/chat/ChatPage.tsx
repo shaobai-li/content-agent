@@ -122,10 +122,9 @@ function useFileDragAndDrop(
     const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
     if (!isTauri) return;
 
-    let cancelled = false;
     let unlisten: (() => void) | undefined;
 
-    (async () => {
+    const setup = async () => {
       try {
         const appWindow = getCurrentWebviewWindow();
         unlisten = await appWindow.onDragDropEvent((event: { payload: { type: string; paths: string[] } }) => {
@@ -149,15 +148,14 @@ function useFileDragAndDrop(
             }
           }
         });
-        // 若在 await 期间组件已卸载，立即清除监听器
-        if (cancelled && unlisten) unlisten();
       } catch (err) {
         console.warn('Failed to set up Tauri drag-drop listener:', err);
       }
-    })();
+    };
+
+    setup();
 
     return () => {
-      cancelled = true;
       if (unlisten) unlisten();
     };
   }, []);
@@ -302,11 +300,6 @@ export function ChatPage({ agentId }: ChatPageProps) {
   // 文件拖拽
   const [pendingMention, setPendingMention] = useState<MentionItem | null>(null);
   const chatInputRef = useRef<{ insertMention: (mention: MentionItem) => void }>(null);
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
 
   // Tauri 拖拽：通过文件路径直接复制到缓存
   const handleTauriFilesDropped = useCallback(async (paths: string[]) => {
@@ -330,7 +323,6 @@ export function ChatPage({ agentId }: ChatPageProps) {
             agentId,
             sourcePath: paths[index],
           });
-          if (!mountedRef.current) return;
           setPendingFiles((prev) =>
             prev.map((f) =>
               f.id === item.id
@@ -339,7 +331,6 @@ export function ChatPage({ agentId }: ChatPageProps) {
             ),
           );
         } catch {
-          if (!mountedRef.current) return;
           setPendingFiles((prev) =>
             prev.map((f) =>
               f.id === item.id
