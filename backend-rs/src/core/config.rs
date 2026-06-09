@@ -123,6 +123,8 @@ pub fn init_config() {
         .map(PathBuf::from)
         .unwrap_or_else(|_| root.join("data"));
     let data_dir = data_dir.canonicalize().unwrap_or(data_dir);
+    // Windows: canonicalize() 会添加 \\?\ 前缀，去掉它以得到整洁路径
+    let data_dir = crate::utils::helpers::normalize_path(data_dir);
 
     let agents = load_agent_yamls(&config_dir);
 
@@ -241,18 +243,22 @@ pub fn get_agent_messages_path(agent_id: &str) -> PathBuf {
     base_dir.join(filename)
 }
 
-pub fn get_agent_local_data_dir(agent_id: &str) -> PathBuf {
-    get_agent_workspace_dir(agent_id).join("local_data")
-}
-
 pub fn get_agent_workspace_dir(agent_id: &str) -> PathBuf {
-    let ws = get_agent_base_dir(agent_id).join("workspace");
+    let ws = get_agent_base_dir(agent_id).join(".local");
     std::fs::create_dir_all(&ws).ok();
     ws
 }
 
+pub fn get_agent_local_data_dir(agent_id: &str) -> PathBuf {
+    // Python 端等义：<base>/knowledge_base/
+    let local_data = get_agent_base_dir(agent_id).join("knowledge_base");
+    std::fs::create_dir_all(&local_data).ok();
+    local_data
+}
+
 pub fn get_agent_attachment_cache_dir(agent_id: &str) -> PathBuf {
-    let cache = get_agent_local_data_dir(agent_id).join("cache");
+    // Python 端等义：<base>/.local/cache/
+    let cache = get_agent_workspace_dir(agent_id).join("cache");
     std::fs::create_dir_all(&cache).ok();
     cache
 }

@@ -40,7 +40,7 @@ pub fn resolve_validated_cache_paths(agent_id: &str, path_strings: &[String]) ->
             cache_root.join(p)
         };
         let resolved = match resolved.canonicalize() {
-            Ok(r) => r,
+            Ok(r) => crate::utils::helpers::normalize_path(r),
             Err(_) => {
                 warn!("path resolve error: {} for agent {}", s, agent_id);
                 continue;
@@ -64,7 +64,9 @@ pub fn save_upload_to_agent_cache_keep_name(agent_id: &str, filename: &str, cont
     let cache_dir = get_agent_attachment_cache_dir(agent_id);
     let safe_name = sanitize_attachment_filename(Some(filename));
     let dest = cache_dir.join(&safe_name);
-    std::fs::write(&dest, content).ok();
+    if let Err(e) = std::fs::write(&dest, content) {
+        warn!("cache write failed: {} / {} error={}", agent_id, safe_name, e);
+    }
     debug!("cache saved: {} / {} size={}", agent_id, safe_name, content.len());
     dest
 }

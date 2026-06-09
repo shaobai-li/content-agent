@@ -46,11 +46,65 @@ fn resolve_url_content(_url: &str) -> Option<String> {
     None
 }
 
+/// 将已持久化附件的绝对路径追加到用户可见文本末尾，供模型与会话存档使用。
+///
+/// 格式示例：
+///
+/// ```text
+/// [Attached files — server cache]
+/// - D:/.../.local/cache/doc.pdf
+/// ```
+pub fn append_attachments_to_user_text(user_text: &str, absolute_paths: &[String]) -> String {
+    if absolute_paths.is_empty() {
+        return user_text.to_string();
+    }
+    let lines: Vec<String> = absolute_paths.iter().map(|p| format!("- {p}")).collect();
+    let block = format!("[Attached files — server cache]\n{}", lines.join("\n"));
+    if user_text.trim().is_empty() {
+        block
+    } else {
+        format!("{}\n\n{}", user_text.trim_end(), block)
+    }
+}
+
 // ── Tests ────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── append_attachments_to_user_text ──────────────────────────────────
+
+    #[test]
+    fn test_append_attachments_empty_paths_returns_original() {
+        let result = append_attachments_to_user_text("hello", &[]);
+        assert_eq!(result, "hello");
+    }
+
+    #[test]
+    fn test_append_attachments_single_path() {
+        let paths = vec!["D:/cache/doc.pdf".to_string()];
+        let result = append_attachments_to_user_text("hello", &paths);
+        assert!(result.starts_with("hello"));
+        assert!(result.contains("Attached files"));
+        assert!(result.contains("doc.pdf"));
+    }
+
+    #[test]
+    fn test_append_attachments_multiple_paths() {
+        let paths = vec!["/tmp/a.pdf".to_string(), "/tmp/b.pdf".to_string()];
+        let result = append_attachments_to_user_text("hello", &paths);
+        assert!(result.contains("- /tmp/a.pdf"));
+        assert!(result.contains("- /tmp/b.pdf"));
+    }
+
+    #[test]
+    fn test_append_attachments_blank_user_text() {
+        let paths = vec!["/tmp/doc.pdf".to_string()];
+        let result = append_attachments_to_user_text("  \n  ", &paths);
+        assert!(result.starts_with("[Attached files"));
+        assert!(result.contains("doc.pdf"));
+    }
 
     #[test]
     fn test_get_article_context_messages_empty() {

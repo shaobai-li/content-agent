@@ -1,4 +1,36 @@
+use std::path::PathBuf;
+
 use chrono::Utc;
+
+/// 移除 Windows 规范路径中的 `\\?\` 前缀（verbatim prefix）。
+///
+/// Rust 的 `std::fs::canonicalize()` 在 Windows 上会通过 `GetFinalPathNameByHandleW`
+/// 返回带 `\\?\` 前缀的路径。此前缀在大多数用户场景中不必要且会导致路径不美观，
+/// 在传给 LLM 或显示给用户时尤其需要去除。
+///
+/// 非 Windows 平台直接返回原路径。
+#[cfg(windows)]
+pub fn normalize_path(path: PathBuf) -> PathBuf {
+    let s = path.to_string_lossy().to_string();
+    // 处理 \\?\C:\... 和 \\?\UNC\server\share\...
+    if s.starts_with("\\\\?\\") {
+        let without_prefix = &s[4..];
+        // \\?\UNC\server\share → \\server\share
+        if without_prefix.starts_with("UNC\\") || without_prefix.starts_with("UNC/") {
+            PathBuf::from(format!("\\{}", &without_prefix[3..]))
+        } else {
+            PathBuf::from(without_prefix)
+        }
+    } else {
+        path
+    }
+}
+
+/// 非 Windows 平台：原样返回。
+#[cfg(not(windows))]
+pub fn normalize_path(path: PathBuf) -> PathBuf {
+    path
+}
 
 /// 截断文本到指定长度，超过时末尾添加 "..."
 pub fn truncate_text(text: &str, max_len: usize) -> String {
@@ -44,4 +76,45 @@ pub fn parse_kv_pairs(input: &str) -> std::collections::HashMap<String, String> 
         }
     }
     map
+}
+
+// ── Tests ────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Windows 条件编译：构造带 \\?\ 前缀的路径，验证剥离逻辑
+    #[cfg(windows)]
+    #[test]
+    fn test_normalize_path_with_verbatim_drive() {
+        let raw = PathBuf::from(r"\\?\D:\foo\bar.txt");
+        let result = normalize_path(raw);
+        assert_eq!(result, PathBuf::from(r"D:\foo\bar.txt"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_normalize_path_without_prefix_unchanged() {
+        let raw = PathBuf::from(r"D:\foo\bar.txt");
+        let result = normalize_path(raw);
+        assert_eq!(result, PathBuf::from(r"D:\foo\bar.txt"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_normalize_path_verbatim_unc() {
+        let raw = PathBuf::from(r"\\?\UNC\server\share\path");
+        let result = normalize_path(raw);
+        assert_eq!(result, PathBuf::from(r"\\server\share\path"));
+    }
+
+    // 非 Windows 平台：normalize_path 是恒等函数
+    #[cfg(not(windows))]
+    #[test]
+    fn test_normalize_path_identity() {
+        let raw = PathBuf::from("/tmp/test.txt");
+        let result = normalize_path(raw);
+        assert_eq!(result, PathBuf::from("/tmp/test.txt"));
+    }
 }
