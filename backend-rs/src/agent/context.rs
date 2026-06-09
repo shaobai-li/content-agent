@@ -111,12 +111,15 @@ impl ContextBuilder {
     }
 
     fn build_tool_guard(&self) -> String {
-        let ws = self.workspace.canonicalize().unwrap_or_else(|_| self.workspace.clone());
+        let ws = crate::utils::helpers::normalize_path(
+            self.workspace.canonicalize().unwrap_or_else(|_| self.workspace.clone()),
+        );
         let skills_dir = ws
             .parent()
             .map(|p| p.join("skills"))
             .unwrap_or_else(|| PathBuf::from("skills"))
             .canonicalize()
+            .map(crate::utils::helpers::normalize_path)
             .unwrap_or_else(|_| PathBuf::from("skills"));
 
         let kb_line = self.build_kb_env_line();

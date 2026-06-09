@@ -13,6 +13,7 @@ use crate::agent::turn_context::AgentTurnContext;
 use crate::core::config::get_agent_workspace_dir;
 use crate::provider::factory;
 use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
+use crate::service::context_utils::append_attachments_to_user_text;
 use crate::service::stream::build_stream_done;
 use crate::tools::create_tool_registry;
 
@@ -64,7 +65,10 @@ impl BaseAgent for WriteAgent {
         let builder = ContextBuilder::new(&workspace.display().to_string(), Some(&self.agent_id));
 
         let history = history_llm_turns(&ctx.history_messages);
-        let mut messages = builder.build_messages(&history, &ctx.user_text, &ctx.mentions);
+
+        // 将附件缓存路径拼入 user_text，与 Python 端 append_attachments_to_user_text 一致
+        let user_text = append_attachments_to_user_text(&ctx.user_text, &ctx.resolved_attachment_paths);
+        let mut messages = builder.build_messages(&history, &user_text, &ctx.mentions);
 
         // 用写作专用 system prompt 替换默认
         let system_msg = serde_json::json!({"role": "system", "content": WRITE_SYSTEM_PROMPT});

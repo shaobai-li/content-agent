@@ -7,6 +7,8 @@ use axum::{
     Router,
 };
 
+use tracing::warn;
+
 use crate::agent::registry::{get_agent, register_agent};
 use crate::agent::turn_context::AgentTurnContext;
 use crate::core::auth::UserContext;
@@ -29,6 +31,7 @@ async fn chat_stream_handler(
     let mut session_id: Option<String> = None;
     let mut history_messages: Vec<serde_json::Value> = Vec::new();
     let mut mentions: Vec<serde_json::Value> = Vec::new();
+    let mut attachment_paths: Vec<String> = Vec::new();
 
     while let Ok(Some(field)) = multipart.next_field().await {
         let name = field.name().unwrap_or("").to_string();
@@ -47,6 +50,17 @@ async fn chat_stream_handler(
                     if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
                         mentions = arr;
                     }
+                }
+            }
+            "attachment_paths" => {
+                if let Ok(content) = field.text().await {
+                    if let Ok(arr) = serde_json::from_str::<Vec<String>>(&content) {
+                        attachment_paths = arr;
+                    } else {
+                        warn!("attachment_paths 字段 JSON 解析失败: {}", content);
+                    }
+                } else {
+                    warn!("attachment_paths 字段读取失败");
                 }
             }
             _ => {}
@@ -93,8 +107,17 @@ async fn chat_stream_handler(
     save_session_if_new(&agent_id, &session_id, &text);
     save_message(&agent_id, &session_id, "user", Some(&text), None, None);
 
+    let validated_paths = crate::service::files::resolve_validated_cache_paths(
+        &agent_id,
+        &attachment_paths,
+    );
+
     let mut ctx = AgentTurnContext::new(&agent_id, Some(session_id.clone()), text, history_messages);
     ctx.mentions = mentions;
+    ctx.resolved_attachment_paths = validated_paths
+        .iter()
+        .map(|p| p.to_string_lossy().to_string())
+        .collect();
     let stream = agent.handle_chat_stream(ctx).await;
 
     Response::builder()
