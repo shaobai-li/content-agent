@@ -18,17 +18,40 @@ fn show_notification(message: String) {
 /// 将外部文件（通过绝对路径）复制到指定 Agent 的附件缓存目录，
 /// 返回缓存后的绝对路径。供 Tauri onDragDropEvent 拖拽流程调用。
 #[tauri::command]
-async fn copy_attachment_to_cache(agent_id: String, source_path: String) -> Result<String, String> {
+async fn copy_attachment_to_cache(
+    agent_id: String,
+    source_path: String,
+    user_id: Option<String>,
+) -> Result<String, String> {
     let data = tokio::fs::read(&source_path).await.map_err(|e| e.to_string())?;
     let filename = std::path::Path::new(&source_path)
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("unnamed");
-    let path = omniage_backend_rs::service::files::save_upload_to_agent_cache_keep_name(
-        &agent_id,
-        filename,
-        &data,
-    );
+
+    // 有用户上下文时走用户隔离路径（u_{id}/data/{agent_id}/...）
+    // 无用户上下文时保持全局路径（向后兼容）
+    let path = match user_id {
+        Some(uid) => {
+            omniage_backend_rs::core::auth::with_user_context(
+                uid,
+                async {
+                    omniage_backend_rs::service::files::save_upload_to_agent_cache_keep_name(
+                        &agent_id,
+                        filename,
+                        &data,
+                    )
+                },
+            )
+            .await
+        }
+        None => omniage_backend_rs::service::files::save_upload_to_agent_cache_keep_name(
+            &agent_id,
+            filename,
+            &data,
+        ),
+    };
+
     Ok(path.to_string_lossy().to_string())
 }
 

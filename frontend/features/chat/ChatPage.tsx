@@ -8,7 +8,7 @@ import { DashboardHero } from "./DashboardHero";
 import { ChatInput, type FileItem, type ModelOption, MODEL_OPTIONS } from "./ChatInput";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { ScrollArea } from "@/shared/ui/scroll-area";
-import { API_BASE_URL } from "@/shared/api/config";
+import { API_BASE_URL, getUserId } from "@/shared/api/config";
 import { uploadAgentAttachmentCache } from "@/shared/api/attachments";
 import { Upload } from "lucide-react";
 import {
@@ -86,10 +86,6 @@ function useFileDragAndDrop(
     e.stopPropagation();
     setIsDragging(false);
 
-    // 互斥：已被 Tauri onDragDropEvent 处理则跳过
-    if (dropClaimedRef.current) return;
-    dropClaimedRef.current = true;
-
     // 优先处理知识库拖拽
     const mention = (() => {
       const data = readKnowledgeBaseDragData(e.dataTransfer);
@@ -106,6 +102,8 @@ function useFileDragAndDrop(
     })();
 
     if (mention) {
+      if (dropClaimedRef.current) return;
+      dropClaimedRef.current = true;
       onMentionDropped?.(mention);
       return;
     }
@@ -113,8 +111,13 @@ function useFileDragAndDrop(
     // 处理文件拖拽
     const files = e.dataTransfer.files;
     if (files.length > 0) {
+      if (dropClaimedRef.current) return;
+      dropClaimedRef.current = true;
       onFilesDropped?.(files);
     }
+    // Tauri 环境下 e.dataTransfer.files 可能为空
+    // （WebView2 不传递 OS 文件到 HTML5），此时不 claim，
+    // 让 Tauri onDragDropEvent 通过 Rust invoke 路径处理。
   }, [onFilesDropped, onMentionDropped]);
 
   // Tauri 拖拽事件监听（仅 Tauri 环境有效）
@@ -322,6 +325,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
           const cachedPath = await invoke<string>("copy_attachment_to_cache", {
             agentId,
             sourcePath: paths[index],
+            userId: getUserId() || null,
           });
           setPendingFiles((prev) =>
             prev.map((f) =>

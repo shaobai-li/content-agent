@@ -19,6 +19,14 @@ pub fn get_current_user_id() -> Option<String> {
     CURRENT_USER_ID.try_with(|id| id.clone()).ok()
 }
 
+/// 在指定用户上下文中执行异步操作（Tauri invoke 等非 HTTP 入口使用）
+pub async fn with_user_context<F, T>(user_id: String, f: F) -> T
+where
+    F: std::future::Future<Output = T>,
+{
+    CURRENT_USER_ID.scope(user_id, f).await
+}
+
 /// 当前请求的用户上下文
 #[derive(Debug, Clone, Default)]
 pub struct UserContext {
@@ -224,5 +232,21 @@ mod tests {
         CURRENT_USER_ID.scope("test-user".to_string(), async {
             assert_eq!(get_current_user_id(), Some("test-user".to_string()));
         }).await;
+    }
+
+    #[tokio::test]
+    async fn test_with_user_context_sets_user_id() {
+        let result = with_user_context("alice".to_string(), async {
+            get_current_user_id()
+        }).await;
+        assert_eq!(result, Some("alice".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_with_user_context_returns_value() {
+        let answer = with_user_context("bob".to_string(), async {
+            42
+        }).await;
+        assert_eq!(answer, 42);
     }
 }
