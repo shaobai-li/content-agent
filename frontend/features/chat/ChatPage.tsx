@@ -8,7 +8,7 @@ import { DashboardHero } from "./DashboardHero";
 import { ChatInput, type FileItem, type ModelOption, MODEL_OPTIONS } from "./ChatInput";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { ScrollArea } from "@/shared/ui/scroll-area";
-import { API_BASE_URL } from "@/shared/api/config";
+import { API_BASE_URL, getUserId } from "@/shared/api/config";
 import { uploadAgentAttachmentCache } from "@/shared/api/attachments";
 import { Upload } from "lucide-react";
 import {
@@ -86,10 +86,6 @@ function useFileDragAndDrop(
     e.stopPropagation();
     setIsDragging(false);
 
-    // 互斥：已被 Tauri onDragDropEvent 处理则跳过
-    if (dropClaimedRef.current) return;
-    dropClaimedRef.current = true;
-
     // 优先处理知识库拖拽
     const mention = (() => {
       const data = readKnowledgeBaseDragData(e.dataTransfer);
@@ -106,15 +102,23 @@ function useFileDragAndDrop(
     })();
 
     if (mention) {
+      if (dropClaimedRef.current) return;
+      dropClaimedRef.current = true;
       onMentionDropped?.(mention);
       return;
     }
 
     // 处理文件拖拽
     const files = e.dataTransfer.files;
+    console.log('[HTML5-onDrop] files.length:', files.length, files);
     if (files.length > 0) {
+      if (dropClaimedRef.current) return;
+      dropClaimedRef.current = true;
       onFilesDropped?.(files);
     }
+    // Tauri 环境下 e.dataTransfer.files 可能为空
+    // （WebView2 不传递 OS 文件到 HTML5），此时不 claim，
+    // 让 Tauri onDragDropEvent 通过 Rust invoke 路径处理。
   }, [onFilesDropped, onMentionDropped]);
 
   // Tauri 拖拽事件监听（仅 Tauri 环境有效）
@@ -139,8 +143,13 @@ function useFileDragAndDrop(
           } else if (type === 'drop') {
             setIsDragging(false);
 
+            console.log('[Tauri-onDragDropEvent] drop 触发, paths:', paths);
+
             // 互斥：已被 HTML5 onDrop 处理则跳过
-            if (dropClaimedRef.current) return;
+            if (dropClaimedRef.current) {
+              console.log('[Tauri-onDragDropEvent] 被互斥锁拦截, dropClaimedRef=true');
+              return;
+            }
             dropClaimedRef.current = true;
 
             if (paths.length > 0 && onTauriFilesDroppedRef.current) {
@@ -319,10 +328,13 @@ export function ChatPage({ agentId }: ChatPageProps) {
     await Promise.all(
       newFiles.map(async (item, index) => {
         try {
+          console.log('[handleTauriFilesDropped] 开始 invoke:', paths[index]);
           const cachedPath = await invoke<string>("copy_attachment_to_cache", {
             agentId,
             sourcePath: paths[index],
+            userId: getUserId() || null,
           });
+          console.log('[handleTauriFilesDropped] invoke 成功, cachedPath:', cachedPath);
           setPendingFiles((prev) =>
             prev.map((f) =>
               f.id === item.id
@@ -330,7 +342,8 @@ export function ChatPage({ agentId }: ChatPageProps) {
                 : f,
             ),
           );
-        } catch {
+        } catch (err) {
+          console.error('[handleTauriFilesDropped] invoke 失败:', err);
           setPendingFiles((prev) =>
             prev.map((f) =>
               f.id === item.id

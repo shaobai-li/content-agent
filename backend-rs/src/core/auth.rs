@@ -19,6 +19,14 @@ pub fn get_current_user_id() -> Option<String> {
     CURRENT_USER_ID.try_with(|id| id.clone()).ok()
 }
 
+/// 在指定用户上下文中执行异步操作（Tauri invoke 等非 HTTP 入口使用）
+pub async fn with_user_context<F, T>(user_id: String, f: F) -> T
+where
+    F: std::future::Future<Output = T>,
+{
+    CURRENT_USER_ID.scope(user_id, f).await
+}
+
 /// 当前请求的用户上下文
 #[derive(Debug, Clone, Default)]
 pub struct UserContext {
