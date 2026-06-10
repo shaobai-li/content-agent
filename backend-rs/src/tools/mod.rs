@@ -34,6 +34,6 @@ pub fn create_tool_registry(
     registry.register(Box::new(GenerateHTMLTool::new(provider_name, model)));
     registry.register(Box::new(WebSearchTool));
     registry.register(Box::new(WebFetchTool));
-    registry.register(Box::new(InvokeSkillTool::new(workspace, agent_id)));
+    registry.register(Box::new(InvokeSkillTool::new(agent_id)));
     registry
 }

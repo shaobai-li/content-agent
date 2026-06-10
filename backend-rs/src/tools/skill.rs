@@ -1,10 +1,9 @@
-use std::path::Path;
-
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use serde_json::Value;
 
 use super::base::Tool;
+use crate::service::skill_loader::discover_skills_for_agent;
 
 static INVOKE_SKILL_PARAMS: Lazy<Value> = Lazy::new(|| {
     serde_json::json!({
@@ -20,14 +19,12 @@ static INVOKE_SKILL_PARAMS: Lazy<Value> = Lazy::new(|| {
 });
 
 pub struct InvokeSkillTool {
-    workspace: String,
     agent_id: String,
 }
 
 impl InvokeSkillTool {
-    pub fn new(workspace: &str, agent_id: &str) -> Self {
+    pub fn new(agent_id: &str) -> Self {
         Self {
-            workspace: workspace.to_string(),
             agent_id: agent_id.to_string(),
         }
     }
@@ -53,33 +50,30 @@ impl Tool for InvokeSkillTool {
             .and_then(|v| v.as_str())
             .ok_or_else(|| "Error: missing required parameter 'skill_id'".to_string())?;
 
-        Ok(invoke_skill(&self.workspace, &self.agent_id, skill_id))
+        Ok(invoke_skill(&self.agent_id, skill_id))
     }
 }
 
-fn invoke_skill(workspace: &str, _agent_id: &str, skill_id: &str) -> String {
+/// 与 Python skill_service.invoke_skill 逻辑一致：
+/// 复用 discover_skills_for_agent 找到的 skill_md_path 直接读取 SKILL.md。
+fn invoke_skill(agent_id: &str, skill_id: &str) -> String {
     let sid = skill_id.trim();
     if sid.is_empty() {
         return "Error: skill_id is required".to_string();
     }
 
-    // Look in <workspace>/../skills/<skill_id>/SKILL.md
-    let skills_path = Path::new(workspace)
-        .parent()
-        .unwrap_or(Path::new("."))
-        .join("skills")
-        .join(sid)
-        .join("SKILL.md");
-
-    if skills_path.exists() {
-        match std::fs::read_to_string(&skills_path) {
-            Ok(content) => content,
-            Err(e) => format!("Error reading SKILL.md: {e}"),
+    let skills = discover_skills_for_agent(agent_id);
+    for head in &skills {
+        if head.skill_id == sid {
+            return match std::fs::read_to_string(&head.skill_md_path) {
+                Ok(content) => content,
+                Err(e) => format!("Error reading SKILL.md: {e}"),
+            };
         }
-    } else {
-        format!(
-            "Error: unknown or unavailable skill_id '{skill_id}' for this agent. \
-             Use an id from the <skills> block in the system prompt."
-        )
     }
+
+    format!(
+        "Error: unknown or unavailable skill_id '{skill_id}' for this agent. \
+         Use an id from the <skills> block in the system prompt."
+    )
 }

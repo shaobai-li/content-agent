@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use crate::core::config::{get_agent_base_dir, get_agent_config};
 use crate::service::disabled_skills::DisabledSkills;
+use crate::utils::helpers::normalize_path;
 
 /// Skill 元信息（对应 Python SkillHead）
 #[derive(Debug, Clone)]
@@ -141,7 +142,7 @@ pub fn discover_skills_xml_for_agent(agent_id: &str) -> String {
     format_skills_discovery_xml(&skills)
 }
 
-/// 将 skill 列表渲染为 XML 目录
+/// 将 skill 列表渲染为 XML 目录（与 Python 端 format_skills_discovery_xml 一致）
 pub fn format_skills_discovery_xml(skills: &[SkillHead]) -> String {
     if skills.is_empty() {
         return String::new();
@@ -149,13 +150,19 @@ pub fn format_skills_discovery_xml(skills: &[SkillHead]) -> String {
     let mut parts: Vec<String> = Vec::new();
     parts.push("<skills>".to_string());
     for s in skills {
+        let path_str = normalize_path(s.skill_md_path.canonicalize()
+            .unwrap_or_else(|_| s.skill_md_path.clone()))
+            .to_string_lossy()
+            .to_string();
         parts.push(format!(
-            r#"  <skill id="{}" name="{}" description="{}" source="{}" />"#,
+            r#"  <skill id="{}" source="{}">"#,
             xml_text(&s.skill_id),
-            xml_text(&s.name),
-            xml_text(&s.description),
             xml_text(&s.source),
         ));
+        parts.push(format!(r#"    <name>{}</name>"#, xml_text(&s.name)));
+        parts.push(format!(r#"    <description>{}</description>"#, xml_text(&s.description)));
+        parts.push(format!(r#"    <path>{}</path>"#, xml_text(&path_str)));
+        parts.push("  </skill>".to_string());
     }
     parts.push("</skills>".to_string());
     parts.join("\n")
@@ -224,7 +231,11 @@ description: "quoted desc"
         let xml = format_skills_discovery_xml(&skills);
         assert!(xml.contains("<skills>"));
         assert!(xml.contains(r#"id="web-search""#));
-        assert!(xml.contains(r#"name="Web Search""#));
+        assert!(xml.contains(r#"source="bundled""#));
+        assert!(xml.contains("<name>Web Search</name>"));
+        assert!(xml.contains("<description>Search the web</description>"));
+        assert!(xml.contains("<path>"));
+        assert!(xml.contains("</skill>"));
         assert!(xml.contains("</skills>"));
     }
 
