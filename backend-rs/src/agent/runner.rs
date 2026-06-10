@@ -290,7 +290,11 @@ impl AgentRunner {
         let result = spec.tools.execute(&tool_call.name, args).await;
 
         let event_status = if result.starts_with("Error") { "error" } else { "ok" };
-        let detail = result.replace('\n', " ").trim()[..120.min(result.len())].to_string();
+        let detail = result.replace('\n', " ")
+            .trim()
+            .chars()
+            .take(120)
+            .collect::<String>();
         let event = serde_json::json!({
             "name": tool_call.name,
             "status": event_status,
