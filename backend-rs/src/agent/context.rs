@@ -54,10 +54,23 @@ impl ContextBuilder {
         // 5. Tool guard
         let head = parts.join("\n\n");
         let guard = self.build_tool_guard();
-        if head.is_empty() {
-            return guard.trim().to_string();
-        }
-        format!("{head}{guard}")
+        let prompt = if head.is_empty() {
+            guard.trim().to_string()
+        } else {
+            format!("{head}{guard}")
+        };
+
+        // debug: print the assembled system prompt
+        use std::io::Write;
+        let separator = "=".repeat(80);
+        eprintln!("\n{separator}");
+        eprintln!("【System Prompt】");
+        eprintln!("{separator}");
+        eprintln!("{prompt}");
+        eprintln!("{separator}");
+        std::io::stderr().flush().ok();
+
+        prompt
     }
 
     /// Load bootstrap files from workspace.
