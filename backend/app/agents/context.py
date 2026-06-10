@@ -58,9 +58,9 @@ class ContextBuilder:
 
         head = "\n\n".join(parts)
         guard = self._build_tool_guard()
-        if not head:
-            return guard.strip()
-        return f"{head}{guard}"
+        prompt = guard.strip() if not head else f"{head}{guard}"
+        print(f"\n{'='*80}\n【System Prompt】\n{'='*80}\n{prompt}\n{'='*80}\n", flush=True)
+        return prompt
 
     def _resolve_base_prompt(self) -> str:
         """Return the base system prompt.
