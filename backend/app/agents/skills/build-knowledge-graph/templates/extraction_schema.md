@@ -2,16 +2,12 @@
 
 Agent 读取 `raw/m_*/parsed.md` 后，按本规范写出 `{知识库}/graph/extraction.json`。该文件是建图脚本的唯一输入。
 
+**JSON 输出格式**：所有示例均为紧凑单行 JSON（无缩进、无多余空格）。写出 `extraction.json` 与 `community_labels.json` 时必须采用相同格式，以节省输出 token。
+
 ## 顶层结构
 
 ```json
-{
-  "nodes": [],
-  "edges": [],
-  "hyperedges": [],
-  "input_tokens": 0,
-  "output_tokens": 0
-}
+{"nodes":[],"edges":[],"hyperedges":[],"input_tokens":0,"output_tokens":0}
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
@@ -29,13 +25,7 @@ Agent 读取 `raw/m_*/parsed.md` 后，按本规范写出 `{知识库}/graph/ext
 每篇文章场景 `file_type` 固定为 `document` 或 `paper`（PDF/学术论文用 `paper`，其余用 `document`）。
 
 ```json
-{
-  "id": "article_title_transformer",
-  "label": "Transformer",
-  "file_type": "document",
-  "source_file": "article_title.md",
-  "source_location": "§3.1"
-}
+{"id":"article_title_transformer","label":"Transformer","file_type":"document","source_file":"article_title.md","source_location":"§3.1"}
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
@@ -66,15 +56,7 @@ Agent 读取 `raw/m_*/parsed.md` 后，按本规范写出 `{知识库}/graph/ext
 ## 边（edges）
 
 ```json
-{
-  "source": "article_title_transformer",
-  "target": "article_title_attention_mechanism",
-  "relation": "conceptually_related_to",
-  "confidence": "INFERRED",
-  "confidence_score": 0.75,
-  "source_file": "article_title.md",
-  "weight": 1.0
-}
+{"source":"article_title_transformer","target":"article_title_attention_mechanism","relation":"conceptually_related_to","confidence":"INFERRED","confidence_score":0.75,"source_file":"article_title.md","weight":1.0}
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
@@ -119,15 +101,7 @@ Agent 读取 `raw/m_*/parsed.md` 后，按本规范写出 `{知识库}/graph/ext
 当 3 个及以上节点共同参与一个模式、流程或主题，且二元边无法充分表达时，可添加超边。每份语料最多 3 条。
 
 ```json
-{
-  "id": "auth_flow_components",
-  "label": "Authentication Flow",
-  "nodes": ["doc_login_handler", "doc_token_validator", "doc_session_store"],
-  "relation": "participate_in",
-  "confidence": "INFERRED",
-  "confidence_score": 0.75,
-  "source_file": "auth_design.md"
-}
+{"id":"auth_flow_components","label":"Authentication Flow","nodes":["doc_login_handler","doc_token_validator","doc_session_store"],"relation":"participate_in","confidence":"INFERRED","confidence_score":0.75,"source_file":"auth_design.md"}
 ```
 
 | relation | 含义 |
@@ -147,21 +121,7 @@ Agent 读取 `raw/m_*/parsed.md` 后，按本规范写出 `{知识库}/graph/ext
 ## 完整示例
 
 ```json
-{
-  "nodes": [
-    {"id": "ml_basics_transformer", "label": "Transformer", "file_type": "document", "source_file": "ml_basics.md", "source_location": null},
-    {"id": "ml_basics_attention", "label": "Attention Mechanism", "file_type": "document", "source_file": "ml_basics.md", "source_location": "§2"},
-    {"id": "ml_basics_self_attention", "label": "Self-Attention", "file_type": "document", "source_file": "ml_basics.md", "source_location": "§2.1"}
-  ],
-  "edges": [
-    {"source": "ml_basics_transformer", "target": "ml_basics_attention", "relation": "references", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ml_basics.md", "weight": 1.0},
-    {"source": "ml_basics_attention", "target": "ml_basics_self_attention", "relation": "conceptually_related_to", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "ml_basics.md", "weight": 1.0},
-    {"source": "ml_basics_transformer", "target": "ml_basics_self_attention", "relation": "semantically_similar_to", "confidence": "INFERRED", "confidence_score": 0.7, "source_file": "ml_basics.md", "weight": 1.0}
-  ],
-  "hyperedges": [],
-  "input_tokens": 0,
-  "output_tokens": 0
-}
+{"nodes":[{"id":"ml_basics_transformer","label":"Transformer","file_type":"document","source_file":"ml_basics.md","source_location":null},{"id":"ml_basics_attention","label":"Attention Mechanism","file_type":"document","source_file":"ml_basics.md","source_location":"§2"},{"id":"ml_basics_self_attention","label":"Self-Attention","file_type":"document","source_file":"ml_basics.md","source_location":"§2.1"}],"edges":[{"source":"ml_basics_transformer","target":"ml_basics_attention","relation":"references","confidence":"EXTRACTED","confidence_score":1.0,"source_file":"ml_basics.md","weight":1.0},{"source":"ml_basics_attention","target":"ml_basics_self_attention","relation":"conceptually_related_to","confidence":"EXTRACTED","confidence_score":1.0,"source_file":"ml_basics.md","weight":1.0},{"source":"ml_basics_transformer","target":"ml_basics_self_attention","relation":"semantically_similar_to","confidence":"INFERRED","confidence_score":0.7,"source_file":"ml_basics.md","weight":1.0}],"hyperedges":[],"input_tokens":0,"output_tokens":0}
 ```
 
 ---
@@ -171,7 +131,7 @@ Agent 读取 `raw/m_*/parsed.md` 后，按本规范写出 `{知识库}/graph/ext
 `build_graph.py` 运行后会生成 `{kb}/graph/.graphify_analysis.json`。Agent 读取其中每个 community 的节点列表，为每个社区写 **2–5 个词** 的英文或中文标签（如「Attention Mechanism」「训练流程」），写入 `{kb}/graph/community_labels.json`：
 
 ```json
-{"0": "Attention Mechanism", "1": "Training Pipeline"}
+{"0":"Attention Mechanism","1":"Training Pipeline"}
 ```
 
 然后重新运行 `build_graph.py` 并传入 `--labels`，以更新 `GRAPH_REPORT.md`。
