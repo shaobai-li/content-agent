@@ -14,6 +14,7 @@ use crate::core::config::get_agent_workspace_dir;
 use crate::provider::factory;
 use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
 use crate::service::context_utils::append_attachments_to_user_text;
+use crate::service::messages::save_message;
 use crate::service::stream::build_stream_done;
 use crate::tools::create_tool_registry;
 
@@ -96,6 +97,8 @@ impl BaseAgent for WriteAgent {
         let (tx, rx) = mpsc::unbounded_channel::<String>();
         let session_id = ctx.session_id.clone().unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
+        let initial_msg_len = messages.len();
+        let agent_id = self.agent_id.clone();
         let spec = AgentRunSpec {
             initial_messages: messages,
             tools: registry,
@@ -119,7 +122,28 @@ impl BaseAgent for WriteAgent {
         let sid = session_id.clone();
         tokio::spawn(async move {
             let run_fut = async move {
-                runner.run(spec).await;
+                let result = runner.run(spec).await;
+
+                // 保存 assistant 和 tool 消息（对齐 Python 端 write agent 行为）
+                for msg in result.messages[initial_msg_len..].iter() {
+                    let role = msg.get("role").and_then(|v| v.as_str()).unwrap_or("");
+                    if role == "assistant" {
+                        let content = msg.get("content").and_then(|v| v.as_str()).unwrap_or("");
+                        save_message(
+                            &agent_id, &sid, "assistant", Some(content),
+                            msg.get("tool_calls").cloned(),
+                            None,
+                        );
+                    } else if role == "tool" {
+                        let content = msg.get("content").and_then(|v| v.as_str()).unwrap_or("");
+                        save_message(
+                            &agent_id, &sid, "tool", Some(content),
+                            None,
+                            msg.get("tool_call_id").and_then(|v| v.as_str()),
+                        );
+                    }
+                }
+
                 let _ = tx.send(build_stream_done(&sid, None));
             };
             if let Some(uid) = current_user_id {
