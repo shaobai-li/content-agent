@@ -171,14 +171,14 @@ impl BaseAgent for StandardAgent {
                     if role == "assistant" {
                         let content = msg.get("content").and_then(|v| v.as_str()).unwrap_or("");
                         save_message(
-                            &agent_id, &sid, "assistant", Some(content),
+                            &agent_id, &sid, "assistant", content,
                             msg.get("tool_calls").cloned(),
                             None,
                         );
                     } else if role == "tool" {
                         let content = msg.get("content").and_then(|v| v.as_str()).unwrap_or("");
                         save_message(
-                            &agent_id, &sid, "tool", Some(content),
+                            &agent_id, &sid, "tool", content,
                             None,
                             msg.get("tool_call_id").and_then(|v| v.as_str()),
                         );

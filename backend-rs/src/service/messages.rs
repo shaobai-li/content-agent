@@ -77,7 +77,7 @@ pub fn save_message(
     agent_id: &str,
     session_id: &str,
     role: &str,
-    content: Option<&str>,
+    content: &str,
     tool_calls: Option<Value>,
     tool_call_id: Option<&str>,
 ) {
@@ -91,7 +91,7 @@ pub fn save_message(
         message_id: new_uuid(),
         session_id: session_id.to_string(),
         role: role.to_string(),
-        content: Some(content.map(|c| c.to_string()).unwrap_or_default()),
+        content: Some(content.to_string()),
         created_at: now,
         tool_calls,
         tool_call_id: tool_call_id.map(|s| s.to_string()),
