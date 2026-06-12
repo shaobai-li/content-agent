@@ -82,6 +82,16 @@ def get_agent_messages_path(agent_id: str) -> Path:
     return get_agent_workspace_dir(agent_id) / "messages.json"
 
 
+def get_agent_session_messages_dir(agent_id: str) -> Path:
+    """Agent 会话消息目录：<workspace>/messages/"""
+    return get_agent_workspace_dir(agent_id) / "messages"
+
+
+def get_agent_session_messages_path(agent_id: str, session_id: str) -> Path:
+    """某会话的 .jsonl 文件路径：<workspace>/messages/<session_id>.jsonl"""
+    return get_agent_session_messages_dir(agent_id) / f"{session_id}.jsonl"
+
+
 def get_agent_knowledge_base_path(agent_id: str, kb_id: str) -> Path:
     """
     获取 Agent 知识库路径（已废弃，仅保留用于向后兼容）
