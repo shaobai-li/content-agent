@@ -222,14 +222,7 @@ pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
 }
 
 pub fn get_agent_sessions_path(agent_id: &str) -> PathBuf {
-    let base_dir = get_agent_base_dir(agent_id);
-    let cfg = get_config();
-    let filename = cfg
-        .agents
-        .get(agent_id)
-        .and_then(|a| a.sessions_file.as_deref())
-        .unwrap_or("sessions.json");
-    base_dir.join(filename)
+    get_agent_workspace_dir(agent_id).join("sessions.json")
 }
 
 pub fn get_agent_messages_path(agent_id: &str) -> PathBuf {
