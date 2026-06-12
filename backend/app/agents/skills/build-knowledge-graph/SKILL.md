@@ -42,12 +42,12 @@ python scripts\import.py --i <上传的附件文件路径> --o <知识库目录�
 python scripts\build_graph.py --i <知识库目录的路径>\graph\extraction.json --o <知识库目录的路径>\graph\ --append
 ```
 说明：若 `graph.json` 不存在则自动首次建图；若用户明确要求全量重建，改用 `--rebuild` 替代 `--append`。
-**注意**：`cwd=skills`，`skill_name=build-knowledge-graph`。
 
-9. 读取 `<知识库目录的路径>/graph/.graphify_analysis.json`，为每个 community 写 2–5 个词的标签，保存到 `<知识库目录的路径>/graph/community_labels.json`（格式见 `extraction_schema.md` 社区命名节），然后重新生成报告：
+9. 读取 `<知识库目录的路径>/graph/.graphify_analysis.json`，为每个 community 写 2–5 个词的标签，保存到 `<知识库目录的路径>/graph/community_labels.json`（格式见 `extraction_schema.md` 社区命名节），然后重新生成报告与 HTML 可视化：
 ```
 python scripts\build_graph.py --i <知识库目录的路径>\graph\extraction.json --o <知识库目录的路径>\graph\ --labels <知识库目录的路径>\graph\community_labels.json --labels-only
 ```
+说明：脚本会同时更新 `GRAPH_REPORT.md` 和 `graph.html`。
 
 10. 读取 `<知识库目录的路径>/graph/GRAPH_REPORT.md`，向用户汇报：节点数、边数、社区变化、跨文档惊喜连接、建议探索的问题。
 
