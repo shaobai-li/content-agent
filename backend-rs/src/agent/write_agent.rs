@@ -94,7 +94,7 @@ impl BaseAgent for WriteAgent {
         };
 
         let (tx, rx) = mpsc::unbounded_channel::<String>();
-        let session_id = ctx.session_id.clone().unwrap_or_else(|| uuid::Uuid::new_v4().simple().to_string());
+        let session_id = ctx.session_id.clone().unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
         let spec = AgentRunSpec {
             initial_messages: messages,
