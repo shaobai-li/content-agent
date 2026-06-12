@@ -21,8 +21,6 @@ pub struct AgentConfig {
     pub name: Option<String>,
     pub locked: Option<bool>,
     pub base_dir: Option<String>,
-    pub sessions_file: Option<String>,
-    pub messages_file: Option<String>,
     pub skills: Option<Vec<String>>,
     pub layout: Option<AgentLayout>,
     #[serde(flatten)]
@@ -190,8 +188,6 @@ fn merge_agent_configs(base: Option<AgentConfig>, user: AgentConfig) -> AgentCon
         name: user.name.or(base.name),
         locked: user.locked.or(base.locked),
         base_dir: user.base_dir.or(base.base_dir),
-        sessions_file: user.sessions_file.or(base.sessions_file),
-        messages_file: user.messages_file.or(base.messages_file),
         skills: user.skills.or(base.skills),
         layout: user.layout.or(base.layout),
         extra: {
@@ -222,25 +218,11 @@ pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
 }
 
 pub fn get_agent_sessions_path(agent_id: &str) -> PathBuf {
-    let base_dir = get_agent_base_dir(agent_id);
-    let cfg = get_config();
-    let filename = cfg
-        .agents
-        .get(agent_id)
-        .and_then(|a| a.sessions_file.as_deref())
-        .unwrap_or("sessions.json");
-    base_dir.join(filename)
+    get_agent_workspace_dir(agent_id).join("sessions.json")
 }
 
 pub fn get_agent_messages_path(agent_id: &str) -> PathBuf {
-    let base_dir = get_agent_base_dir(agent_id);
-    let cfg = get_config();
-    let filename = cfg
-        .agents
-        .get(agent_id)
-        .and_then(|a| a.messages_file.as_deref())
-        .unwrap_or("messages.json");
-    base_dir.join(filename)
+    get_agent_workspace_dir(agent_id).join("messages.json")
 }
 
 pub fn get_agent_session_messages_dir(agent_id: &str) -> PathBuf {

@@ -67,7 +67,7 @@ async fn chat_stream_handler(
         }
     }
 
-    let session_id = session_id.unwrap_or_else(|| uuid::Uuid::new_v4().simple().to_string());
+    let session_id = session_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
     // 获取 agent 实例（Python: agent_config = get_agent_config(agent_id)）
     let mut agent = get_agent(&agent_id);
@@ -105,7 +105,7 @@ async fn chat_stream_handler(
     };
 
     save_session_if_new(&agent_id, &session_id, &text);
-    save_message(&agent_id, &session_id, "user", Some(&text), None, None);
+    save_message(&agent_id, &session_id, "user", &text, None, None);
 
     let validated_paths = crate::service::files::resolve_validated_cache_paths(
         &agent_id,

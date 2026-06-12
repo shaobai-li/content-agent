@@ -77,7 +77,7 @@ pub fn save_message(
     agent_id: &str,
     session_id: &str,
     role: &str,
-    content: Option<&str>,
+    content: &str,
     tool_calls: Option<Value>,
     tool_call_id: Option<&str>,
 ) {
@@ -87,28 +87,18 @@ pub fn save_message(
     }
 
     let now = chrono::Utc::now().to_rfc3339();
-    let mut message = serde_json::json!({
-        "message_id": new_uuid(),
-        "session_id": session_id,
-        "role": role,
-        "created_at": now,
-    });
-
-    if let Some(c) = content {
-        message["content"] = serde_json::Value::String(c.to_string());
-    } else {
-        message["content"] = serde_json::Value::Null;
-    }
-
-    if let Some(tc) = tool_calls {
-        message["tool_calls"] = tc;
-    }
-    if let Some(tci) = tool_call_id {
-        message["tool_call_id"] = tci.into();
-    }
+    let msg = Message {
+        message_id: new_uuid(),
+        session_id: session_id.to_string(),
+        role: role.to_string(),
+        content: Some(content.to_string()),
+        created_at: now,
+        tool_calls,
+        tool_call_id: tool_call_id.map(|s| s.to_string()),
+    };
 
     use std::io::Write;
-    let line = serde_json::to_string(&message).unwrap();
+    let line = serde_json::to_string(&msg).unwrap();
     match std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -131,5 +121,104 @@ pub fn delete_session_messages(agent_id: &str, session_id: &str) {
         if let Err(e) = std::fs::remove_file(&path) {
             warn!("failed to delete session messages {:?}: {}", path, e);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_message_serialization_order() {
+        let msg = Message {
+            message_id: "msg-1111".to_string(),
+            session_id: "sess-2222".to_string(),
+            role: "user".to_string(),
+            content: Some("你好".to_string()),
+            created_at: "2026-06-13T00:00:00+00:00".to_string(),
+            tool_calls: None,
+            tool_call_id: None,
+        };
+        let json = serde_json::to_string(&msg).unwrap();
+        // 字段顺序必须与 Python 一致：message_id, session_id, role, content, created_at
+        assert!(json.starts_with(r#"{"message_id":"#), "应 message_id 开头, 得到: {}", json);
+        assert!(json.contains(r#""session_id":"#));
+        assert!(json.contains(r#""role":"#));
+        assert!(json.contains(r#""content":"#));
+        assert!(json.contains(r#""created_at":"#));
+        // 确认 content 在 created_at 之前
+        let content_pos = json.find("\"content\"").unwrap();
+        let created_at_pos = json.find("\"created_at\"").unwrap();
+        assert!(
+            content_pos < created_at_pos,
+            "content 应在 created_at 之前，实际: content@{} created_at@{}",
+            content_pos,
+            created_at_pos
+        );
+    }
+
+    #[test]
+    fn test_message_with_tool_calls_order() {
+        let msg = Message {
+            message_id: "msg-3333".to_string(),
+            session_id: "sess-4444".to_string(),
+            role: "assistant".to_string(),
+            content: Some("".to_string()),
+            created_at: "2026-06-13T00:00:00+00:00".to_string(),
+            tool_calls: Some(serde_json::json!([{"id": "call-1", "function": {"name": "test", "arguments": "{}"}}])),
+            tool_call_id: None,
+        };
+        let json = serde_json::to_string(&msg).unwrap();
+        assert!(json.starts_with(r#"{"message_id":"#), "应 message_id 开头, 得到: {}", json);
+        assert!(json.contains(r#""tool_calls":"#));
+        // tool_calls 应在 created_at 之后
+        let created_at_pos = json.find("\"created_at\"").unwrap();
+        let tool_calls_pos = json.find("\"tool_calls\"").unwrap();
+        assert!(
+            created_at_pos < tool_calls_pos,
+            "tool_calls 应在 created_at 之后，实际: created_at@{} tool_calls@{}",
+            created_at_pos,
+            tool_calls_pos
+        );
+    }
+
+    #[test]
+    fn test_message_with_tool_call_id_order() {
+        let msg = Message {
+            message_id: "msg-5555".to_string(),
+            session_id: "sess-6666".to_string(),
+            role: "tool".to_string(),
+            content: Some("result".to_string()),
+            created_at: "2026-06-13T00:00:00+00:00".to_string(),
+            tool_calls: None,
+            tool_call_id: Some("call-1".to_string()),
+        };
+        let json = serde_json::to_string(&msg).unwrap();
+        // tool_call_id 应在 created_at 之后
+        let created_at_pos = json.find("\"created_at\"").unwrap();
+        let tool_call_id_pos = json.find("\"tool_call_id\"").unwrap();
+        assert!(
+            created_at_pos < tool_call_id_pos,
+            "tool_call_id 应在 created_at 之后，实际: created_at@{} tool_call_id@{}",
+            created_at_pos,
+            tool_call_id_pos
+        );
+    }
+
+    #[test]
+    fn test_message_skip_optional_fields() {
+        let msg = Message {
+            message_id: "msg-7777".to_string(),
+            session_id: "sess-8888".to_string(),
+            role: "user".to_string(),
+            content: Some("hello".to_string()),
+            created_at: "2026-06-13T00:00:00+00:00".to_string(),
+            tool_calls: None,
+            tool_call_id: None,
+        };
+        let json = serde_json::to_string(&msg).unwrap();
+        // tool_calls 和 tool_call_id 应为空时被跳过
+        assert!(!json.contains("tool_calls"), "不应包含 tool_calls: {}", json);
+        assert!(!json.contains("tool_call_id"), "不应包含 tool_call_id: {}", json);
     }
 }
