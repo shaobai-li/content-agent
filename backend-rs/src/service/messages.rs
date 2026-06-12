@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tracing::warn;
 
-use crate::core::config::get_agent_messages_path;
+use crate::core::config::{get_agent_messages_path, get_agent_session_messages_path};
 use crate::core::ids::new_uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -19,25 +19,47 @@ pub struct Message {
 }
 
 pub fn load_messages(agent_id: &str, session_id: &str) -> Vec<Message> {
-    let path = get_agent_messages_path(agent_id);
-    if !path.exists() {
-        return vec![];
+    // 优先读 .jsonl
+    let new_path = get_agent_session_messages_path(agent_id, session_id);
+    if new_path.exists() {
+        return read_jsonl(&new_path);
     }
-    match std::fs::read_to_string(&path) {
-        Ok(content) => {
-            let all: Vec<Message> = serde_json::from_str(&content).unwrap_or_else(|e| {
-                warn!("failed to parse messages for {}: {}", agent_id, e);
-                vec![]
-            });
-            all.into_iter()
-                .filter(|m| m.session_id == session_id)
-                .collect()
+
+    // 降级读旧 messages.json（兼容旧 session，不做迁移）
+    let old_path = get_agent_messages_path(agent_id);
+    if old_path.exists() {
+        match std::fs::read_to_string(&old_path) {
+            Ok(content) => {
+                let all: Vec<Message> = serde_json::from_str(&content).unwrap_or_else(|e| {
+                    warn!("failed to parse old messages.json for {}: {}", agent_id, e);
+                    vec![]
+                });
+                return all.into_iter()
+                    .filter(|m| m.session_id == session_id)
+                    .collect();
+            }
+            Err(e) => {
+                warn!("failed to read old messages.json for {}: {}", agent_id, e);
+            }
         }
+    }
+
+    vec![]
+}
+
+fn read_jsonl(path: &std::path::Path) -> Vec<Message> {
+    let content = match std::fs::read_to_string(path) {
+        Ok(c) => c,
         Err(e) => {
-            warn!("failed to read messages for {}: {}", agent_id, e);
-            vec![]
+            warn!("failed to read jsonl for {:?}: {}", path, e);
+            return vec![];
         }
-    }
+    };
+    content
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .filter_map(|l| serde_json::from_str(l).ok())
+        .collect()
 }
 
 pub fn load_messages_raw(agent_id: &str) -> Vec<Value> {
@@ -59,15 +81,10 @@ pub fn save_message(
     tool_calls: Option<Value>,
     tool_call_id: Option<&str>,
 ) {
-    let path = get_agent_messages_path(agent_id);
-    let mut all: Vec<Value> = if path.exists() {
-        std::fs::read_to_string(&path)
-            .ok()
-            .and_then(|c| serde_json::from_str(&c).ok())
-            .unwrap_or_default()
-    } else {
-        vec![]
-    };
+    let path = get_agent_session_messages_path(agent_id, session_id);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).ok();
+    }
 
     let now = chrono::Utc::now().to_rfc3339();
     let mut message = serde_json::json!({
@@ -90,25 +107,29 @@ pub fn save_message(
         message["tool_call_id"] = tci.into();
     }
 
-    all.push(message);
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).ok();
+    use std::io::Write;
+    let line = serde_json::to_string(&message).unwrap();
+    match std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+    {
+        Ok(mut f) => {
+            if let Err(e) = writeln!(f, "{}", line) {
+                warn!("failed to write message to {:?}: {}", path, e);
+            }
+        }
+        Err(e) => {
+            warn!("failed to open {:?} for append: {}", path, e);
+        }
     }
-    std::fs::write(&path, serde_json::to_string_pretty(&all).unwrap()).ok();
 }
 
 pub fn delete_session_messages(agent_id: &str, session_id: &str) {
-    let path = get_agent_messages_path(agent_id);
-    if !path.exists() {
-        return;
+    let path = get_agent_session_messages_path(agent_id, session_id);
+    if path.exists() {
+        if let Err(e) = std::fs::remove_file(&path) {
+            warn!("failed to delete session messages {:?}: {}", path, e);
+        }
     }
-    let all: Vec<Value> = std::fs::read_to_string(&path)
-        .ok()
-        .and_then(|c| serde_json::from_str(&c).ok())
-        .unwrap_or_default();
-    let all: Vec<Value> = all
-        .into_iter()
-        .filter(|m| m.get("session_id").and_then(|v| v.as_str()) != Some(session_id))
-        .collect();
-    std::fs::write(&path, serde_json::to_string_pretty(&all).unwrap()).ok();
 }
