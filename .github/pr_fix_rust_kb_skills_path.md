@@ -4,8 +4,8 @@
 ## 改动说明
 - 修复 `get_agent_local_data_dir` 路径由 `{base}/knowledge_base/` 调整为 `{base}/.local/knowledge_base/`，与 Python 端对齐
 - 修复 `ContextBuilder::build_kb_env_line` 占位实现，改为读取 `databases.json` 首条记录并注入 `AGENT_DEFAULT_KB` 到 system prompt
-- 修复 `run_command` 在 `cwd=skills` 时仅查找 `{base}/skills/` 的问题，增加 `config/agents/skills/` bundled skills 回退解析
-- 调整 `bundled_skills_dir` 为公开函数，供 shell 工具复用
+- 修复 `run_command` 在 `cwd=skills` 时仅查找 `{base}/skills/` 的问题，新增 `resolve_skill_run_dir` 封装 bundled skills 回退解析
+- 调整 skills 路径解析逻辑集中于 `skill_loader`，`bundled_skills_dir` 保持模块内部私有
 
 ## 实现目的
 - 保持 Rust 与 Python 后端在用户数据目录结构上的路径一致性

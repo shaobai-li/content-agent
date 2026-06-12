@@ -73,10 +73,51 @@ fn xml_text(s: &str) -> String {
 }
 
 /// 内置 skill 根路径（统一 config/agents/skills/）
-pub fn bundled_skills_dir() -> PathBuf {
+fn bundled_skills_dir() -> PathBuf {
     crate::core::config::get_config_dir()
         .join("agents")
         .join("skills")
+}
+
+/// 解析 run_command 在 cwd=skills 时的工作目录（与 Python _resolve_run_cwd 一致）
+pub fn resolve_skill_run_dir(workspace: &str, skill_name: &str) -> Result<PathBuf, String> {
+    let raw = skill_name.trim();
+    if raw.is_empty() {
+        return Err("Error: skill_name is required when cwd=skills".to_string());
+    }
+    let safe_path = PathBuf::from(raw);
+    let safe = safe_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("");
+    if safe.is_empty() || safe == "." || safe == ".." {
+        return Err("Error: invalid skill_name".to_string());
+    }
+
+    let ws = PathBuf::from(workspace);
+    let ws_resolved = ws.canonicalize().unwrap_or(ws);
+    let user_root = ws_resolved
+        .parent()
+        .ok_or_else(|| "Error: cannot resolve parent of workspace".to_string())?
+        .join("skills");
+    let user_dir = user_root.join(safe);
+    if user_dir.is_dir() {
+        return Ok(normalize_path(
+            user_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+        ));
+    }
+
+    let bundled_dir = bundled_skills_dir().join(safe);
+    if bundled_dir.is_dir() {
+        return Ok(normalize_path(
+            bundled_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+        ));
+    }
+
+    std::fs::create_dir_all(&user_dir).map_err(|e| format!("Error: {e}"))?;
+    Ok(normalize_path(
+        user_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+    ))
 }
 
 /// 发现指定 agent 可用的所有 skill
