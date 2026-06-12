@@ -243,6 +243,14 @@ pub fn get_agent_messages_path(agent_id: &str) -> PathBuf {
     base_dir.join(filename)
 }
 
+pub fn get_agent_session_messages_dir(agent_id: &str) -> PathBuf {
+    get_agent_workspace_dir(agent_id).join("messages")
+}
+
+pub fn get_agent_session_messages_path(agent_id: &str, session_id: &str) -> PathBuf {
+    get_agent_session_messages_dir(agent_id).join(format!("{}.jsonl", session_id))
+}
+
 pub fn get_agent_workspace_dir(agent_id: &str) -> PathBuf {
     let ws = get_agent_base_dir(agent_id).join(".local");
     std::fs::create_dir_all(&ws).ok();
