@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 import networkx as nx
@@ -11,7 +12,7 @@ from networkx.readwrite import json_graph
 from graphify_core.analyze import god_nodes, surprising_connections, suggest_questions
 from graphify_core.build import build_from_json, build_merge
 from graphify_core.cluster import cluster, score_all
-from graphify_core.export import to_json
+from graphify_core.export import MAX_NODES_FOR_VIZ, to_html, to_json
 from graphify_core.report import generate
 from graphify_core.validate import assert_valid
 
@@ -60,9 +61,64 @@ def detection_from_extraction(extraction: dict) -> dict:
 def load_graph_from_json(graph_path: Path) -> nx.Graph:
     data = json.loads(graph_path.read_text(encoding="utf-8"))
     try:
-        return json_graph.node_link_graph(data, edges="links")
+        graph = json_graph.node_link_graph(data, edges="links")
     except TypeError:
-        return json_graph.node_link_graph(data)
+        graph = json_graph.node_link_graph(data)
+    hyperedges = data.get("hyperedges", [])
+    if hyperedges:
+        graph.graph["hyperedges"] = hyperedges
+    return graph
+
+
+def write_html_viz(
+    graph: nx.Graph,
+    communities: dict[int, list[str]],
+    html_path: Path,
+    community_labels: dict[int, str] | None,
+) -> bool:
+    """Generate graph.html — same logic as graphify skill Step 6."""
+    labels = community_labels or {}
+    try:
+        if graph.number_of_nodes() > MAX_NODES_FOR_VIZ:
+            node_to_community = {
+                nid: cid for cid, members in communities.items() for nid in members
+            }
+            meta = nx.Graph()
+            for cid in communities:
+                meta.add_node(str(cid), label=labels.get(cid, f"Community {cid}"))
+            edge_counts: Counter[tuple[int, int]] = Counter()
+            for u, v in graph.edges():
+                cu, cv = node_to_community.get(u), node_to_community.get(v)
+                if cu is not None and cv is not None and cu != cv:
+                    edge_counts[(min(cu, cv), max(cu, cv))] += 1
+            for (cu, cv), w in edge_counts.items():
+                meta.add_edge(
+                    str(cu),
+                    str(cv),
+                    weight=w,
+                    relation=f"{w} cross-community edges",
+                    confidence="AGGREGATED",
+                )
+            if meta.number_of_nodes() > 1:
+                meta_communities = {cid: [str(cid)] for cid in communities}
+                member_counts = {cid: len(members) for cid, members in communities.items()}
+                to_html(
+                    meta,
+                    meta_communities,
+                    str(html_path),
+                    community_labels=labels or None,
+                    member_counts=member_counts,
+                )
+            else:
+                return False
+        else:
+            to_html(graph, communities, str(html_path), community_labels=labels or None)
+    except ValueError:
+        stale = html_path
+        if stale.exists():
+            stale.unlink()
+        return False
+    return True
 
 
 def regenerate_report(
@@ -104,6 +160,8 @@ def regenerate_report(
         suggested_questions=questions,
     )
     (graph_dir / "GRAPH_REPORT.md").write_text(report, encoding="utf-8")
+    html_path = graph_dir / "graph.html"
+    html_written = write_html_viz(graph, communities, html_path, labels)
 
     return {
         "ok": True,
@@ -112,6 +170,7 @@ def regenerate_report(
         "communities": len(communities),
         "graph_path": str(graph_path),
         "report_path": str(graph_dir / "GRAPH_REPORT.md"),
+        "html_path": str(html_path) if html_written else None,
         "mode": "labels_only",
     }
 
@@ -181,6 +240,9 @@ def build_graph(
         encoding="utf-8",
     )
 
+    html_path = graph_dir / "graph.html"
+    html_written = write_html_viz(graph, communities, html_path, community_labels)
+
     return {
         "ok": True,
         "nodes": graph.number_of_nodes(),
@@ -189,6 +251,7 @@ def build_graph(
         "graph_path": str(graph_path),
         "report_path": str(graph_dir / "GRAPH_REPORT.md"),
         "analysis_path": str(graph_dir / ".graphify_analysis.json"),
+        "html_path": str(html_path) if html_written else None,
         "mode": "append" if use_merge else "rebuild" if rebuild else "fresh",
     }
 
