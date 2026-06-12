@@ -91,13 +91,12 @@ pub fn save_message(
         "message_id": new_uuid(),
         "session_id": session_id,
         "role": role,
+        "content": serde_json::Value::Null,
         "created_at": now,
     });
 
     if let Some(c) = content {
         message["content"] = serde_json::Value::String(c.to_string());
-    } else {
-        message["content"] = serde_json::Value::Null;
     }
 
     if let Some(tc) = tool_calls {
