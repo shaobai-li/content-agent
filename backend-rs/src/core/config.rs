@@ -250,8 +250,8 @@ pub fn get_agent_workspace_dir(agent_id: &str) -> PathBuf {
 }
 
 pub fn get_agent_local_data_dir(agent_id: &str) -> PathBuf {
-    // Python 端等义：<base>/knowledge_base/
-    let local_data = get_agent_base_dir(agent_id).join("knowledge_base");
+    // Python 端等义：<base>/.local/knowledge_base/
+    let local_data = get_agent_workspace_dir(agent_id).join("knowledge_base");
     std::fs::create_dir_all(&local_data).ok();
     local_data
 }

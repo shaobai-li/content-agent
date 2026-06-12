@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 use chrono::Local;
 use serde_json::Value;
 
-use crate::core::config::get_agent_base_dir as core_get_agent_base_dir;
+use crate::core::config::{get_agent_base_dir as core_get_agent_base_dir, get_agent_local_data_dir};
+use crate::service::knowledge_base::list_knowledge_bases;
 
 /// Built-in base system prompt (embedded at compile time).
 const DEFAULT_SYSTEM_PROMPT: &str = include_str!("standard/prompts/system.md");
@@ -151,11 +152,31 @@ impl ContextBuilder {
     }
 
     fn build_kb_env_line(&self) -> String {
-        if self.agent_id.is_none() {
+        let agent_id = match &self.agent_id {
+            Some(id) => id,
+            None => return "\nAGENT_DEFAULT_KB（默认知识库路径）=无".to_string(),
+        };
+
+        let databases = list_knowledge_bases(agent_id);
+        if databases.is_empty() {
             return "\nAGENT_DEFAULT_KB（默认知识库路径）=无".to_string();
         }
-        // Simplified: knowledge base registry not yet ported
-        "\nAGENT_DEFAULT_KB（默认知识库路径）=无".to_string()
+
+        let kb_id = databases[0]
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+
+        let kb_path = get_agent_local_data_dir(agent_id).join(kb_id);
+        let resolved = kb_path
+            .canonicalize()
+            .map(crate::utils::helpers::normalize_path)
+            .unwrap_or(kb_path);
+
+        format!(
+            "\nAGENT_DEFAULT_KB（默认知识库路径）={}",
+            resolved.display()
+        )
     }
 
     /// Build the complete message list for an LLM call.

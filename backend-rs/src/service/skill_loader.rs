@@ -73,7 +73,7 @@ fn xml_text(s: &str) -> String {
 }
 
 /// 内置 skill 根路径（统一 config/agents/skills/）
-fn bundled_skills_dir() -> PathBuf {
+pub fn bundled_skills_dir() -> PathBuf {
     crate::core::config::get_config_dir()
         .join("agents")
         .join("skills")

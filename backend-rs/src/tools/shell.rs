@@ -33,20 +33,41 @@ fn resolve_run_cwd(workspace: &str, cwd_mode: &str, skill_name: &str) -> Result<
     let ws = PathBuf::from(workspace);
     match cwd_mode {
         "skills" => {
-            let name = skill_name.trim();
-            if name.is_empty() {
+            let raw = skill_name.trim();
+            if raw.is_empty() {
                 return Err("Error: skill_name is required when cwd=skills".to_string());
             }
-            let skills_dir = ws
+            let safe_path = PathBuf::from(raw);
+            let safe = safe_path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("");
+            if safe.is_empty() || safe == "." || safe == ".." {
+                return Err("Error: invalid skill_name".to_string());
+            }
+
+            let ws_resolved = ws.canonicalize().unwrap_or(ws);
+            let user_root = ws_resolved
                 .parent()
                 .ok_or_else(|| "Error: cannot resolve parent of workspace".to_string())?
-                .join("skills")
-                .join(name);
-            if !skills_dir.exists() {
-                return Err(format!("Error: Skills directory not found: {}", skills_dir.display()));
+                .join("skills");
+            let user_dir = user_root.join(safe);
+            if user_dir.is_dir() {
+                return Ok(crate::utils::helpers::normalize_path(
+                    user_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+                ));
             }
+
+            let bundled_dir = crate::service::skill_loader::bundled_skills_dir().join(safe);
+            if bundled_dir.is_dir() {
+                return Ok(crate::utils::helpers::normalize_path(
+                    bundled_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+                ));
+            }
+
+            std::fs::create_dir_all(&user_dir).map_err(|e| format!("Error: {e}"))?;
             Ok(crate::utils::helpers::normalize_path(
-                skills_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+                user_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
             ))
         }
         _ => Ok(crate::utils::helpers::normalize_path(
