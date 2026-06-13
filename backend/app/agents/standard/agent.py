@@ -215,6 +215,7 @@ class StandardAgent(BaseAgent):
                     save_message(
                         ctx.agent_id, session_id, "assistant", content,
                         tool_calls=msg.get("tool_calls"),
+                        reasoning_content=msg.get("reasoning_content"),
                     )
                 elif role == "tool":
                     save_message(
