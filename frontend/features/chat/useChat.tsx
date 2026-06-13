@@ -323,11 +323,46 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   const loadSession = useCallback(async (sessionId: string) => {
     try {
       const rawMessages = await fetchMessages(agentId, sessionId);
-      const msgs: Message[] = rawMessages.map((m) => ({
-        id: m.message_id,
-        role: m.role,
-        content: m.content,
-      }));
+      const msgs: Message[] = [];
+
+      for (const m of rawMessages) {
+        if (m.role === "assistant") {
+          const parts: MessagePart[] = [];
+          if (m.content) parts.push({ type: "text", content: m.content });
+          if (m.tool_calls) {
+            for (const tc of m.tool_calls) {
+              parts.push({
+                type: "trace",
+                title: tc.function.name,
+                content: tc.function.arguments,
+                complete: true,
+              });
+            }
+          }
+          msgs.push({ id: m.message_id, role: "assistant", content: "", parts });
+        } else if (m.role === "tool" && msgs.length > 0) {
+          // 工具结果 — 合并到前一条 assistant 消息的最后一个 trace part
+          const prev = msgs[msgs.length - 1];
+          if (prev.role === "assistant" && prev.parts) {
+            const parts = [...prev.parts];
+            const lastIdx = parts.length - 1;
+            if (lastIdx >= 0 && parts[lastIdx].type === "trace") {
+              const trace = parts[lastIdx];
+              const resultContent = m.content ?? "（无返回内容）";
+              parts[lastIdx] = {
+                ...trace,
+                content: trace.content
+                  ? trace.content + "\n\n---\n" + resultContent
+                  : resultContent,
+              };
+              msgs[msgs.length - 1] = { ...prev, parts };
+            }
+          }
+        } else {
+          msgs.push({ id: m.message_id, role: m.role as Message["role"], content: m.content ?? "" });
+        }
+      }
+
       setMessages(msgs);
       setCurrentSessionId(sessionId);
     } catch (error) {
