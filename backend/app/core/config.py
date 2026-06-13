@@ -78,10 +78,6 @@ def get_agent_sessions_path(agent_id: str) -> Path:
     return get_agent_workspace_dir(agent_id) / "sessions.json"
 
 
-def get_agent_messages_path(agent_id: str) -> Path:
-    return get_agent_workspace_dir(agent_id) / "messages.json"
-
-
 def get_agent_session_messages_dir(agent_id: str) -> Path:
     """Agent 会话消息目录：<workspace>/messages/"""
     return get_agent_workspace_dir(agent_id) / "messages"
