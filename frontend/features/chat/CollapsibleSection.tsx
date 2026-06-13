@@ -27,34 +27,38 @@ export function CollapsibleSection({
   const hasContent = content.length > 0;
 
   return (
-    <div className="mb-2 min-w-0 border border-slate-200 rounded-lg overflow-hidden bg-slate-50/50">
+    <div className="mb-2 min-w-0 rounded-lg overflow-hidden">
+      {/* 单个 button，自身为 grid 布局，图标列 20px + 标题列自适应 */}
       <button
         type="button"
         onClick={toggleExpanded}
         className={cn(
-          "w-full min-w-0 flex items-center gap-2 px-3 py-2 text-sm font-medium",
-          "hover:bg-slate-100 transition-colors",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          "w-full grid grid-cols-[20px_1fr]",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400"
         )}
       >
-        {isExpanded ? (
-          <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
-        )}
-        <span className="min-w-0 max-w-full flex-1 break-all text-left text-slate-700">{title}</span>
-        {isStreaming && (
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse delay-75" />
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse delay-150" />
-          </span>
-        )}
+        <span className="flex justify-center pt-[10px]">
+          {isExpanded ? (
+            <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+          )}
+        </span>
+        <span className="py-2 pr-3 text-sm font-medium text-left">
+          <span className="break-all text-slate-700">{title}</span>
+          {isStreaming && (
+            <span className="ml-2 inline-flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse delay-75" />
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse delay-150" />
+            </span>
+          )}
+        </span>
       </button>
 
       {isExpanded && (
-        <div className="px-3 pb-3">
-          <div className="min-w-0 max-w-full whitespace-pre-wrap break-all text-sm text-slate-600">
+        <div className="pl-5 pr-3 pb-3">
+          <div className="min-w-0 max-w-full whitespace-pre-wrap break-all text-sm text-slate-600 leading-snug">
             {hasContent ? (
               content
             ) : (

@@ -60,6 +60,7 @@ function renderParts(parts: MessagePart[]) {
           className="
             prose prose-sm max-w-none
             text-foreground
+            pl-5
 
             prose-headings:text-foreground
             prose-headings:font-semibold
@@ -67,7 +68,7 @@ function renderParts(parts: MessagePart[]) {
             prose-h2:text-xl
             prose-h3:text-lg
 
-            prose-p:leading-7
+            prose-p:leading-relaxed
             prose-p:my-3
 
             prose-a:text-foreground
