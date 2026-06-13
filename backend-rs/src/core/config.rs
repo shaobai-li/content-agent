@@ -221,10 +221,6 @@ pub fn get_agent_sessions_path(agent_id: &str) -> PathBuf {
     get_agent_workspace_dir(agent_id).join("sessions.json")
 }
 
-pub fn get_agent_messages_path(agent_id: &str) -> PathBuf {
-    get_agent_workspace_dir(agent_id).join("messages.json")
-}
-
 pub fn get_agent_session_messages_dir(agent_id: &str) -> PathBuf {
     get_agent_workspace_dir(agent_id).join("messages")
 }

@@ -2,13 +2,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tracing::warn;
 
-use crate::core::config::{get_agent_messages_path, get_agent_session_messages_path};
+use crate::core::config::get_agent_session_messages_path;
 use crate::core::ids::new_uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
     pub message_id: String,
-    pub session_id: String,
     pub role: String,
     pub content: Option<String>,
     pub created_at: String,
@@ -19,32 +18,11 @@ pub struct Message {
 }
 
 pub fn load_messages(agent_id: &str, session_id: &str) -> Vec<Message> {
-    // 优先读 .jsonl
-    let new_path = get_agent_session_messages_path(agent_id, session_id);
-    if new_path.exists() {
-        return read_jsonl(&new_path);
+    let path = get_agent_session_messages_path(agent_id, session_id);
+    if !path.exists() {
+        return vec![];
     }
-
-    // 降级读旧 messages.json（兼容旧 session，不做迁移）
-    let old_path = get_agent_messages_path(agent_id);
-    if old_path.exists() {
-        match std::fs::read_to_string(&old_path) {
-            Ok(content) => {
-                let all: Vec<Message> = serde_json::from_str(&content).unwrap_or_else(|e| {
-                    warn!("failed to parse old messages.json for {}: {}", agent_id, e);
-                    vec![]
-                });
-                return all.into_iter()
-                    .filter(|m| m.session_id == session_id)
-                    .collect();
-            }
-            Err(e) => {
-                warn!("failed to read old messages.json for {}: {}", agent_id, e);
-            }
-        }
-    }
-
-    vec![]
+    read_jsonl(&path)
 }
 
 fn read_jsonl(path: &std::path::Path) -> Vec<Message> {
@@ -60,17 +38,6 @@ fn read_jsonl(path: &std::path::Path) -> Vec<Message> {
         .filter(|l| !l.trim().is_empty())
         .filter_map(|l| serde_json::from_str(l).ok())
         .collect()
-}
-
-pub fn load_messages_raw(agent_id: &str) -> Vec<Value> {
-    let path = get_agent_messages_path(agent_id);
-    if !path.exists() {
-        return vec![];
-    }
-    match std::fs::read_to_string(&path) {
-        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
-        Err(_) => vec![],
-    }
 }
 
 pub fn save_message(
@@ -89,7 +56,6 @@ pub fn save_message(
     let now = chrono::Utc::now().to_rfc3339();
     let msg = Message {
         message_id: new_uuid(),
-        session_id: session_id.to_string(),
         role: role.to_string(),
         content: Some(content.to_string()),
         created_at: now,
@@ -132,7 +98,6 @@ mod tests {
     fn test_message_serialization_order() {
         let msg = Message {
             message_id: "msg-1111".to_string(),
-            session_id: "sess-2222".to_string(),
             role: "user".to_string(),
             content: Some("你好".to_string()),
             created_at: "2026-06-13T00:00:00+00:00".to_string(),
@@ -140,9 +105,8 @@ mod tests {
             tool_call_id: None,
         };
         let json = serde_json::to_string(&msg).unwrap();
-        // 字段顺序必须与 Python 一致：message_id, session_id, role, content, created_at
+        // 字段顺序：message_id, role, content, created_at
         assert!(json.starts_with(r#"{"message_id":"#), "应 message_id 开头, 得到: {}", json);
-        assert!(json.contains(r#""session_id":"#));
         assert!(json.contains(r#""role":"#));
         assert!(json.contains(r#""content":"#));
         assert!(json.contains(r#""created_at":"#));
@@ -161,7 +125,6 @@ mod tests {
     fn test_message_with_tool_calls_order() {
         let msg = Message {
             message_id: "msg-3333".to_string(),
-            session_id: "sess-4444".to_string(),
             role: "assistant".to_string(),
             content: Some("".to_string()),
             created_at: "2026-06-13T00:00:00+00:00".to_string(),
@@ -186,7 +149,6 @@ mod tests {
     fn test_message_with_tool_call_id_order() {
         let msg = Message {
             message_id: "msg-5555".to_string(),
-            session_id: "sess-6666".to_string(),
             role: "tool".to_string(),
             content: Some("result".to_string()),
             created_at: "2026-06-13T00:00:00+00:00".to_string(),
@@ -209,7 +171,6 @@ mod tests {
     fn test_message_skip_optional_fields() {
         let msg = Message {
             message_id: "msg-7777".to_string(),
-            session_id: "sess-8888".to_string(),
             role: "user".to_string(),
             content: Some("hello".to_string()),
             created_at: "2026-06-13T00:00:00+00:00".to_string(),
