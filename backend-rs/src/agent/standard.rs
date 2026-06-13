@@ -175,6 +175,7 @@ impl BaseAgent for StandardAgent {
                             msg.get("tool_calls").cloned(),
                             None,
                             msg.get("reasoning_content").and_then(|v| v.as_str()),
+                            None,
                         );
                     } else if role == "tool" {
                         let content = msg.get("content").and_then(|v| v.as_str()).unwrap_or("");
@@ -183,6 +184,7 @@ impl BaseAgent for StandardAgent {
                             None,
                             msg.get("tool_call_id").and_then(|v| v.as_str()),
                             None,
+                            msg.get("name").and_then(|v| v.as_str()),
                         );
                     }
                 }

@@ -19,7 +19,7 @@ def _read_jsonl(path) -> list:
     return [json.loads(line) for line in lines if line.strip()]
 
 
-def save_message(agent_id: str, session_id: str, role: str, content: str, tool_calls=None, tool_call_id=None, reasoning_content=None):
+def save_message(agent_id: str, session_id: str, role: str, content: str, tool_calls=None, tool_call_id=None, reasoning_content=None, name=None):
     """向指定会话追加一条消息（append 写入 .jsonl）"""
     path = get_agent_session_messages_path(agent_id, session_id)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -36,6 +36,8 @@ def save_message(agent_id: str, session_id: str, role: str, content: str, tool_c
         msg["tool_call_id"] = tool_call_id
     if reasoning_content is not None:
         msg["reasoning_content"] = reasoning_content
+    if name is not None:
+        msg["name"] = name
 
     with open(path, "a", encoding="utf-8") as f:
         f.write(json.dumps(msg, ensure_ascii=False) + "\n")

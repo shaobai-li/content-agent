@@ -17,6 +17,8 @@ pub struct Message {
     pub tool_call_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_content: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 pub fn load_messages(agent_id: &str, session_id: &str) -> Vec<Message> {
@@ -50,6 +52,7 @@ pub fn save_message(
     tool_calls: Option<Value>,
     tool_call_id: Option<&str>,
     reasoning_content: Option<&str>,
+    name: Option<&str>,
 ) {
     let path = get_agent_session_messages_path(agent_id, session_id);
     if let Some(parent) = path.parent() {
@@ -65,6 +68,7 @@ pub fn save_message(
         tool_calls,
         tool_call_id: tool_call_id.map(|s| s.to_string()),
         reasoning_content: reasoning_content.map(|s| s.to_string()),
+        name: name.map(|s| s.to_string()),
     };
 
     use std::io::Write;
@@ -108,6 +112,7 @@ mod tests {
             tool_calls: None,
             tool_call_id: None,
             reasoning_content: None,
+            name: None,
         };
         let json = serde_json::to_string(&msg).unwrap();
         // 字段顺序：message_id, role, content, created_at
@@ -136,6 +141,7 @@ mod tests {
             tool_calls: Some(serde_json::json!([{"id": "call-1", "function": {"name": "test", "arguments": "{}"}}])),
             tool_call_id: None,
             reasoning_content: None,
+            name: None,
         };
         let json = serde_json::to_string(&msg).unwrap();
         assert!(json.starts_with(r#"{"message_id":"#), "应 message_id 开头, 得到: {}", json);
@@ -161,6 +167,7 @@ mod tests {
             tool_calls: None,
             tool_call_id: Some("call-1".to_string()),
             reasoning_content: None,
+            name: None,
         };
         let json = serde_json::to_string(&msg).unwrap();
         // tool_call_id 应在 created_at 之后
@@ -184,12 +191,14 @@ mod tests {
             tool_calls: None,
             tool_call_id: None,
             reasoning_content: None,
+            name: None,
         };
         let json = serde_json::to_string(&msg).unwrap();
-        // tool_calls、tool_call_id 和 reasoning_content 应为空时被跳过
+        // tool_calls、tool_call_id、reasoning_content 和 name 应为空时被跳过
         assert!(!json.contains("tool_calls"), "不应包含 tool_calls: {}", json);
         assert!(!json.contains("tool_call_id"), "不应包含 tool_call_id: {}", json);
         assert!(!json.contains("reasoning_content"), "不应包含 reasoning_content: {}", json);
+        assert!(!json.contains(r#""name""#), "不应包含 name: {}", json);
     }
 
     #[test]
@@ -202,12 +211,33 @@ mod tests {
             tool_calls: None,
             tool_call_id: None,
             reasoning_content: Some("thinking...".to_string()),
+            name: None,
         };
         let json = serde_json::to_string(&msg).unwrap();
         assert!(json.contains("reasoning_content"), "应包含 reasoning_content: {}", json);
         assert_eq!(
             serde_json::from_str::<Message>(&json).unwrap().reasoning_content,
             Some("thinking...".to_string())
+        );
+    }
+
+    #[test]
+    fn test_message_with_name() {
+        let msg = Message {
+            message_id: "msg-aaaa".to_string(),
+            role: "tool".to_string(),
+            content: Some("result".to_string()),
+            created_at: "2026-06-13T00:00:00+00:00".to_string(),
+            tool_calls: None,
+            tool_call_id: Some("call-1".to_string()),
+            reasoning_content: None,
+            name: Some("get_weather".to_string()),
+        };
+        let json = serde_json::to_string(&msg).unwrap();
+        assert!(json.contains(r#""name""#), "应包含 name: {}", json);
+        assert_eq!(
+            serde_json::from_str::<Message>(&json).unwrap().name,
+            Some("get_weather".to_string())
         );
     }
 }

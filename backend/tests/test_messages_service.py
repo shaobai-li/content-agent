@@ -86,6 +86,14 @@ def test_save_message_with_tool_call_id(tmp_path):
     assert data["tool_call_id"] == "tc1"
 
 
+def test_save_message_with_name(tmp_path):
+    jsonl_path = tmp_path / "messages" / "s1.jsonl"
+    with patch("app.service.messages_service.get_agent_session_messages_path", return_value=jsonl_path):
+        save_message("ag", "s1", "tool", "result", name="get_weather")
+    data = json.loads(jsonl_path.read_text().strip().splitlines()[0])
+    assert data["name"] == "get_weather"
+
+
 def test_save_message_with_reasoning_content(tmp_path):
     jsonl_path = tmp_path / "messages" / "s1.jsonl"
     with patch("app.service.messages_service.get_agent_session_messages_path", return_value=jsonl_path):

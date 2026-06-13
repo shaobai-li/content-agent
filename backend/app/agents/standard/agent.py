@@ -221,6 +221,7 @@ class StandardAgent(BaseAgent):
                     save_message(
                         ctx.agent_id, session_id, "tool", content,
                         tool_call_id=msg.get("tool_call_id"),
+                        name=msg.get("name"),
                     )
         except Exception:
             logger.exception("handle_chat_stream error")
