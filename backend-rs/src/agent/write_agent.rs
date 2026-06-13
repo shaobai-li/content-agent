@@ -133,6 +133,7 @@ impl BaseAgent for WriteAgent {
                             &agent_id, &sid, "assistant", content,
                             msg.get("tool_calls").cloned(),
                             None,
+                            msg.get("reasoning_content").and_then(|v| v.as_str()),
                         );
                     } else if role == "tool" {
                         let content = msg.get("content").and_then(|v| v.as_str()).unwrap_or("");
@@ -140,6 +141,7 @@ impl BaseAgent for WriteAgent {
                             &agent_id, &sid, "tool", content,
                             None,
                             msg.get("tool_call_id").and_then(|v| v.as_str()),
+                            None,
                         );
                     }
                 }

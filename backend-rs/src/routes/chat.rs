@@ -105,7 +105,7 @@ async fn chat_stream_handler(
     };
 
     save_session_if_new(&agent_id, &session_id, &text);
-    save_message(&agent_id, &session_id, "user", &text, None, None);
+    save_message(&agent_id, &session_id, "user", &text, None, None, None);
 
     let validated_paths = crate::service::files::resolve_validated_cache_paths(
         &agent_id,
