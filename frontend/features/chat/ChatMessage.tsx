@@ -138,8 +138,8 @@ export function ChatMessage({ messages }: ChatMessageProps) {
                 : "bg-white text-slate-800 self-start"
             }`}
           >
-            {msg.role === "assistant" && msg.parts
-              ? renderParts(msg.parts)
+            {msg.role === "assistant" && (msg.parts || msg.content)
+              ? renderParts(msg.parts ?? [{ type: "text", content: msg.content }])
               : msg.content && (
                   <div className="min-w-0 max-w-full whitespace-pre-wrap break-all">
                     {msg.content}

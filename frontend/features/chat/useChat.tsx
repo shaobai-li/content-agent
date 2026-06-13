@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Message, FileMessage } from "@/entities/message/model";
+import type { Message, FileMessage, MessagePart } from "@/entities/message/model";
 import type { MentionItem } from "./MentionChip";
 import { fetchMessages } from "@/entities/session/api";
 import { readStreamLines } from "./fetchStream";
@@ -323,11 +323,54 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
   const loadSession = useCallback(async (sessionId: string) => {
     try {
       const rawMessages = await fetchMessages(agentId, sessionId);
-      const msgs: Message[] = rawMessages.map((m) => ({
-        id: m.message_id,
-        role: m.role,
-        content: m.content,
-      }));
+      const msgs: Message[] = [];
+      // tool_call_id → { msgIdx, partIdx } 映射，用于精确匹配工具结果
+      const toolCallIndexMap = new Map<string, { msgIdx: number; partIdx: number }>();
+
+      for (const m of rawMessages) {
+        if (m.role === "assistant") {
+          const parts: MessagePart[] = [];
+          if (m.content) parts.push({ type: "text", content: m.content });
+          if (m.tool_calls) {
+            for (const tc of m.tool_calls) {
+              const partIdx = parts.length;
+              parts.push({
+                type: "trace",
+                title: tc.function.name,
+                content: tc.function.arguments,
+                complete: true,
+              });
+              if (tc.id) {
+                toolCallIndexMap.set(tc.id, { msgIdx: msgs.length, partIdx });
+              }
+            }
+          }
+          msgs.push({ id: m.message_id, role: "assistant", content: "", parts });
+        } else if (m.role === "tool") {
+          // 工具结果 — 通过 tool_call_id 匹配对应的 trace part
+          const entry = m.tool_call_id ? toolCallIndexMap.get(m.tool_call_id) : undefined;
+          if (entry && entry.msgIdx < msgs.length) {
+            const targetMsg = msgs[entry.msgIdx];
+            if (targetMsg.role === "assistant" && targetMsg.parts && entry.partIdx < targetMsg.parts.length) {
+              const parts = [...targetMsg.parts];
+              const trace = parts[entry.partIdx];
+              if (trace.type === "trace") {
+                const resultContent = m.content ?? "（无返回内容）";
+                parts[entry.partIdx] = {
+                  ...trace,
+                  content: trace.content
+                    ? trace.content + "\n\n---\n" + resultContent
+                    : resultContent,
+                };
+                msgs[entry.msgIdx] = { ...targetMsg, parts };
+              }
+            }
+          }
+        } else {
+          msgs.push({ id: m.message_id, role: m.role as Message["role"], content: m.content ?? "" });
+        }
+      }
+
       setMessages(msgs);
       setCurrentSessionId(sessionId);
     } catch (error) {
