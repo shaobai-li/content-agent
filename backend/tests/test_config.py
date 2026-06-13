@@ -7,7 +7,6 @@ from app.core.config import (
     get_agent_local_data_dir,
     get_agent_attachment_cache_dir,
     get_agent_sessions_path,
-    get_agent_messages_path,
     get_agent_knowledge_base_path,
     get_agent_skill_ids,
     _load_agent_yamls,
@@ -105,15 +104,6 @@ def test_get_agent_sessions_path(mock_ws, tmp_path):
     result = get_agent_sessions_path("ag")
     assert result == tmp_path / "sessions.json"
 
-
-
-# ── get_agent_messages_path ────────────────────────────────────────────────
-
-@patch("app.core.config.get_agent_workspace_dir")
-def test_get_agent_messages_path(mock_ws, tmp_path):
-    mock_ws.return_value = tmp_path
-    result = get_agent_messages_path("ag")
-    assert result == tmp_path / "messages.json"
 
 
 # ── get_agent_knowledge_base_path ──────────────────────────────────────────

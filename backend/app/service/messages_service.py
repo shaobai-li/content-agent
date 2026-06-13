@@ -2,28 +2,16 @@ import json
 from datetime import datetime, timezone
 
 from loguru import logger
-from app.core.config import get_agent_messages_path, get_agent_session_messages_path
+from app.core.config import get_agent_session_messages_path
 from app.core.ids import new_uuid
 
 
 def load_messages(agent_id: str, session_id: str) -> list:
     """加载指定会话的全部消息记录"""
-    # 优先读 .jsonl
-    new_path = get_agent_session_messages_path(agent_id, session_id)
-    if new_path.exists():
-        return _read_jsonl(new_path)
-
-    # 降级读旧 messages.json（兼容旧 session，不做迁移）
-    old_path = get_agent_messages_path(agent_id)
-    if old_path.exists():
-        try:
-            all_msgs = json.loads(old_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            logger.warning("failed to parse old messages.json for {}", agent_id)
-            return []
-        return [m for m in all_msgs if m.get("session_id") == session_id]
-
-    return []
+    path = get_agent_session_messages_path(agent_id, session_id)
+    if not path.exists():
+        return []
+    return _read_jsonl(path)
 
 
 def _read_jsonl(path) -> list:
@@ -38,7 +26,6 @@ def save_message(agent_id: str, session_id: str, role: str, content: str, tool_c
 
     msg = {
         "message_id": new_uuid(),
-        "session_id": session_id,
         "role": role,
         "content": content,
         "created_at": datetime.now(timezone.utc).isoformat(),
