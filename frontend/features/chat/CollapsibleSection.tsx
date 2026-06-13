@@ -25,10 +25,6 @@ export function CollapsibleSection({
   const toggleExpanded = () => setIsExpanded(!isExpanded);
 
   const hasContent = content.length > 0;
-  const displayContent = hasContent
-    ? content
-        .replace(/\r\n/g, "\n")      // 统一换行符
-    : "";
 
   return (
     <div className="mb-2 min-w-0 rounded-lg overflow-hidden">
@@ -69,16 +65,9 @@ export function CollapsibleSection({
 
           {isExpanded && (
             <div className="pr-3 pb-3">
-              <div className="text-sm text-slate-600 leading-snug">
+              <div className="min-w-0 max-w-full whitespace-pre-wrap break-all text-sm text-slate-600 leading-snug">
                 {hasContent ? (
-                  displayContent.split(/\n{2,}/).filter(Boolean).map((paragraph, i) => (
-                    <div
-                      key={i}
-                      className="min-w-0 max-w-full whitespace-pre-wrap break-all mb-6 last:mb-0"
-                    >
-                      {paragraph}
-                    </div>
-                  ))
+                  content
                 ) : (
                   <span className="text-slate-400 italic">{emptyLabel}</span>
                 )}
