@@ -324,6 +324,8 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     try {
       const rawMessages = await fetchMessages(agentId, sessionId);
       const msgs: Message[] = [];
+      // tool_call_id → { msgIdx, partIdx } 映射，用于精确匹配工具结果
+      const toolCallIndexMap = new Map<string, { msgIdx: number; partIdx: number }>();
 
       for (const m of rawMessages) {
         if (m.role === "assistant") {
@@ -331,31 +333,37 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
           if (m.content) parts.push({ type: "text", content: m.content });
           if (m.tool_calls) {
             for (const tc of m.tool_calls) {
+              const partIdx = parts.length;
               parts.push({
                 type: "trace",
                 title: tc.function.name,
                 content: tc.function.arguments,
                 complete: true,
               });
+              if (tc.id) {
+                toolCallIndexMap.set(tc.id, { msgIdx: msgs.length, partIdx });
+              }
             }
           }
           msgs.push({ id: m.message_id, role: "assistant", content: "", parts });
-        } else if (m.role === "tool" && msgs.length > 0) {
-          // 工具结果 — 合并到前一条 assistant 消息的最后一个 trace part
-          const prev = msgs[msgs.length - 1];
-          if (prev.role === "assistant" && prev.parts) {
-            const parts = [...prev.parts];
-            const lastIdx = parts.length - 1;
-            if (lastIdx >= 0 && parts[lastIdx].type === "trace") {
-              const trace = parts[lastIdx];
-              const resultContent = m.content ?? "（无返回内容）";
-              parts[lastIdx] = {
-                ...trace,
-                content: trace.content
-                  ? trace.content + "\n\n---\n" + resultContent
-                  : resultContent,
-              };
-              msgs[msgs.length - 1] = { ...prev, parts };
+        } else if (m.role === "tool") {
+          // 工具结果 — 通过 tool_call_id 匹配对应的 trace part
+          const entry = m.tool_call_id ? toolCallIndexMap.get(m.tool_call_id) : undefined;
+          if (entry && entry.msgIdx < msgs.length) {
+            const targetMsg = msgs[entry.msgIdx];
+            if (targetMsg.role === "assistant" && targetMsg.parts && entry.partIdx < targetMsg.parts.length) {
+              const parts = [...targetMsg.parts];
+              const trace = parts[entry.partIdx];
+              if (trace.type === "trace") {
+                const resultContent = m.content ?? "（无返回内容）";
+                parts[entry.partIdx] = {
+                  ...trace,
+                  content: trace.content
+                    ? trace.content + "\n\n---\n" + resultContent
+                    : resultContent,
+                };
+                msgs[entry.msgIdx] = { ...targetMsg, parts };
+              }
             }
           }
         } else {
