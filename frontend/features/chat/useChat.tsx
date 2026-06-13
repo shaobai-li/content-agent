@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Message, FileMessage } from "@/entities/message/model";
+import type { Message, FileMessage, MessagePart } from "@/entities/message/model";
 import type { MentionItem } from "./MentionChip";
 import { fetchMessages } from "@/entities/session/api";
 import { readStreamLines } from "./fetchStream";
