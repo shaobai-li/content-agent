@@ -37,26 +37,27 @@ def _get_provider(provider_name: str | None = None, model: str | None = None):
     )
 
 
+_LLM_KEEP_KEYS = ("tool_calls", "tool_call_id", "name", "reasoning_content")
+
+
 def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """从持久化历史中提取 LLM 所需的完整多轮对话（包含 tool_calls 和 tool 消息）。"""
+    """从持久化历史中提取 LLM 所需的完整多轮对话。
+
+    只保留 LLM 需要的字段，丢弃 ``message_id`` / ``created_at`` 等元数据。
+    保留的字段与 nanobot ``get_history()`` 对齐：
+    ``role``, ``content``, ``tool_calls``, ``tool_call_id``, ``name``, ``reasoning_content``。
+    """
     out: List[Dict[str, Any]] = []
     for hm in history_messages:
         role = hm.get("role")
         content = hm.get("content")
-        
-        # user/assistant: 保留 content 和可选的 tool_calls
-        if role in ("user", "assistant"):
-            msg = {"role": role, "content": content}
-            if "tool_calls" in hm:
-                msg["tool_calls"] = hm["tool_calls"]
-            out.append(msg)
-        
-        # tool: 保留 content 和 tool_call_id
-        elif role == "tool":
-            msg = {"role": "tool", "content": content or ""}
-            if "tool_call_id" in hm:
-                msg["tool_call_id"] = hm["tool_call_id"]
-            out.append(msg)
+        if role == "tool":
+            content = content or ""
+        msg: Dict[str, Any] = {"role": role, "content": content}
+        for key in _LLM_KEEP_KEYS:
+            if key in hm:
+                msg[key] = hm[key]
+        out.append(msg)
 
     logger.debug("history_llm_turns: {} turns", len(out))
     for m in out:
@@ -64,10 +65,9 @@ def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str,
         preview = c[:500] if isinstance(c, str) else str(c)[:500]
         truncated = "…" if isinstance(c, str) and len(c) > 500 else ""
         logger.debug("  {}: {}{}", m['role'], preview, truncated)
-        if "tool_calls" in m:
-            logger.debug("    └─ tool_calls: {} calls", len(m['tool_calls']))
-        if "tool_call_id" in m:
-            logger.debug("    └─ tool_call_id: {}", m['tool_call_id'])
+        for key in _LLM_KEEP_KEYS:
+            if key in m:
+                logger.debug("    └─ {}: {}", key, m[key])
     return out
 
 

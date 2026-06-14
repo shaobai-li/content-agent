@@ -202,33 +202,35 @@ impl BaseAgent for StandardAgent {
     }
 }
 
+const LLM_KEEP_KEYS: &[&str] = &["tool_calls", "tool_call_id", "name", "reasoning_content"];
+
+/// 从持久化历史中提取 LLM 所需的完整多轮对话。
+///
+/// 只保留 LLM 需要的字段，丢弃 ``message_id`` / ``created_at`` 等元数据。
+/// 保留的字段与 nanobot ``get_history()`` 对齐：
+/// ``role``, ``content``, ``tool_calls``, ``tool_call_id``, ``name``, ``reasoning_content``。
+/// 只保留 ``user``, ``assistant``, ``tool`` 角色。
 pub fn history_llm_turns(history_messages: &[Value]) -> Vec<Value> {
     let mut out: Vec<Value> = Vec::new();
     for hm in history_messages {
         let role = hm.get("role").and_then(|v| v.as_str()).unwrap_or("");
-        match role {
-            "user" | "assistant" => {
-                let mut msg = serde_json::json!({
-                    "role": role,
-                    "content": hm.get("content"),
-                });
-                if let Some(tcs) = hm.get("tool_calls") {
-                    msg["tool_calls"] = tcs.clone();
-                }
-                out.push(msg);
-            }
-            "tool" => {
-                let mut msg = serde_json::json!({
-                    "role": "tool",
-                    "content": hm.get("content").and_then(|c| c.as_str()).unwrap_or(""),
-                });
-                if let Some(tid) = hm.get("tool_call_id") {
-                    msg["tool_call_id"] = tid.clone();
-                }
-                out.push(msg);
-            }
-            _ => {}
+        if role != "user" && role != "assistant" && role != "tool" {
+            continue;
         }
+        let content: Value = match role {
+            "tool" => Value::String(hm.get("content").and_then(|c| c.as_str()).unwrap_or("").to_string()),
+            _ => hm.get("content").cloned().unwrap_or(Value::Null),
+        };
+        let mut msg = serde_json::json!({
+            "role": role,
+            "content": content,
+        });
+        for key in LLM_KEEP_KEYS {
+            if let Some(val) = hm.get(key) {
+                msg[key] = val.clone();
+            }
+        }
+        out.push(msg);
     }
     out
 }
