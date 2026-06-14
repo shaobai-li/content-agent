@@ -9,8 +9,8 @@
 不承载：system prompt、最终发给模型的完整 messages 列表、工具/ReAct 中间状态；
 这些由各 agent 或 DecisionLoop 在内部根据业务拼装。
 
-持久化：本类型只描述「本轮进入时的输入」。写入会话仍由循环结束后调用方调用
-``save_chat_session``（或等价逻辑）完成，不在此处执行。
+持久化：本类型只描述「本轮进入时的输入」。写入会话由循环结束后调用方负责完成，
+不在此处执行。
 """
 from __future__ import annotations
 
