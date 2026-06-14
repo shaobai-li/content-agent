@@ -12,7 +12,7 @@ from typing import Any
 from loguru import logger
 
 from app.agents.tools.base import Tool, tool_parameters
-from app.agents.tools.schema import StringSchema, tool_parameters_schema
+from app.agents.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
 
 _IS_WINDOWS = sys.platform == "win32"
 _MAX_OUTPUT = 10_000
@@ -102,7 +102,12 @@ def _contains_internal_url(text: str) -> bool:
             enum=["workspace", "skills"],
         ),
         skill_name=StringSchema("当 cwd=skills 时，指定技能目录名"),
-        timeout=StringSchema("超时时间（秒），最长 600 秒"),
+        timeout=IntegerSchema(
+            60,
+            description="超时时间（秒），最长 600 秒",
+            minimum=1,
+            maximum=600,
+        ),
         required=["command"],
     )
 )
