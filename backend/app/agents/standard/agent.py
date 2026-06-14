@@ -53,6 +53,8 @@ def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str,
     out: List[Dict[str, Any]] = []
     for hm in history_messages:
         role = hm.get("role")
+        if role not in ("user", "assistant", "tool"):
+            continue
         content = hm.get("content")
         if role == "tool":
             content = content or ""
