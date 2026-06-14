@@ -218,11 +218,11 @@ pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
 }
 
 pub fn get_agent_sessions_path(agent_id: &str) -> PathBuf {
-    get_agent_workspace_dir(agent_id).join("sessions.json")
+    get_agent_base_dir(agent_id).join(".local").join("sessions.json")
 }
 
 pub fn get_agent_session_messages_dir(agent_id: &str) -> PathBuf {
-    get_agent_workspace_dir(agent_id).join("messages")
+    get_agent_base_dir(agent_id).join(".local").join("messages")
 }
 
 pub fn get_agent_session_messages_path(agent_id: &str, session_id: &str) -> PathBuf {
@@ -230,7 +230,7 @@ pub fn get_agent_session_messages_path(agent_id: &str, session_id: &str) -> Path
 }
 
 pub fn get_agent_workspace_dir(agent_id: &str) -> PathBuf {
-    let ws = get_agent_base_dir(agent_id).join(".local");
+    let ws = get_agent_base_dir(agent_id);
     std::fs::create_dir_all(&ws).ok();
     ws
 }
@@ -244,7 +244,7 @@ pub fn get_agent_local_data_dir(agent_id: &str) -> PathBuf {
 
 pub fn get_agent_attachment_cache_dir(agent_id: &str) -> PathBuf {
     // Python 端等义：<base>/.local/cache/
-    let cache = get_agent_workspace_dir(agent_id).join("cache");
+    let cache = get_agent_base_dir(agent_id).join(".local").join("cache");
     std::fs::create_dir_all(&cache).ok();
     cache
 }
