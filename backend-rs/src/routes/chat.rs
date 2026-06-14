@@ -29,7 +29,6 @@ async fn chat_stream_handler(
 ) -> Response {
     let mut text = String::new();
     let mut session_id: Option<String> = None;
-    let mut history_messages: Vec<serde_json::Value> = Vec::new();
     let mut mentions: Vec<serde_json::Value> = Vec::new();
     let mut attachment_paths: Vec<String> = Vec::new();
 
@@ -38,13 +37,6 @@ async fn chat_stream_handler(
         match name.as_str() {
             "text" => text = field.text().await.unwrap_or_default(),
             "session_id" => session_id = field.text().await.ok(),
-            "history" => {
-                if let Ok(content) = field.text().await {
-                    if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
-                        history_messages = arr;
-                    }
-                }
-            }
             "mentions" => {
                 if let Ok(content) = field.text().await {
                     if let Ok(arr) = serde_json::from_str::<Vec<serde_json::Value>>(&content) {
@@ -107,12 +99,19 @@ async fn chat_stream_handler(
     save_session_if_new(&agent_id, &session_id, &text);
     save_message(&agent_id, &session_id, "user", &text, None, None, None, None);
 
+    // 从磁盘加载历史消息，与 Python 端 build_agent_turn_context → load_messages() 对齐。
+    // 后端自己管理历史持久化，不依赖前端传 history。
+    let history: Vec<serde_json::Value> = {
+        let msgs = crate::service::messages::load_messages(&agent_id, &session_id);
+        msgs.into_iter().map(|m| serde_json::to_value(m).unwrap_or_default()).collect()
+    };
+
     let validated_paths = crate::service::files::resolve_validated_cache_paths(
         &agent_id,
         &attachment_paths,
     );
 
-    let mut ctx = AgentTurnContext::new(&agent_id, Some(session_id.clone()), text, history_messages);
+    let mut ctx = AgentTurnContext::new(&agent_id, Some(session_id.clone()), text, history);
     ctx.mentions = mentions;
     ctx.resolved_attachment_paths = validated_paths
         .iter()
