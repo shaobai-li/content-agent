@@ -38,16 +38,34 @@ fn resolve_run_cwd(workspace: &str, cwd_mode: &str, skill_name: &str) -> Result<
             if name.is_empty() {
                 return Err("Error: skill_name is required when cwd=skills".to_string());
             }
-            let skills_dir = ws
-                .parent()
-                .ok_or_else(|| "Error: cannot resolve parent of workspace".to_string())?
+
+            // 1. 优先查用户 skill 目录（data/u_<uid>/data/<agent>/.agent/skills/<name>/）
+            let user_dir = ws
+                .join(".agent")
                 .join("skills")
                 .join(name);
-            if !skills_dir.exists() {
-                return Err(format!("Error: Skills directory not found: {}", skills_dir.display()));
+            if user_dir.exists() {
+                return Ok(crate::utils::helpers::normalize_path(
+                    user_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+                ));
             }
-            Ok(crate::utils::helpers::normalize_path(
-                skills_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+
+            // 2. fallback 到 bundled skills（config/agents/skills/<name>/）
+            let bundled_dir = crate::core::config::get_config_dir()
+                .join("agents")
+                .join("skills")
+                .join(name);
+            if bundled_dir.exists() {
+                return Ok(crate::utils::helpers::normalize_path(
+                    bundled_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+                ));
+            }
+
+            Err(format!(
+                "Error: Skills directory not found for '{}' (tried user: {}, bundled: {})",
+                name,
+                user_dir.display(),
+                bundled_dir.display()
             ))
         }
         _ => Ok(crate::utils::helpers::normalize_path(
@@ -59,9 +77,8 @@ fn resolve_run_cwd(workspace: &str, cwd_mode: &str, skill_name: &str) -> Result<
 fn build_env(workspace: &str, cwd: &PathBuf, use_skills_cwd: bool) -> Vec<(String, String)> {
     let ws = PathBuf::from(workspace);
     let skills_dir = ws
-        .parent()
-        .map(|p| p.join("skills"))
-        .unwrap_or_else(|| PathBuf::from("skills"));
+        .join(".agent")
+        .join("skills");
 
     let agent_skills = if use_skills_cwd {
         cwd.to_string_lossy().to_string()
