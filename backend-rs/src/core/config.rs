@@ -20,7 +20,6 @@ pub struct AgentLayout {
 pub struct AgentConfig {
     pub name: Option<String>,
     pub locked: Option<bool>,
-    pub base_dir: Option<String>,
     pub skills: Option<Vec<String>>,
     pub layout: Option<AgentLayout>,
     #[serde(flatten)]
@@ -187,7 +186,6 @@ fn merge_agent_configs(base: Option<AgentConfig>, user: AgentConfig) -> AgentCon
     AgentConfig {
         name: user.name.or(base.name),
         locked: user.locked.or(base.locked),
-        base_dir: user.base_dir.or(base.base_dir),
         skills: user.skills.or(base.skills),
         layout: user.layout.or(base.layout),
         extra: {
@@ -202,19 +200,8 @@ fn merge_agent_configs(base: Option<AgentConfig>, user: AgentConfig) -> AgentCon
 
 pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
     let cfg = get_config();
-
-    // 有用户上下文时优先使用用户隔离路径：data_dir/u_{user_id}/data/{agent_id}
-    if let Some(user_id) = crate::core::auth::get_current_user_id() {
-        return cfg.data_dir.join(format!("u_{}", user_id)).join("data").join(agent_id);
-    }
-
-    // 无用户上下文时保持原有全局路径（向后兼容）
-    let base_dir = cfg
-        .agents
-        .get(agent_id)
-        .and_then(|a| a.base_dir.as_deref())
-        .unwrap_or("agents/default");
-    cfg.data_dir.join(base_dir)
+    let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
+    cfg.data_dir.join(format!("u_{}", user_id)).join("data").join(agent_id)
 }
 
 pub fn get_agent_sessions_path(agent_id: &str) -> PathBuf {
