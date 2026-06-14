@@ -202,35 +202,85 @@ impl BaseAgent for StandardAgent {
     }
 }
 
+const LLM_KEEP_KEYS: &[&str] = &["tool_calls", "tool_call_id", "name", "reasoning_content"];
+
+/// 从持久化历史中提取 LLM 所需的完整多轮对话。
+///
+/// 只保留 LLM 需要的字段，丢弃 ``message_id`` / ``created_at`` 等元数据。
+/// 保留的字段与 nanobot ``get_history()`` 对齐：
+/// ``role``, ``content``, ``tool_calls``, ``tool_call_id``, ``name``, ``reasoning_content``。
+/// 只保留 ``user``, ``assistant``, ``tool`` 角色。
+/// 同时在返回前丢弃开头的孤立 tool result（与 nanobot ``get_history()`` 行为对齐）。
 pub fn history_llm_turns(history_messages: &[Value]) -> Vec<Value> {
     let mut out: Vec<Value> = Vec::new();
     for hm in history_messages {
         let role = hm.get("role").and_then(|v| v.as_str()).unwrap_or("");
-        match role {
-            "user" | "assistant" => {
-                let mut msg = serde_json::json!({
-                    "role": role,
-                    "content": hm.get("content"),
-                });
-                if let Some(tcs) = hm.get("tool_calls") {
-                    msg["tool_calls"] = tcs.clone();
-                }
-                out.push(msg);
+        if role != "user" && role != "assistant" && role != "tool" {
+            continue;
+        }
+        let content: Value = match role {
+            "tool" => Value::String(hm.get("content").and_then(|c| c.as_str()).unwrap_or("").to_string()),
+            _ => hm.get("content").cloned().unwrap_or(Value::Null),
+        };
+        let mut msg = serde_json::json!({
+            "role": role,
+            "content": content,
+        });
+        for key in LLM_KEEP_KEYS {
+            if let Some(val) = hm.get(key) {
+                msg[key] = val.clone();
             }
-            "tool" => {
-                let mut msg = serde_json::json!({
-                    "role": "tool",
-                    "content": hm.get("content").and_then(|c| c.as_str()).unwrap_or(""),
-                });
-                if let Some(tid) = hm.get("tool_call_id") {
-                    msg["tool_call_id"] = tid.clone();
+        }
+        out.push(msg);
+    }
+
+    // 丢弃开头孤立的 tool result（前面没有对应的 assistant tool_calls 声明）
+    let start = find_legal_message_start(&out);
+    if start > 0 {
+        out = out[start..].to_vec();
+    }
+
+    out
+}
+
+/// Find the first index whose tool results have matching assistant calls.
+fn find_legal_message_start(messages: &[Value]) -> usize {
+    use std::collections::HashSet;
+    let mut declared: HashSet<String> = HashSet::new();
+    let mut start = 0usize;
+
+    for (i, msg) in messages.iter().enumerate() {
+        let role = msg.get("role").and_then(|v| v.as_str()).unwrap_or("");
+        if role == "assistant" {
+            if let Some(tcs) = msg.get("tool_calls").and_then(|v| v.as_array()) {
+                for tc in tcs {
+                    if let Some(id) = tc.get("id").and_then(|v| v.as_str()) {
+                        declared.insert(id.to_string());
+                    }
                 }
-                out.push(msg);
             }
-            _ => {}
+        } else if role == "tool" {
+            let tid = msg.get("tool_call_id").and_then(|v| v.as_str());
+            if let Some(tid) = tid {
+                if !declared.contains(tid) {
+                    start = i + 1;
+                    declared.clear();
+                    for prev in &messages[start..=i] {
+                        if prev.get("role").and_then(|v| v.as_str()) == Some("assistant") {
+                            if let Some(tcs) = prev.get("tool_calls").and_then(|v| v.as_array()) {
+                                for tc in tcs {
+                                    if let Some(id) = tc.get("id").and_then(|v| v.as_str()) {
+                                        declared.insert(id.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
-    out
+    start
 }
 
 #[cfg(test)]
@@ -267,15 +317,30 @@ mod tests {
     }
 
     #[test]
-    fn test_tool_message_preserved_with_tool_call_id() {
+    fn test_orphan_tool_message_is_dropped() {
+        // 没有 assistant 声明过的 tool 消息应被丢弃
         let result = history_llm_turns(&[json!({"role": "tool", "content": "result", "tool_call_id": "tc1"})]);
-        assert_eq!(result[0].get("tool_call_id").and_then(|v| v.as_str()), Some("tc1"));
+        assert!(result.is_empty(), "孤立的 tool 消息应被丢弃");
     }
 
     #[test]
-    fn test_tool_message_empty_content_defaults_to_empty_string() {
-        let result = history_llm_turns(&[json!({"role": "tool", "content": null})]);
-        assert_eq!(result[0].get("content").and_then(|v| v.as_str()), Some(""));
+    fn test_tool_message_preserved_with_preceding_assistant() {
+        // 有 assistant 声明过的 tool 消息应保留
+        let result = history_llm_turns(&[
+            json!({"role": "assistant", "content": "", "tool_calls": [{"id": "tc1", "function": {"name": "foo"}}]}),
+            json!({"role": "tool", "content": "result", "tool_call_id": "tc1"}),
+        ]);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[1].get("tool_call_id").and_then(|v| v.as_str()), Some("tc1"));
+    }
+
+    #[test]
+    fn test_tool_message_empty_content_defaults_to_empty_string_with_preceding_assistant() {
+        let result = history_llm_turns(&[
+            json!({"role": "assistant", "content": "", "tool_calls": [{"id": "tc1", "function": {"name": "foo"}}]}),
+            json!({"role": "tool", "content": null, "tool_call_id": "tc1"}),
+        ]);
+        assert_eq!(result[1].get("content").and_then(|v| v.as_str()), Some(""));
     }
 
     #[test]
