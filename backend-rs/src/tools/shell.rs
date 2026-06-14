@@ -9,6 +9,7 @@ use serde_json::Value;
 use super::base::Tool;
 
 const MAX_OUTPUT: usize = 10_000;
+const MAX_TIMEOUT: u64 = 600;
 
 static DENY_PATTERNS: Lazy<Vec<Regex>> = Lazy::new(|| {
     vec![
@@ -91,6 +92,12 @@ static RUN_COMMAND_PARAMS: Lazy<Value> = Lazy::new(|| {
             "skill_name": {
                 "type": "string",
                 "description": "当 cwd=skills 时，指定技能目录名"
+            },
+            "timeout": {
+                "type": "integer",
+                "description": "超时时间（秒），最长 600 秒",
+                "minimum": 1,
+                "maximum": 600
             }
         },
         "required": ["command"]
@@ -106,7 +113,7 @@ impl RunCommandTool {
     pub fn new(workspace: &str, timeout_secs: u64) -> Self {
         Self {
             workspace: workspace.to_string(),
-            timeout_secs,
+            timeout_secs: timeout_secs.min(MAX_TIMEOUT),
         }
     }
 }
@@ -145,6 +152,12 @@ impl Tool for RunCommandTool {
             .and_then(|v| v.as_str())
             .unwrap_or("");
 
+        let effective_timeout = params
+            .get("timeout")
+            .and_then(|v| v.as_u64())
+            .map(|t| t.min(MAX_TIMEOUT))
+            .unwrap_or(self.timeout_secs);
+
         // Safety guard
         if is_blocked(command) {
             return Ok("Error: Command blocked by safety guard (dangerous pattern detected)".to_string());
@@ -156,15 +169,15 @@ impl Tool for RunCommandTool {
         let env = build_env(&self.workspace, &run_cwd, use_skills);
 
         if cfg!(target_os = "windows") {
-            self.run_cmd(command, &run_cwd, &env).await
+            self.run_cmd(command, &run_cwd, &env, effective_timeout).await
         } else {
-            self.run_bash(command, &run_cwd, &env).await
+            self.run_bash(command, &run_cwd, &env, effective_timeout).await
         }
     }
 }
 
 impl RunCommandTool {
-    async fn run_cmd(&self, command: &str, cwd: &PathBuf, env: &[(String, String)]) -> Result<String, String> {
+    async fn run_cmd(&self, command: &str, cwd: &PathBuf, env: &[(String, String)], timeout_secs: u64) -> Result<String, String> {
         let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string());
         let mut cmd = tokio::process::Command::new(&comspec);
         cmd.arg("/c").arg(command);
@@ -173,15 +186,15 @@ impl RunCommandTool {
             cmd.env(k, v);
         }
 
-        let output = tokio::time::timeout(Duration::from_secs(self.timeout_secs), cmd.output())
+        let output = tokio::time::timeout(Duration::from_secs(timeout_secs), cmd.output())
             .await
-            .map_err(|_| format!("Error: Command timed out after {} seconds", self.timeout_secs))?
+            .map_err(|_| format!("Error: Command timed out after {} seconds", timeout_secs))?
             .map_err(|e| format!("Error executing command: {e}"))?;
 
         Ok(self.format_output(&output.stdout, &output.stderr, output.status.code().unwrap_or(-1)))
     }
 
-    async fn run_bash(&self, command: &str, cwd: &PathBuf, env: &[(String, String)]) -> Result<String, String> {
+    async fn run_bash(&self, command: &str, cwd: &PathBuf, env: &[(String, String)], timeout_secs: u64) -> Result<String, String> {
         let mut cmd = tokio::process::Command::new("bash");
         cmd.arg("-c").arg(command);
         cmd.current_dir(cwd);
@@ -189,9 +202,9 @@ impl RunCommandTool {
             cmd.env(k, v);
         }
 
-        let output = tokio::time::timeout(Duration::from_secs(self.timeout_secs), cmd.output())
+        let output = tokio::time::timeout(Duration::from_secs(timeout_secs), cmd.output())
             .await
-            .map_err(|_| format!("Error: Command timed out after {} seconds", self.timeout_secs))?
+            .map_err(|_| format!("Error: Command timed out after {} seconds", timeout_secs))?
             .map_err(|e| format!("Error executing command: {e}"))?;
 
         Ok(self.format_output(&output.stdout, &output.stderr, output.status.code().unwrap_or(-1)))

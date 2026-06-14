@@ -54,8 +54,8 @@ def get_agent_base_dir(agent_id: str) -> Path:
 
 
 def get_agent_workspace_dir(agent_id: str) -> Path:
-    """Agent 工作区根目录：<base>/.local/"""
-    ws = get_agent_base_dir(agent_id) / ".local"
+    """Agent 工作区根目录：<base>/（.local 仍用于内部状态，见下文）"""
+    ws = get_agent_base_dir(agent_id)
     ws.mkdir(parents=True, exist_ok=True)
     return ws
 
@@ -69,22 +69,22 @@ def get_agent_local_data_dir(agent_id: str) -> Path:
 
 def get_agent_attachment_cache_dir(agent_id: str) -> Path:
     """附件缓存：<base>/.local/cache/"""
-    cache = get_agent_workspace_dir(agent_id) / "cache"
+    cache = get_agent_base_dir(agent_id) / ".local" / "cache"
     cache.mkdir(parents=True, exist_ok=True)
     return cache
 
 
 def get_agent_sessions_path(agent_id: str) -> Path:
-    return get_agent_workspace_dir(agent_id) / "sessions.json"
+    return get_agent_base_dir(agent_id) / ".local" / "sessions.json"
 
 
 def get_agent_session_messages_dir(agent_id: str) -> Path:
-    """Agent 会话消息目录：<workspace>/messages/"""
-    return get_agent_workspace_dir(agent_id) / "messages"
+    """Agent 会话消息目录：<base>/.local/messages/"""
+    return get_agent_base_dir(agent_id) / ".local" / "messages"
 
 
 def get_agent_session_messages_path(agent_id: str, session_id: str) -> Path:
-    """某会话的 .jsonl 文件路径：<workspace>/messages/<session_id>.jsonl"""
+    """某会话的 .jsonl 文件路径：<base>/.local/messages/<session_id>.jsonl"""
     return get_agent_session_messages_dir(agent_id) / f"{session_id}.jsonl"
 
 
