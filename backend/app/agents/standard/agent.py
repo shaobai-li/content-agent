@@ -46,7 +46,10 @@ def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str,
     只保留 LLM 需要的字段，丢弃 ``message_id`` / ``created_at`` 等元数据。
     保留的字段与 nanobot ``get_history()`` 对齐：
     ``role``, ``content``, ``tool_calls``, ``tool_call_id``, ``name``, ``reasoning_content``。
+    同时在返回前丢弃开头的孤立 tool result（与 nanobot ``get_history()`` 行为对齐）。
     """
+    from app.utils.helpers import find_legal_message_start
+
     out: List[Dict[str, Any]] = []
     for hm in history_messages:
         role = hm.get("role")
@@ -59,7 +62,12 @@ def _history_llm_turns(history_messages: List[Dict[str, Any]]) -> List[Dict[str,
                 msg[key] = hm[key]
         out.append(msg)
 
-    logger.debug("history_llm_turns: {} turns", len(out))
+    # 丢弃开头孤立的 tool result（前面没有对应的 assistant tool_calls 声明）
+    start = find_legal_message_start(out)
+    if start:
+        out = out[start:]
+
+    logger.debug("history_llm_turns: {} turns (discarded {} leading orphans)", len(out), start)
     for m in out:
         c = m.get("content", "")
         preview = c[:500] if isinstance(c, str) else str(c)[:500]
