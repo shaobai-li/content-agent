@@ -302,11 +302,19 @@ impl Tool for WebFetchTool {
         let result = result;
         if result.len() > max_chars {
             let half = max_chars / 2;
+            // 调整到有效 UTF-8 字符边界，避免切碎多字节字符
+            let prefix_end = (0..=half)
+                .rev()
+                .find(|&i| result.is_char_boundary(i))
+                .unwrap_or(0);
+            let suffix_start = (result.len() - half..result.len())
+                .find(|&i| result.is_char_boundary(i))
+                .unwrap_or(result.len());
             Ok(format!(
                 "{}\n\n... ({} chars truncated) ...\n\n{}",
-                &result[..half],
+                &result[..prefix_end],
                 result.len() - max_chars,
-                &result[result.len() - half..],
+                &result[suffix_start..],
             ))
         } else {
             Ok(result)
