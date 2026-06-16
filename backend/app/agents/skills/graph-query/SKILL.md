@@ -14,6 +14,7 @@ description: 当用户提问或者要求讲解时必须最优先触发该SKILL�
 **注意**：若用户既未指定知识库路径，上下文中也没有默认知识库路径，必须提醒「默认知识库未设置」并立即停止。
 
 2. **提取查询关键词**：读取 `<知识库目录的路径>/graph/GRAPH_REPORT.md`，对照其中 God Nodes 和 Communities 的节点名，将用户问题映射为图谱中实际存在的 2-4 个英文节点名，拼成一个空格分隔的查询字符串 `<query_terms>`。
+- **重要**：必须使用 GRAPH_REPORT.md 中出现的**完整节点名**（如 `Attention Mechanism`），不要截取子串（如仅用 `Attention`），以确保脚本端精确匹配。
 - 若确认图谱中没有任何节点与用户问题相关 → **立即结束本技能**，由 Agent 自行回答。
 - 多个关键词合并为一个字符串，不分多次查询。
 
@@ -38,6 +39,7 @@ python scripts\query_graph.py --explain --label "<X的英文节点名>" --graph 
 
 解析 stdout JSON：
 - `status` 为 `no_graph` / `no_match` / `no_source` / `no_target` / `no_path` → **立即结束本技能**，由 Agent 自行回答用户。
+- `status` 为 `same_node` → 来源与目标为同一节点，提示用户后由 Agent 自行回答。
 - `status` 为 `ok` → 进入步骤 5。
 
 4. **作答规范**：
