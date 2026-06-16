@@ -7,7 +7,7 @@ from xml.sax.saxutils import escape
 
 import yaml
 
-from app.core.config import get_agent_base_dir, get_agent_skill_ids
+from app.core.config import OMNIAGE_ROOT, get_agent_base_dir, get_agent_skill_ids
 from app.utils.disabled_skills import DisabledSkills
 
 
@@ -28,8 +28,8 @@ class SkillHead:
 
 
 def bundled_skills_dir() -> Path:
-    """仓库内官方 skill 根目录：app/agents/skills/<skill_id>/SKILL.md"""
-    return Path(__file__).resolve().parent.parent / "agents" / "skills"
+    """仓库内官方 skill 根目录：<OMNIAGE_ROOT>/config/agents/skills/<skill_id>/SKILL.md"""
+    return OMNIAGE_ROOT / "config" / "agents" / "skills"
 
 
 def parse_skill_frontmatter(skill_md_path: Path) -> Optional[Dict[str, Any]]:

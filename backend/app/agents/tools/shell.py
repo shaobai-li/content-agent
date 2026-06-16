@@ -66,7 +66,7 @@ def _resolve_run_cwd(workspace: Path, cwd_mode: str, skill_name: str = "") -> Pa
             raise ValueError("invalid skill_name")
 
         # 优先：user skills（同名覆盖语义，与 discover_skills_for_agent 一致）
-        user_root = (ws.parent / "skills").resolve()
+        user_root = (ws / ".agent" / "skills").resolve()
         user_dir = (user_root / safe).resolve()
         if user_dir.is_relative_to(user_root) and user_dir.is_dir():
             return user_dir
@@ -262,12 +262,11 @@ class RunCommandTool(Tool):
         仅继承必需的变量，不暴露全部 os.environ。
         """
         ws = self._workspace.resolve()
-        skills_dir = str(ws.parent / "skills")
 
         if use_skills_cwd:
             agent_skills = str(cwd.resolve())
         else:
-            agent_skills = skills_dir
+            agent_skills = ""
 
         if _IS_WINDOWS:
             sr = os.environ.get("SYSTEMROOT", r"C:\Windows")

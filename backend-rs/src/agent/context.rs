@@ -129,12 +129,11 @@ impl ContextBuilder {
             self.workspace.canonicalize().unwrap_or_else(|_| self.workspace.clone()),
         );
         let skills_dir = ws
-            .parent()
-            .map(|p| p.join("skills"))
-            .unwrap_or_else(|| PathBuf::from("skills"))
+            .join(".agent")
+            .join("skills")
             .canonicalize()
             .map(crate::utils::helpers::normalize_path)
-            .unwrap_or_else(|_| PathBuf::from("skills"));
+            .unwrap_or_else(|_| ws.join(".agent").join("skills"));
 
         let kb_line = self.build_kb_env_line();
 
@@ -142,7 +141,7 @@ impl ContextBuilder {
             "\n\n你可以使用提供的工具。\
             \nrun_command 默认 cwd=workspace；\
             注意！调用技能中的脚本时，必须设置 cwd=skills，\
-            同时必须要提供 skill_name，目录为 agent_id/skills/<skill_name>/。\
+            同时必须要提供 skill_name，目录为 .agent/skills/<skill_name>/。\
             \n命令中可使用环境变量: AGENT_WORKSPACE / AGENT_SKILLS / AGENT_DEFAULT_KB。\
             \nAGENT_WORKSPACE={}\
             \nAGENT_SKILLS（skills 根目录）={}{kb_line}",

@@ -320,7 +320,7 @@ def _resolve_run_cwd(workspace: Path, cwd_mode: str, skill_name: str = "") -> Pa
             raise ValueError("invalid skill_name")
 
         # 优先：user skills（同名覆盖语义，与 discover_skills_for_agent 一致）
-        user_root = (ws.parent / "skills").resolve()
+        user_root = (ws / ".agent" / "skills").resolve()
         user_dir = (user_root / safe).resolve()
         if user_dir.is_relative_to(user_root) and user_dir.is_dir():
             return user_dir
@@ -353,7 +353,7 @@ def run_command(
         env = {
             **dict(os.environ),
             "AGENT_WORKSPACE": str(workspace.resolve()),
-            "AGENT_SKILLS": str(run_cwd if (cwd_mode or "").strip().lower() == "skills" else (workspace.resolve().parent / "skills").resolve()),
+            "AGENT_SKILLS": str(run_cwd) if (cwd_mode or "").strip().lower() == "skills" else "",
         }
         result = subprocess.run(
             command,

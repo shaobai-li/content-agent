@@ -1,6 +1,14 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+use serde::{Deserialize, Serialize};
+
+/// JSON 文件格式：{"skill_ids": ["a", "b"]}
+#[derive(Serialize, Deserialize)]
+struct DisabledSkillsData {
+    skill_ids: Vec<String>,
+}
+
 /// 已禁用的 Skill 管理
 pub struct DisabledSkills {
     disabled: HashSet<String>,
@@ -14,7 +22,8 @@ impl DisabledSkills {
         let disabled = if path.exists() {
             std::fs::read_to_string(&path)
                 .ok()
-                .and_then(|s| serde_json::from_str(&s).ok())
+                .and_then(|s| serde_json::from_str::<DisabledSkillsData>(&s).ok())
+                .map(|d| d.skill_ids.into_iter().collect())
                 .unwrap_or_default()
         } else {
             HashSet::new()
@@ -51,7 +60,9 @@ impl DisabledSkills {
         if let Some(parent) = self.file_path.parent() {
             std::fs::create_dir_all(parent).ok();
         }
-        if let Ok(content) = serde_json::to_string_pretty(&self.disabled) {
+        if let Ok(content) = serde_json::to_string_pretty(&DisabledSkillsData {
+            skill_ids: self.disabled.iter().cloned().collect(),
+        }) {
             std::fs::write(&self.file_path, content).ok();
         }
     }
@@ -108,8 +119,8 @@ mod tests {
         // 再加载验证
         {
             let content = std::fs::read_to_string(&file_path).unwrap();
-            let loaded: HashSet<String> = serde_json::from_str(&content).unwrap();
-            assert!(loaded.contains("skill-b"));
+            let data: DisabledSkillsData = serde_json::from_str(&content).unwrap();
+            assert!(data.skill_ids.contains(&"skill-b".to_string()));
         }
     }
 
