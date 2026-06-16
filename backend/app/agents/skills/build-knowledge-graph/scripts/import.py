@@ -177,7 +177,6 @@ def append_failure_to_metadata(
 
 def sync_import_to_nodes(kb_root: Path, m_id: str, input_path: Path, sha256_hex: str) -> None:
     """将导入的记录同步到 view/nodes.json，使前端能展示该文件"""
-    from datetime import datetime, timezone
 
     nodes_path = kb_root / "view" / "nodes.json"
     nodes_path.parent.mkdir(parents=True, exist_ok=True)
@@ -196,8 +195,9 @@ def sync_import_to_nodes(kb_root: Path, m_id: str, input_path: Path, sha256_hex:
         nodes = []
         data["nodes"] = nodes
 
-    # 幂等：该记录已存在则跳过
-    if any(isinstance(n, dict) and n.get("record_id") == m_id for n in nodes):
+    # 幂等：该记录已存在则跳过（set 查找 O(1)）
+    existing_ids = {n.get("record_id") for n in nodes if isinstance(n, dict)}
+    if m_id in existing_ids:
         return
 
     # 确保根文件夹存在

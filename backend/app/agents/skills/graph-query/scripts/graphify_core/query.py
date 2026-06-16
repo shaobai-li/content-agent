@@ -41,9 +41,11 @@ def question_terms(text: str) -> list[str]:
         token = token.strip(".,，。！？、；：""''「」『』（）()[]{}?!.;:/\\|")
         if token and len(token) > 2 and token not in terms:
             terms.append(token)
-    for token in re.findall(r"[a-z][a-z0-9_-]{1,}", normalized):
-        if token not in terms:
-            terms.append(token)
+        # Extract sub-tokens from compound terms (e.g., "transformer-attention")
+        for part in re.split(r"[-_]", token):
+            part = part.strip(".,，。！？、；：""''「」『』（）()[]{}?!.;:/\\|")
+            if part and len(part) > 2 and part not in terms:
+                terms.append(part)
     return terms
 
 
@@ -137,6 +139,12 @@ def subgraph_to_text(
 
 
 def find_node(G: nx.Graph, label: str) -> list[str]:
+    """Find node IDs whose label or ID contains *term* as a substring.
+
+    Uses case-insensitive substring matching (e.g. "trans" matches
+    "transformer", "translation"). Callers should pass precise node names
+    from GRAPH_REPORT.md for best results.
+    """
     term = strip_diacritics(label).lower()
     return [
         nid
@@ -206,6 +214,17 @@ def run_path(
     src_nid, tgt_nid = src_scored[0][2], tgt_scored[0][2]
     src_label = G.nodes[src_nid].get("label", src_nid)
     tgt_label = G.nodes[tgt_nid].get("label", tgt_nid)
+
+    # Same node — return explain-style info instead of zero-hop path
+    if src_nid == tgt_nid:
+        return {
+            "status": "same_node",
+            "source": src_label,
+            "target": tgt_label,
+            "hops": 0,
+            "context": f"Same node: {src_label} — use --explain for full details.",
+        }
+
     try:
         path_nodes = nx.shortest_path(G, src_nid, tgt_nid)
     except (nx.NetworkXNoPath, nx.NodeNotFound):
