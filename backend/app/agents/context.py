@@ -116,13 +116,13 @@ class ContextBuilder:
     def _build_tool_guard(self) -> str:
         """Tool & directory guard appended to the system prompt tail."""
         ws = self.workspace.resolve()
-        skills_dir = (ws.parent / "skills").resolve()
+        skills_dir = (ws / ".agent" / "skills").resolve()
         kb_line = self._build_kb_env_line()
         return (
             "\n\n你可以使用提供的工具。"
             "\nrun_command 默认 cwd=workspace；"
             "注意！调用技能中的脚本时，必须设置 cwd=skills，"
-            "同时必须要提供 skill_name，目录为 agent_id/skills/<skill_name>/。"
+            "同时必须要提供 skill_name，目录为 .agent/skills/<skill_name>/。"
             "\n命令中可使用环境变量: AGENT_WORKSPACE / AGENT_SKILLS / AGENT_DEFAULT_KB。"
             f"\nAGENT_WORKSPACE={ws}"
             f"\nAGENT_SKILLS（skills 根目录）={skills_dir}"
