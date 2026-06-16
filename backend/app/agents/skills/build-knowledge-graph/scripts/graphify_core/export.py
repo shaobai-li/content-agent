@@ -63,7 +63,7 @@ def _hyperedge_script(hyperedges_json: str) -> str:
 // Render hyperedges as shaded regions
 const hyperedges = {hyperedges_json};
 // afterDrawing passes ctx already transformed to network coordinate space.
-// Draw node positions raw 鈥?no manual pan/zoom/DPR math needed.
+// Draw node positions raw —no manual pan/zoom/DPR math needed.
 network.on('afterDrawing', function(ctx) {{
     hyperedges.forEach(h => {{
         const positions = h.nodes
@@ -107,7 +107,7 @@ const RAW_NODES = {nodes_json};
 const RAW_EDGES = {edges_json};
 const LEGEND = {legend_json};
 
-// HTML-escape helper 鈥?prevents XSS when injecting graph data into innerHTML
+// HTML-escape helper —prevents XSS when injecting graph data into innerHTML
 function esc(s) {{
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }}
@@ -185,7 +185,7 @@ function focusNode(nodeId) {{
   showInfo(nodeId);
 }}
 
-// Track hovered node 鈥?hover detection is more reliable than click params
+// Track hovered node —hover detection is more reliable than click params
 let hoveredNodeId = null;
 network.on('hoverNode', params => {{
   hoveredNodeId = params.node;
@@ -303,14 +303,14 @@ def to_json(G: nx.Graph, communities: dict[int, list[str]], output_path: str, *,
                 import sys as _sys
                 print(
                     f"[graphify] WARNING: new graph has {new_n} nodes but existing "
-                    f"graph.json has {existing_n}. Refusing to overwrite 鈥?you may be "
+                    f"graph.json has {existing_n}. Refusing to overwrite —you may be "
                     f"missing extraction data from a previous session. "
                     f"Pass force=True to override.",
                     file=_sys.stderr,
                 )
                 return False
         except Exception:
-            pass  # unreadable existing file 鈥?proceed with write
+            pass  # unreadable existing file —proceed with write
 
     node_community = _node_community_map(communities)
     try:
