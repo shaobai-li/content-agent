@@ -29,13 +29,13 @@ python scripts\import.py --i <上传的附件文件路径> --o <知识库目录�
 ```
 **注意**：若 stdout JSON 中 `status` 为 `duplicate`，**立即停止**，不再继续建图。
 
-4. 从步骤 3 的 JSON 输出读取 `record_path`，找到同目录下的 `parsed.md` 并完整读取。
+4. 从步骤 3 的 JSON 输出读取文档路径并完整读取：若存在 `parsed_path` 则读取该 parsed.md；否则读取 `source_path` 指向的原始文件。
 
 5. 阅读 `<知识库目录的路径>\templates\extraction_schema.md`，学习语义抽取 JSON 格式。
 
 6. 若 `<知识库目录的路径>/graph/graph.json` 已存在，读取其中节点 ID 与社区摘要，抽取时避免 ID 冲突。
 
-7. 根据步骤 4 读取的全部 `parsed.md` 内容，参照 `extraction_schema.md` 完成语义抽取，写入 `<知识库目录的路径>/graph/extraction.json`。
+7. 根据步骤 4 读取的全部文档内容，参照 `extraction_schema.md` 完成语义抽取，写入 `<知识库目录的路径>/graph/extraction.json`。
 
 8. 运行建图脚本：
 ```

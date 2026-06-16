@@ -15,11 +15,6 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _utc_now_iso_z() -> str:
-    """返回 UTC 当前时间，格式如 2026-06-15T12:00:00Z（去掉微秒）。"""
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="导入附件文件到知识库的脚本")
     parser.add_argument("--i", "--input", dest="input_file", required=True, help="上传的附件文件路径")
@@ -81,6 +76,13 @@ def new_m_id() -> str:
 
 def material_dir(kb_root: Path, m_id: str) -> Path:
     return kb_root / "raw" / f"m_{m_id}"
+
+
+def content_paths(src: Path, parsed: dict[str, Any] | None) -> dict[str, str]:
+    """返回供后续读取的文档路径：解析产物 parsed.md 或原始 md/txt 等文件。"""
+    if parsed and parsed.get("markdown_path"):
+        return {"parsed_path": parsed["markdown_path"]}
+    return {"source_path": str(src)}
 
 
 def build_record(
@@ -200,7 +202,7 @@ def sync_import_to_nodes(kb_root: Path, m_id: str, input_path: Path, sha256_hex:
 
     # 确保根文件夹存在
     if not any(isinstance(n, dict) and n.get("id") == "fld_root" for n in nodes):
-        now = _utc_now_iso_z()
+        now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         nodes.insert(0, {
             "id": "fld_root",
             "node_type": "folder",
@@ -210,7 +212,7 @@ def sync_import_to_nodes(kb_root: Path, m_id: str, input_path: Path, sha256_hex:
             "updated_at": now,
         })
 
-    now = _utc_now_iso_z()
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     record_node = {
         "id": f"rec_{m_id}",
         "node_type": "record",
@@ -268,6 +270,7 @@ def run_import(input_path: Path, kb_root: Path) -> dict[str, Any]:
         record = build_record(m_id=m_id, input_path=src, sha256_hex=sha256_hex, status="imported")
         if parsed:
             record["parsed"] = parsed
+        record.update(content_paths(src, parsed))
         record_path = save_record_json(m_dir, record)
         updated = append_import_to_metadata(metadata, m_id, sha256_hex, src)
         save_metadata(kb, updated)
@@ -285,6 +288,7 @@ def run_import(input_path: Path, kb_root: Path) -> dict[str, Any]:
             "record_path": str(record_path),
             "sha256": sha256_hex,
             "kb_root": str(kb),
+            **content_paths(src, parsed),
         }
         if parsed:
             result["parsed"] = parsed
