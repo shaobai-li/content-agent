@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Ellipsis, Plus, Trash2 } from "lucide-react";
+import { Check, Ellipsis, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,6 +112,9 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
 
   // 本地编辑状态（未保存的修改）
   const [dirtyText, setDirtyText] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const getValue = useCallback(
     (filename: string) => {
@@ -134,14 +137,30 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
 
   const handleSave = useCallback(async () => {
     const modified = Object.keys(dirtyText);
-    for (const filename of modified) {
-      await savePrompt(filename, dirtyText[filename]);
+    if (modified.length === 0) return;
+
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      for (const filename of modified) {
+        await savePrompt(filename, dirtyText[filename]);
+      }
+      setDirtyText({});
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 1500);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSaving(false);
     }
-    setDirtyText({});
   }, [dirtyText, savePrompt]);
 
   const handleCancel = useCallback(() => {
     setDirtyText({});
+    setSaveError(null);
+    setSaveSuccess(false);
     reloadPrompts();
   }, [reloadPrompts]);
 
@@ -209,21 +228,33 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
             </CardContent>
           </Card>
           {/* 行内保存/取消 */}
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90"
-            >
-              Save
-            </button>
+          <div className="flex flex-col gap-2">
+            {saveError && (
+              <p className="text-sm text-destructive text-right">{saveError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={saving}
+                className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving || Object.keys(dirtyText).length === 0}
+                className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {saving ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : saveSuccess ? (
+                  <Check className="size-3.5" />
+                ) : null}
+                {saving ? "Saving..." : saveSuccess ? "Saved!" : "Save"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -365,21 +396,33 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
             </CardContent>
           </Card>
           {/* 行内保存/取消 */}
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90"
-            >
-              Save
-            </button>
+          <div className="flex flex-col gap-2">
+            {saveError && (
+              <p className="text-sm text-destructive text-right">{saveError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={saving}
+                className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving || Object.keys(dirtyText).length === 0}
+                className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {saving ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : saveSuccess ? (
+                  <Check className="size-3.5" />
+                ) : null}
+                {saving ? "Saving..." : saveSuccess ? "Saved!" : "Save"}
+              </button>
+            </div>
           </div>
         </div>
       )}

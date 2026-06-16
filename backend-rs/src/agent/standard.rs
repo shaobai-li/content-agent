@@ -47,9 +47,20 @@ impl AgentHook for StandardStreamingHook {
 
     async fn after_iteration(&self, tool_calls: &[ToolCallRequest], tool_results: &[String]) {
         for (tc, result) in tool_calls.iter().zip(tool_results.iter()) {
-            for i in (0..result.len()).step_by(800) {
-                let chunk = &result[i..result.len().min(i + 800)];
+            let mut start = 0;
+            while start < result.len() {
+                let raw_end = result.len().min(start + 800);
+                // 倒退到最近的有效 UTF-8 字符边界，避免切碎多字节字符
+                let end = (start..=raw_end)
+                    .rev()
+                    .find(|&i| result.is_char_boundary(i))
+                    .unwrap_or(start);
+                if end <= start {
+                    break;
+                }
+                let chunk = &result[start..end];
                 let _ = self.tx.send(build_tool_exec_chunk(&tc.id, chunk));
+                start = end;
             }
             let _ = self.tx.send(build_tool_exec_end(&tc.id));
 
