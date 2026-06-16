@@ -1,9 +1,9 @@
 name: 选题和文案智能体
 base_dir: agents/agent_std
 skills:
+  - graph-query
   - ingest-file
   - build-knowledge-graph
-  - wiki-query
 layout:
   left:
     - history
