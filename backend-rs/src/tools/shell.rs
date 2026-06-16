@@ -76,14 +76,11 @@ fn resolve_run_cwd(workspace: &str, cwd_mode: &str, skill_name: &str) -> Result<
 
 fn build_env(workspace: &str, cwd: &PathBuf, use_skills_cwd: bool) -> Vec<(String, String)> {
     let ws = PathBuf::from(workspace);
-    let skills_dir = ws
-        .join(".agent")
-        .join("skills");
 
     let agent_skills = if use_skills_cwd {
         cwd.to_string_lossy().to_string()
     } else {
-        skills_dir.to_string_lossy().to_string()
+        String::new()
     };
 
     vec![
