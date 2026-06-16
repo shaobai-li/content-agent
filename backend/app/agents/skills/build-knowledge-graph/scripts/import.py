@@ -15,6 +15,11 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _utc_now_iso_z() -> str:
+    """返回 UTC 当前时间，格式如 2026-06-15T12:00:00Z（去掉微秒）。"""
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="导入附件文件到知识库的脚本")
     parser.add_argument("--i", "--input", dest="input_file", required=True, help="上传的附件文件路径")
@@ -170,7 +175,6 @@ def append_failure_to_metadata(
 
 def sync_import_to_nodes(kb_root: Path, m_id: str, input_path: Path, sha256_hex: str) -> None:
     """将导入的记录同步到 view/nodes.json，使前端能展示该文件"""
-    from datetime import datetime, timezone
 
     nodes_path = kb_root / "view" / "nodes.json"
     nodes_path.parent.mkdir(parents=True, exist_ok=True)
@@ -189,13 +193,14 @@ def sync_import_to_nodes(kb_root: Path, m_id: str, input_path: Path, sha256_hex:
         nodes = []
         data["nodes"] = nodes
 
-    # 幂等：该记录已存在则跳过
-    if any(isinstance(n, dict) and n.get("record_id") == m_id for n in nodes):
+    # 幂等：该记录已存在则跳过（set 查找 O(1)）
+    existing_ids = {n.get("record_id") for n in nodes if isinstance(n, dict)}
+    if m_id in existing_ids:
         return
 
     # 确保根文件夹存在
     if not any(isinstance(n, dict) and n.get("id") == "fld_root" for n in nodes):
-        now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        now = _utc_now_iso_z()
         nodes.insert(0, {
             "id": "fld_root",
             "node_type": "folder",
@@ -205,7 +210,7 @@ def sync_import_to_nodes(kb_root: Path, m_id: str, input_path: Path, sha256_hex:
             "updated_at": now,
         })
 
-    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    now = _utc_now_iso_z()
     record_node = {
         "id": f"rec_{m_id}",
         "node_type": "record",

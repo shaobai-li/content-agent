@@ -8,7 +8,7 @@ use crate::core::config::get_agent_base_dir as core_get_agent_base_dir;
 /// Built-in base system prompt (embedded at compile time).
 const DEFAULT_SYSTEM_PROMPT: &str = include_str!("standard/prompts/system.md");
 
-const BOOTSTRAP_FILES: &[&str] = &["SOUL.md", "USER.md", "IDENTITY.md"];
+const BOOTSTRAP_FILES: &[&str] = &["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md"];
 
 /// Builds the context (system prompt + messages) for the agent.
 pub struct ContextBuilder {
@@ -73,11 +73,12 @@ impl ContextBuilder {
         prompt
     }
 
-    /// Load bootstrap files from workspace.
+    /// Load bootstrap files from `<workspace>/.agent/prompts/`.
     fn load_bootstrap_files(&self) -> String {
         let mut parts: Vec<String> = Vec::new();
+        let prompts_dir = self.workspace.join(".agent").join("prompts");
         for filename in BOOTSTRAP_FILES {
-            let file_path = self.workspace.join(filename);
+            let file_path = prompts_dir.join(filename);
             if file_path.exists() {
                 if let Ok(content) = std::fs::read_to_string(&file_path) {
                     let trimmed = content.trim().to_string();
@@ -93,11 +94,11 @@ impl ContextBuilder {
     /// Return the base system prompt.
     ///
     /// Priority:
-    ///   1. Agent data dir `prompts/system_prompt.md` (user override)
+    ///   1. `<agent_base>/.agent/prompts/system_prompt.md` (user override via settings UI)
     ///   2. Built-in default prompt
     fn resolve_base_prompt(&self) -> String {
         if let Some(ref agent_id) = self.agent_id {
-            let user_path = core_get_agent_base_dir(agent_id).join("prompts").join("system_prompt.md");
+            let user_path = core_get_agent_base_dir(agent_id).join(".agent").join("prompts").join("system_prompt.md");
             if user_path.exists() {
                 if let Ok(text) = std::fs::read_to_string(&user_path) {
                     let trimmed = text.trim().to_string();
