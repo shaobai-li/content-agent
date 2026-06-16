@@ -78,6 +78,13 @@ def material_dir(kb_root: Path, m_id: str) -> Path:
     return kb_root / "raw" / f"m_{m_id}"
 
 
+def content_paths(src: Path, parsed: dict[str, Any] | None) -> dict[str, str]:
+    """返回供后续读取的文档路径：解析产物 parsed.md 或原始 md/txt 等文件。"""
+    if parsed and parsed.get("markdown_path"):
+        return {"parsed_path": parsed["markdown_path"]}
+    return {"source_path": str(src)}
+
+
 def build_record(
     m_id: str,
     input_path: Path,
@@ -263,6 +270,7 @@ def run_import(input_path: Path, kb_root: Path) -> dict[str, Any]:
         record = build_record(m_id=m_id, input_path=src, sha256_hex=sha256_hex, status="imported")
         if parsed:
             record["parsed"] = parsed
+        record.update(content_paths(src, parsed))
         record_path = save_record_json(m_dir, record)
         updated = append_import_to_metadata(metadata, m_id, sha256_hex, src)
         save_metadata(kb, updated)
@@ -280,6 +288,7 @@ def run_import(input_path: Path, kb_root: Path) -> dict[str, Any]:
             "record_path": str(record_path),
             "sha256": sha256_hex,
             "kb_root": str(kb),
+            **content_paths(src, parsed),
         }
         if parsed:
             result["parsed"] = parsed
