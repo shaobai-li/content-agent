@@ -14,27 +14,54 @@ _MAX_HEADING_CHARS = 64
 # Treat sizes within this delta as the same logical size.
 _SIZE_EPS = 0.6
 
+# Above this many heading candidates on a single page, the page is treated as a
+# borderless table / dense financial grid (which find_tables cannot detect) and
+# all its candidates are demoted to plain text. Real documents stay well below
+# this (the densest validated page is a 17-entry table of contents).
+_MAX_HEADINGS_PER_PAGE = 20
+
 
 class PdfParser:
     def parse(self, src_path: Path, output_dir: Path) -> dict[str, str]:
         output_dir.mkdir(parents=True, exist_ok=True)
         with fitz.open(src_path) as doc:
-            lines = self._collect_lines(doc)
+            lines, tables = self._collect_lines(doc)
             body_size = self._body_size(lines)
             size_to_level = self._build_size_levels(lines, body_size)
-            parts = self._render(lines, body_size, size_to_level)
+            dense_pages = self._dense_pages(lines, body_size, size_to_level)
+            parts = self._render(lines, tables, body_size, size_to_level, dense_pages)
         markdown_path = output_dir / "parsed.md"
         markdown_path.write_text("\n\n".join(parts).strip() + "\n", encoding="utf-8")
         return {"markdown_path": str(markdown_path)}
 
     # --- extraction -------------------------------------------------------
 
-    def _collect_lines(self, doc: "fitz.Document") -> list[dict]:
+    def _collect_lines(self, doc: "fitz.Document") -> tuple[list[dict], list[dict]]:
         """Flatten the doc into line records, merging horizontally adjacent
-        blocks (e.g. a section number "3" and its title "Model Architecture")."""
+        blocks (e.g. a section number "3" and its title "Model Architecture").
+
+        Also detect tables: lines inside a table region are tagged so they are
+        never promoted to headings, and each table is rendered as markdown and
+        emitted in document order."""
         lines: list[dict] = []
-        for page in doc:
+        tables: list[dict] = []
+        for page_no, page in enumerate(doc):
             page_width = page.rect.width
+            try:
+                found = page.find_tables().tables
+            except Exception:
+                found = []
+            regions = [t.bbox for t in found]
+            for order, t in enumerate(found):
+                try:
+                    md = t.to_markdown().strip()
+                except Exception:
+                    md = ""
+                if md:
+                    tables.append(
+                        {"page": page_no, "y0": t.bbox[1], "x0": t.bbox[0],
+                         "order": order, "markdown": md}
+                    )
             raw: list[dict] = []
             for block in page.get_text("dict")["blocks"]:
                 if block.get("type") != 0:  # 0 = text block
@@ -42,9 +69,21 @@ class PdfParser:
                 for line in block["lines"]:
                     rec = self._line_record(line, page_width)
                     if rec is not None:
+                        rec["page"] = page_no
+                        rec["in_table"] = self._inside_any(rec, regions)
                         raw.append(rec)
             lines.extend(self._merge_same_row(raw))
-        return lines
+        return lines, tables
+
+    @staticmethod
+    def _inside_any(rec: dict, regions: list[tuple]) -> bool:
+        """True if the line's center sits within any table bounding box."""
+        cx = (rec["x0"] + rec["x1"]) / 2
+        cy = (rec["y0"] + rec["y1"]) / 2
+        for x0, y0, x1, y1 in regions:
+            if x0 <= cx <= x1 and y0 <= cy <= y1:
+                return True
+        return False
 
     def _line_record(self, line: dict, page_width: float) -> dict | None:
         # Preserve spaces: PyMuPDF emits whitespace as its own spans, so build
@@ -99,6 +138,8 @@ class PdfParser:
         """Most common font size by character count = body text baseline."""
         hist: Counter[float] = Counter()
         for rec in lines:
+            if rec.get("in_table"):
+                continue
             hist[rec["size"]] += len(rec["text"])
         if not hist:
             return 0.0
@@ -111,6 +152,7 @@ class PdfParser:
             rec["size"]
             for rec in lines
             if rec["size"] > body_size + _SIZE_EPS
+            and not rec.get("in_table")
             and not self._is_marginal(rec)
             and self._is_heading_text(rec)
         }
@@ -156,16 +198,50 @@ class PdfParser:
             return (max(size_to_level.values()) if size_to_level else 1) + 1
         return None
 
+    def _dense_pages(
+        self, lines: list[dict], body_size: float, size_to_level: dict[float, int]
+    ) -> set[int]:
+        """Pages whose heading-candidate count exceeds the table threshold.
+        These are borderless financial grids that find_tables cannot see."""
+        per_page: Counter[int] = Counter()
+        for rec in lines:
+            if rec.get("in_table"):
+                continue
+            if self._heading_level(rec, body_size, size_to_level):
+                per_page[rec["page"]] += 1
+        return {pg for pg, n in per_page.items() if n > _MAX_HEADINGS_PER_PAGE}
+
     # --- rendering --------------------------------------------------------
 
     def _render(
-        self, lines: list[dict], body_size: float, size_to_level: dict[float, int]
+        self,
+        lines: list[dict],
+        tables: list[dict],
+        body_size: float,
+        size_to_level: dict[float, int],
+        dense_pages: set[int],
     ) -> list[str]:
-        parts: list[str] = []
+        # Merge text lines and table blocks into one stream ordered by page then
+        # vertical position, so a table renders where it sits in the document.
+        items: list[tuple] = []
         for rec in lines:
-            if self._is_marginal(rec):
+            if rec.get("in_table") or self._is_marginal(rec):
+                continue  # in-table text is replaced by the rendered table
+            items.append((rec["page"], rec["y0"], 0, rec))
+        for tab in tables:
+            items.append((tab["page"], tab["y0"], tab["order"], tab))
+        items.sort(key=lambda it: (it[0], it[1], it[2]))
+
+        parts: list[str] = []
+        for *_unused, payload in items:
+            if "markdown" in payload:  # a table block
+                parts.append(payload["markdown"])
                 continue
-            level = self._heading_level(rec, body_size, size_to_level)
+            rec = payload
+            if rec["page"] in dense_pages:
+                level = None  # borderless-table page: keep everything as text
+            else:
+                level = self._heading_level(rec, body_size, size_to_level)
             if level:
                 parts.append("#" * min(level, 6) + " " + rec["text"])
             else:
