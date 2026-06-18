@@ -125,7 +125,9 @@ function renderParts(parts: MessagePart[]) {
 
 export function ChatMessage({ messages }: ChatMessageProps) {
   return (
-    <div className="flex w-full min-w-0 max-w-full flex-col gap-4">
+    <>
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+      <div className="flex w-full min-w-0 max-w-full flex-col gap-4">
       {messages.map((msg) => {
         if (isFileMessage(msg)) {
           return <FileMessageItem key={msg.id} message={msg} />;
@@ -139,8 +141,21 @@ export function ChatMessage({ messages }: ChatMessageProps) {
                 : "bg-white text-slate-800 self-start"
             }`}
           >
-            {msg.role === "assistant" && (msg.parts || msg.content)
-              ? renderParts(msg.parts ?? [{ type: "text", content: msg.content }])
+            {msg.role === "assistant"
+              ? (msg.parts && msg.parts.length > 0) || msg.content
+                ? renderParts(msg.parts ?? [{ type: "text", content: msg.content }])
+                : (
+                  <div className="prose prose-sm max-w-none text-foreground pl-5
+                    prose-p:leading-relaxed prose-p:my-3
+                  ">
+                    <p
+                      className="bg-gradient-to-r from-muted-foreground/40 via-foreground to-muted-foreground/40 bg-[length:200%_100%] bg-clip-text text-transparent"
+                      style={{ animation: "shimmer 2.5s linear infinite" }}
+                    >
+                      思考中⋯
+                    </p>
+                  </div>
+                )
               : msg.content && (
                   <div className="min-w-0 max-w-full whitespace-pre-wrap break-all">
                     {msg.content}
@@ -150,5 +165,6 @@ export function ChatMessage({ messages }: ChatMessageProps) {
         );
       })}
     </div>
+    </>
   );
 }
