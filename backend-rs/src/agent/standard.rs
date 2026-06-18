@@ -17,10 +17,11 @@ use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
 use crate::service::context_utils::{append_attachments_to_user_text, get_article_context_messages};
 use crate::service::messages::save_message;
 use crate::service::stream::{
-    build_canvas_card, build_stream_chunk, build_stream_done, build_tool_exec_chunk,
+    build_canvas_card, build_stream_chunk, build_stream_done,
     build_tool_exec_end, build_tool_exec_start,
 };
 use crate::tools::create_tool_registry;
+use crate::utils::tool_hints::format_tool_hint;
 
 const MAX_TOOL_ROUNDS: u32 = 30;
 
@@ -40,34 +41,17 @@ impl AgentHook for StandardStreamingHook {
 
     async fn before_execute_tools(&self, tool_calls: &[ToolCallRequest]) {
         for tc in tool_calls {
-            let args = serde_json::to_value(&tc.arguments).unwrap_or_default();
-            let _ = self.tx.send(build_tool_exec_start(&tc.name, &tc.id, args));
+            let args_value = serde_json::to_value(&tc.arguments).unwrap_or_default();
+            let hint = format_tool_hint(&tc.name, &args_value);
+            let _ = self.tx.send(build_tool_exec_start(&tc.name, &tc.id, &hint));
         }
     }
 
     async fn after_iteration(&self, tool_calls: &[ToolCallRequest], tool_results: &[String]) {
         for (tc, result) in tool_calls.iter().zip(tool_results.iter()) {
-            let mut start = 0;
-            while start < result.len() {
-                let raw_end = result.len().min(start + 800);
-                // 倒退到最近的有效 UTF-8 字符边界，避免切碎多字节字符
-                let end = (start..=raw_end)
-                    .rev()
-                    .find(|&i| result.is_char_boundary(i))
-                    .unwrap_or(start);
-                if end <= start {
-                    break;
-                }
-                let chunk = &result[start..end];
-                let _ = self.tx.send(build_tool_exec_chunk(&tc.id, chunk));
-                start = end;
-            }
-            let _ = self.tx.send(build_tool_exec_end(&tc.id));
-
-            // 检测 generate_html 工具完成，推送 Canvas 事件
-            if tc.name == "generate_html" && !result.starts_with("Error") && !result.trim().is_empty() {
-                let _ = self.tx.send(build_canvas_card(result, "html", "HTML 生成结果"));
-            }
+            let status = if result.starts_with("Error") { "error" } else { "ok" };
+            let error = if status == "error" { Some(result.as_str()) } else { None };
+            let _ = self.tx.send(build_tool_exec_end(&tc.id, status, error));
         }
     }
 }
@@ -197,6 +181,19 @@ impl BaseAgent for StandardAgent {
                             None,
                             msg.get("name").and_then(|v| v.as_str()),
                         );
+                    }
+                }
+
+                // 从完整结果中检测 generate_html 工具完成，推送 Canvas
+                for tool_msg in result.messages[initial_msg_len..].iter() {
+                    if tool_msg.get("role").and_then(|v| v.as_str()) == Some("tool")
+                        && tool_msg.get("name").and_then(|v| v.as_str()) == Some("generate_html")
+                    {
+                        let html = tool_msg.get("content").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                        if !html.is_empty() && !html.starts_with("Error") {
+                            let _ = tx.send(build_canvas_card(&html, "html", "HTML 生成结果"));
+                        }
+                        break;
                     }
                 }
 

@@ -3,9 +3,8 @@
 //! 协议约定：
 //!   chunk:           event: chunk\ndata: {"content": "..."}\n\n
 //!   done:            event: done\ndata: {"session_id": "..."}\n\n
-//!   tool_exec_start: event: tool_exec_start\ndata: {"name":"...","call_id":"...","arguments":{...}}\n\n
-//!   tool_exec_chunk: event: tool_exec_chunk\ndata: {"call_id":"...","content":"..."}\n\n
-//!   tool_exec_end:   event: tool_exec_end\ndata: {"call_id":"..."}\n\n
+//!   tool_exec_start: event: tool_exec_start\ndata: {"name":"...","call_id":"...","hint":"..."}\n\n
+//!   tool_exec_end:   event: tool_exec_end\ndata: {"call_id":"...","status":"ok"}\n\n
 
 use serde_json::Value;
 
@@ -25,25 +24,19 @@ pub fn build_stream_done(session_id: &str, extra: Option<Value>) -> String {
     format!("event: done\ndata: {}\n\n", data)
 }
 
-pub fn build_tool_exec_start(name: &str, call_id: &str, arguments: Value) -> String {
+pub fn build_tool_exec_start(name: &str, call_id: &str, hint: &str) -> String {
     format!(
         "event: tool_exec_start\ndata: {}\n\n",
-        serde_json::json!({"name": name, "call_id": call_id, "arguments": arguments})
+        serde_json::json!({"name": name, "call_id": call_id, "hint": hint})
     )
 }
 
-pub fn build_tool_exec_chunk(call_id: &str, content: &str) -> String {
-    format!(
-        "event: tool_exec_chunk\ndata: {}\n\n",
-        serde_json::json!({"call_id": call_id, "content": content})
-    )
-}
-
-pub fn build_tool_exec_end(call_id: &str) -> String {
-    format!(
-        "event: tool_exec_end\ndata: {}\n\n",
-        serde_json::json!({"call_id": call_id})
-    )
+pub fn build_tool_exec_end(call_id: &str, status: &str, error: Option<&str>) -> String {
+    let mut payload = serde_json::json!({"call_id": call_id, "status": status});
+    if let Some(e) = error {
+        payload["error"] = serde_json::Value::String(e.to_string());
+    }
+    format!("event: tool_exec_end\ndata: {}\n\n", payload)
 }
 
 pub fn build_canvas_card(content: &str, card_type: &str, title: &str) -> String {
