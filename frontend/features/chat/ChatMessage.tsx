@@ -125,9 +125,7 @@ function renderParts(parts: MessagePart[]) {
 
 export function ChatMessage({ messages }: ChatMessageProps) {
   return (
-    <>
-      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
-      <div className="flex w-full min-w-0 max-w-full flex-col gap-4">
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-4">
       {messages.map((msg) => {
         if (isFileMessage(msg)) {
           return <FileMessageItem key={msg.id} message={msg} />;
@@ -149,8 +147,7 @@ export function ChatMessage({ messages }: ChatMessageProps) {
                     prose-p:leading-relaxed prose-p:my-3
                   ">
                     <p
-                      className="bg-gradient-to-r from-muted-foreground/40 via-foreground to-muted-foreground/40 bg-[length:200%_100%] bg-clip-text text-transparent"
-                      style={{ animation: "shimmer 2.5s linear infinite" }}
+                      className="bg-gradient-to-r from-muted-foreground/40 via-foreground to-muted-foreground/40 bg-[length:200%_100%] bg-clip-text text-transparent animate-shimmer"
                     >
                       思考中⋯
                     </p>
@@ -165,6 +162,5 @@ export function ChatMessage({ messages }: ChatMessageProps) {
         );
       })}
     </div>
-    </>
   );
 }
