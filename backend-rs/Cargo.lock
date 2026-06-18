@@ -844,6 +844,7 @@ dependencies = [
  "axum",
  "chrono",
  "dotenvy",
+ "encoding_rs",
  "futures-util",
  "once_cell",
  "regex",

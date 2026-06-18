@@ -9,6 +9,27 @@ use serde_json::Value;
 use super::base::Tool;
 
 const MAX_OUTPUT: usize = 10_000;
+
+/// 解码命令输出：优先 UTF-8，非 UTF-8 时尝试 GBK（Windows 默认编码）
+fn decode_command_output(bytes: &[u8]) -> String {
+    if let Ok(s) = std::str::from_utf8(bytes) {
+        return s.to_owned();
+    }
+    // 不是合法 UTF-8，可能是 Windows 系统编码（GBK/CP936 等）
+    decode_non_utf8(bytes)
+}
+
+#[cfg(target_os = "windows")]
+fn decode_non_utf8(bytes: &[u8]) -> String {
+    use encoding_rs::GBK;
+    let (decoded, _, _) = GBK.decode(bytes);
+    decoded.into_owned()
+}
+
+#[cfg(not(target_os = "windows"))]
+fn decode_non_utf8(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(bytes).into_owned()
+}
 const MAX_TIMEOUT: u64 = 600;
 
 static DENY_PATTERNS: Lazy<Vec<Regex>> = Lazy::new(|| {
@@ -225,8 +246,8 @@ impl RunCommandTool {
     }
 
     fn format_output(&self, stdout: &[u8], stderr: &[u8], exit_code: i32) -> String {
-        let stdout_str = String::from_utf8_lossy(stdout);
-        let stderr_str = String::from_utf8_lossy(stderr);
+        let stdout_str = decode_command_output(stdout);
+        let stderr_str = decode_command_output(stderr);
 
         let mut parts: Vec<String> = Vec::new();
         if !stdout_str.is_empty() {
