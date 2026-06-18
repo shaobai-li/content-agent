@@ -317,11 +317,20 @@ impl AgentRunner {
     fn normalize_tool_result(&self, spec: &AgentRunSpec, _tool_call_id: &str, _tool_name: &str, result: &str) -> String {
         if result.len() > spec.max_tool_result_chars {
             let half = spec.max_tool_result_chars / 2;
+            // 调整到有效 UTF-8 字符边界，避免切碎多字节字符
+            let head_end = (0..=half)
+                .rev()
+                .find(|&i| result.is_char_boundary(i))
+                .unwrap_or(0);
+            let tail_start = (result.len() - half..result.len())
+                .find(|&i| result.is_char_boundary(i))
+                .unwrap_or(result.len());
+
             format!(
-                "{}\n... ({} chars truncated) ...\n{}",
-                &result[..half],
+                "{}\n... ({} bytes truncated) ...\n{}",
+                &result[..head_end],
                 result.len() - spec.max_tool_result_chars,
-                &result[result.len() - half..],
+                &result[tail_start..],
             )
         } else {
             result.to_string()

@@ -243,14 +243,23 @@ impl RunCommandTool {
             parts.join("\n")
         };
 
-        // Truncate if too long
+        // Truncate if too long, using char-boundary-safe slicing
         if result.len() > MAX_OUTPUT {
             let half = MAX_OUTPUT / 2;
+            // 调整到有效 UTF-8 字符边界，避免切碎多字节字符
+            let head_end = (0..=half)
+                .rev()
+                .find(|&i| result.is_char_boundary(i))
+                .unwrap_or(0);
+            let tail_start = (result.len() - half..result.len())
+                .find(|&i| result.is_char_boundary(i))
+                .unwrap_or(result.len());
+
             result = format!(
-                "{}\n... ({} chars truncated) ...\n{}",
-                &result[..half],
+                "{}\n... ({} bytes truncated) ...\n{}",
+                &result[..head_end],
                 result.len() - MAX_OUTPUT,
-                &result[result.len() - half..],
+                &result[tail_start..],
             );
         }
 
