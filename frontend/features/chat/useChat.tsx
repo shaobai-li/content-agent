@@ -7,6 +7,17 @@ import { fetchMessages } from "@/entities/session/api";
 import { readStreamLines } from "./fetchStream";
 import { authHeaders } from "@/shared/api/http";
 
+/** 兜底：后端未返回 hint 时从原始参数生成（旧会话兼容） */
+function _legacyToolHint(tc: { function?: { name?: string; arguments?: string } }): string {
+  const name = tc.function?.name || "tool";
+  let args: Record<string, unknown> = {};
+  try {
+    if (tc.function?.arguments) args = JSON.parse(tc.function.arguments);
+  } catch { /* ignore */ }
+  const first = Object.values(args).find((v): v is string => typeof v === "string" && !!v);
+  return first ? `${name} (${first.length > 40 ? first.slice(0, 39) + "…" : first})` : name;
+}
+
 interface UseChatProps {
   agentId: string;
   apiEndpoint: string;
@@ -215,7 +226,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
                         ...(m.parts || []),
                         {
                           type: "trace",
-                          title: event.data.name,
+                          title: event.data.hint || event.data.name,
                           content: "",
                           complete: false,
                         },
@@ -225,25 +236,6 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
               )
             );
             break;
-          case "tool_exec_chunk":
-            setMessages((prev) =>
-              prev.map((m) => {
-                if (m.id !== assistantMsgId) return m;
-                const parts = [...(m.parts || [])];
-                const lastIdx = parts.length - 1;
-                if (lastIdx >= 0 && parts[lastIdx].type === "trace") {
-                  const p = parts[lastIdx] as {
-                    type: "trace";
-                    title: string;
-                    content: string;
-                    complete: boolean;
-                  };
-                  parts[lastIdx] = { ...p, content: p.content + event.data.content };
-                }
-                return { ...m, parts };
-              })
-            );
-            break;
           case "tool_exec_end":
             setMessages((prev) =>
               prev.map((m) => {
@@ -251,7 +243,12 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
                 const parts = [...(m.parts || [])];
                 const lastIdx = parts.length - 1;
                 if (lastIdx >= 0 && parts[lastIdx].type === "trace") {
-                  parts[lastIdx] = { ...parts[lastIdx], complete: true };
+                  const status = event.data.status;
+                  const content =
+                    status === "error" && event.data.error
+                      ? `❌ ${event.data.error}`
+                      : "✓ 执行成功";
+                  parts[lastIdx] = { ...parts[lastIdx], content, complete: true };
                 }
                 return { ...m, parts };
               })
@@ -333,11 +330,12 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
           if (m.content) parts.push({ type: "text", content: m.content });
           if (m.tool_calls) {
             for (const tc of m.tool_calls) {
+              const hint = tc.hint ?? _legacyToolHint(tc);
               const partIdx = parts.length;
               parts.push({
                 type: "trace",
-                title: tc.function.name,
-                content: tc.function.arguments,
+                title: hint,
+                content: "",
                 complete: true,
               });
               if (tc.id) {
@@ -347,7 +345,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
           }
           msgs.push({ id: m.message_id, role: "assistant", content: "", parts });
         } else if (m.role === "tool") {
-          // 工具结果 — 通过 tool_call_id 匹配对应的 trace part
+          // 工具结果 — 通过 tool_call_id 匹配对应的 trace part，标记完成
           const entry = m.tool_call_id ? toolCallIndexMap.get(m.tool_call_id) : undefined;
           if (entry && entry.msgIdx < msgs.length) {
             const targetMsg = msgs[entry.msgIdx];
@@ -355,13 +353,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
               const parts = [...targetMsg.parts];
               const trace = parts[entry.partIdx];
               if (trace.type === "trace") {
-                const resultContent = m.content ?? "（无返回内容）";
-                parts[entry.partIdx] = {
-                  ...trace,
-                  content: trace.content
-                    ? trace.content + "\n\n---\n" + resultContent
-                    : resultContent,
-                };
+                parts[entry.partIdx] = { ...trace, complete: true };
                 msgs[entry.msgIdx] = { ...targetMsg, parts };
               }
             }

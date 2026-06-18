@@ -25,16 +25,19 @@ def build_stream_done(session_id: str, extra: Optional[Dict[str, Any]] = None) -
     return f"event: done\ndata: {json.dumps(data)}\n\n"
 
 
-def build_tool_exec_start(name: str, call_id: str, arguments: Any) -> str:
-    return f"event: tool_exec_start\ndata: {json.dumps({'name': name, 'call_id': call_id, 'arguments': arguments})}\n\n"
+def build_tool_exec_start(name: str, call_id: str, hint: str) -> str:
+    return f"event: tool_exec_start\ndata: {json.dumps({'name': name, 'call_id': call_id, 'hint': hint})}\n\n"
 
 
 def build_tool_exec_chunk(call_id: str, content: str) -> str:
     return f"event: tool_exec_chunk\ndata: {json.dumps({'call_id': call_id, 'content': content})}\n\n"
 
 
-def build_tool_exec_end(call_id: str) -> str:
-    return f"event: tool_exec_end\ndata: {json.dumps({'call_id': call_id})}\n\n"
+def build_tool_exec_end(call_id: str, status: str = "ok", error: str | None = None) -> str:
+    payload: dict[str, Any] = {"call_id": call_id, "status": status}
+    if error:
+        payload["error"] = error
+    return f"event: tool_exec_end\ndata: {json.dumps(payload)}\n\n"
 
 
 def build_canvas_card(content: str, card_type: str = "html", title: str = "") -> str:

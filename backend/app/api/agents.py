@@ -1,3 +1,4 @@
+import json
 from typing import Optional, List
 from fastapi import APIRouter, Body, Form, File, UploadFile
 from fastapi.responses import StreamingResponse
@@ -76,7 +77,27 @@ async def get_sessions(agent_id: str):
 @router.get("/sessions/{session_id}/messages")
 async def get_session_messages(agent_id: str, session_id: str):
     logger.debug("get messages: {} / {}", agent_id, session_id)
-    return load_messages(agent_id, session_id)
+    messages = load_messages(agent_id, session_id)
+
+    from app.utils.tool_hints import format_tool_hint
+
+    for msg in messages:
+        tool_calls = msg.get("tool_calls")
+        if not tool_calls:
+            continue
+        for tc in tool_calls:
+            if "hint" in tc:
+                continue  # 已存在则不重复注入
+            func = tc.get("function", {})
+            name = func.get("name", "")
+            raw_args = func.get("arguments", "{}")
+            try:
+                args = json.loads(raw_args) if isinstance(raw_args, str) else raw_args
+            except (json.JSONDecodeError, TypeError):
+                args = {}
+            tc["hint"] = format_tool_hint(name, args)
+
+    return messages
 
 @router.delete("/sessions/{session_id}")
 async def delete_session_endpoint(agent_id: str, session_id: str):

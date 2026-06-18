@@ -45,10 +45,10 @@ def test_build_stream_done_extra_overwrites_session():
 # ── build_tool_exec_start ────────────────────────────────────────────────
 
 def test_build_tool_exec_start_format():
-    result = build_tool_exec_start("my_tool", "call-1", {"key": "val"})
+    result = build_tool_exec_start("my_tool", "call-1", "read file.py")
     assert result.startswith("event: tool_exec_start\n")
     parsed = json.loads(result.split("data: ")[1].strip())
-    assert parsed == {"name": "my_tool", "call_id": "call-1", "arguments": {"key": "val"}}
+    assert parsed == {"name": "my_tool", "call_id": "call-1", "hint": "read file.py"}
 
 
 # ── build_tool_exec_chunk ────────────────────────────────────────────────
@@ -62,11 +62,17 @@ def test_build_tool_exec_chunk_format():
 
 # ── build_tool_exec_end ──────────────────────────────────────────────────
 
-def test_build_tool_exec_end_format():
+def test_build_tool_exec_end_default():
     result = build_tool_exec_end("call-1")
     assert result.startswith("event: tool_exec_end\n")
     parsed = json.loads(result.split("data: ")[1].strip())
-    assert parsed == {"call_id": "call-1"}
+    assert parsed == {"call_id": "call-1", "status": "ok"}
+
+
+def test_build_tool_exec_end_with_error():
+    result = build_tool_exec_end("call-1", status="error", error="Command failed")
+    parsed = json.loads(result.split("data: ")[1].strip())
+    assert parsed == {"call_id": "call-1", "status": "error", "error": "Command failed"}
 
 
 # ── aggregate_stream_to_chat_response ────────────────────────────────────

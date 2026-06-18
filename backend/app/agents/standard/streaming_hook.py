@@ -11,8 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.agents.hook import AgentHook, AgentHookContext
-
-_STEP = 800
+from app.utils.tool_hints import format_tool_hint
 
 
 @dataclass
@@ -23,23 +22,18 @@ class TextEvent:
 
 @dataclass
 class ToolExecStart:
-    """Tool execution started."""
+    """Tool execution started — carries concise hint instead of full arguments."""
     name: str
     call_id: str
-    arguments: Any
-
-
-@dataclass
-class ToolExecChunk:
-    """Partial tool result content."""
-    call_id: str
-    content: str
+    hint: str
 
 
 @dataclass
 class ToolExecEnd:
-    """Tool execution finished."""
+    """Tool execution finished — carries final status."""
     call_id: str
+    status: str = "ok"  # "ok" | "error"
+    error: str | None = None
 
 
 @dataclass
@@ -51,9 +45,7 @@ class StreamSentinel:
 class StreamingHook(AgentHook):
     """Bridge AgentRunner hook events to typed queue objects.
 
-    Hook callbacks put typed dataclass instances into an ``asyncio.Queue``.
-    The consumer (``handle_chat_stream``) reads from the queue, dispatches
-    by type, and serialises each event to the SSE wire format.
+    Only sends tool_hint (start/end) — no chunk streaming during execution.
     """
 
     def __init__(self, queue: asyncio.Queue) -> None:
@@ -68,24 +60,21 @@ class StreamingHook(AgentHook):
         await self._queue.put(TextEvent(content=delta))
 
     async def before_execute_tools(self, context: AgentHookContext) -> None:
-        """Emit ``ToolExecStart`` for each tool about to execute."""
+        """Emit ``ToolExecStart`` with concise hint for each tool."""
         for tc in context.tool_calls:
+            hint = format_tool_hint(tc.name, tc.arguments or {})
             await self._queue.put(ToolExecStart(
                 name=tc.name,
                 call_id=tc.id,
-                arguments=tc.arguments,
+                hint=hint,
             ))
 
     async def after_iteration(self, context: AgentHookContext) -> None:
-        """Emit ``ToolExecChunk`` + ``ToolExecEnd`` for completed tool results."""
+        """Emit ``ToolExecEnd`` for each completed tool with status."""
         if not context.tool_results:
             return
-        for tc, result in zip(context.tool_calls, context.tool_results):
-            content = str(result) if result is not None else ""
-            if content:
-                for i in range(0, len(content), _STEP):
-                    await self._queue.put(ToolExecChunk(
-                        call_id=tc.id,
-                        content=content[i:i + _STEP],
-                    ))
-            await self._queue.put(ToolExecEnd(call_id=tc.id))
+        events = context.tool_events or []
+        for tc, event in zip(context.tool_calls, events):
+            status = event.get("status", "ok") if isinstance(event, dict) else "ok"
+            error = event.get("detail") if status == "error" else None
+            await self._queue.put(ToolExecEnd(call_id=tc.id, status=status, error=error))

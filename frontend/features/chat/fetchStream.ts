@@ -10,10 +10,7 @@
  *   data: {"session_id": "...", ...}
  *
  *   event: tool_exec_start
- *   data: {"name": "...", "call_id": "...", "arguments": {...}}
- *
- *   event: tool_exec_chunk
- *   data: {"call_id": "...", "content": "..."}
+ *   data: {"name": "...", "call_id": "...", "hint": "..."}
  *
  *   event: tool_exec_end
  *   data: {"call_id": "..."}
@@ -31,17 +28,12 @@ export type StreamDoneEvent = {
 
 export type ToolExecStartEvent = {
   event: "tool_exec_start";
-  data: { name: string; call_id: string; arguments: Record<string, unknown> };
-};
-
-export type ToolExecChunkEvent = {
-  event: "tool_exec_chunk";
-  data: { call_id: string; content: string };
+  data: { name: string; call_id: string; hint: string };
 };
 
 export type ToolExecEndEvent = {
   event: "tool_exec_end";
-  data: { call_id: string };
+  data: { call_id: string; status: "ok" | "error"; error?: string };
 };
 
 export type StreamCanvasCardEvent = {
@@ -53,7 +45,6 @@ export type StreamEvent =
   | StreamChunkEvent
   | StreamDoneEvent
   | ToolExecStartEvent
-  | ToolExecChunkEvent
   | ToolExecEndEvent
   | StreamCanvasCardEvent;
 
