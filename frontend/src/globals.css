@@ -144,6 +144,15 @@
   .animate-file-upload-indeterminate {
     animation: file-upload-indeterminate 1.15s ease-in-out infinite;
   }
+  .animate-shimmer {
+    animation: shimmer 2.5s linear infinite;
+  }
+}
+
+/* 聊天气泡"思考中"文字闪光 */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* react-clock 样式覆盖 — 匹配 shadcn 主题 */

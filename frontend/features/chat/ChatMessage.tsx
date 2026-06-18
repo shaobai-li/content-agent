@@ -139,8 +139,20 @@ export function ChatMessage({ messages }: ChatMessageProps) {
                 : "bg-white text-slate-800 self-start"
             }`}
           >
-            {msg.role === "assistant" && (msg.parts || msg.content)
-              ? renderParts(msg.parts ?? [{ type: "text", content: msg.content }])
+            {msg.role === "assistant"
+              ? (msg.parts && msg.parts.length > 0) || msg.content
+                ? renderParts(msg.parts ?? [{ type: "text", content: msg.content }])
+                : (
+                  <div className="prose prose-sm max-w-none text-foreground pl-5
+                    prose-p:leading-relaxed prose-p:my-3
+                  ">
+                    <p
+                      className="bg-gradient-to-r from-muted-foreground/40 via-foreground to-muted-foreground/40 bg-[length:200%_100%] bg-clip-text text-transparent animate-shimmer"
+                    >
+                      思考中⋯
+                    </p>
+                  </div>
+                )
               : msg.content && (
                   <div className="min-w-0 max-w-full whitespace-pre-wrap break-all">
                     {msg.content}
