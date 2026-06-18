@@ -61,9 +61,9 @@ export function CollapsibleSection({
           <div className="min-w-0 max-w-full whitespace-pre-wrap break-all text-sm text-slate-600 leading-snug">
             {hasContent ? (
               content
-            ) : (
+            ) : isStreaming ? (
               <span className="text-slate-400 italic">{emptyLabel}</span>
-            )}
+            ) : null}
           </div>
         </div>
       )}

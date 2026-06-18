@@ -247,7 +247,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
                   const content =
                     status === "error" && event.data.error
                       ? `❌ ${event.data.error}`
-                      : "✓ 执行成功";
+                      : "执行成功";
                   parts[lastIdx] = { ...parts[lastIdx], content, complete: true };
                 }
                 return { ...m, parts };
@@ -353,7 +353,12 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
               const parts = [...targetMsg.parts];
               const trace = parts[entry.partIdx];
               if (trace.type === "trace") {
-                parts[entry.partIdx] = { ...trace, complete: true };
+                const resultText = m.content ?? "";
+                const isError = resultText.startsWith("Error");
+                const content = isError
+                  ? `❌ ${resultText.slice(0, 200)}`
+                  : "执行成功";
+                parts[entry.partIdx] = { ...trace, content, complete: true };
                 msgs[entry.msgIdx] = { ...targetMsg, parts };
               }
             }
