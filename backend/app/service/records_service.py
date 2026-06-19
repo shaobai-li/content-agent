@@ -2,11 +2,14 @@
 通用记录管理服务
 提供跨 Agent 的记录读取、写入、删除功能
 """
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timezone
 import json
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from loguru import logger
+from app.core.config import get_agent_local_data_dir
 from app.core.ids import new_uuid
 from app.service.knowledge_base_registry_service import (
     ensure_kb_document,
@@ -344,4 +347,32 @@ def delete_node(node_id: str, agent_id: str, kb_id: str) -> Dict[str, Any]:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+    # 清理已删除记录对应的物理文件
+    _cleanup_record_files(agent_id, kb_id, ids_to_delete, nodes)
+
     return {"success": True, "message": f"节点 {node_id} 已删除"}
+
+
+def _cleanup_record_files(
+    agent_id: str, kb_id: str, deleted_ids: set, all_nodes: List[Dict[str, Any]]
+) -> None:
+    """清理已删除记录对应的物理文件（raw/m_{record_id}/ 目录）。"""
+    kb_root = get_agent_local_data_dir(agent_id) / kb_id
+
+    for node in all_nodes:
+        if not isinstance(node, dict):
+            continue
+        if node.get("node_type") != "record":
+            continue
+
+        node_id = node.get("id")
+        record_id = node.get("record_id")
+        if not isinstance(node_id, str) or not isinstance(record_id, str):
+            continue
+        if node_id not in deleted_ids and record_id not in deleted_ids:
+            continue
+
+        material_dir = kb_root / "raw" / f"m_{record_id}"
+        if material_dir.exists():
+            shutil.rmtree(material_dir, ignore_errors=True)
+            logger.info("cleaned up raw files for record {}: {}", record_id, material_dir)
