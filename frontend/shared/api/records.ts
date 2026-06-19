@@ -55,6 +55,11 @@ type DeleteKnowledgeBaseResponse = {
   database?: KnowledgeBaseDatabase;
 };
 
+type DeleteKbRecordResponse = {
+  success: boolean;
+  message?: string;
+};
+
 function buildKbQuery(kbId?: string) {
   if (!kbId) {
     return "";
@@ -178,4 +183,4 @@ export const moveKbRecord = (agentId: string, nodeId: string, parentId: string, 
   );
 
 export const deleteKbRecord = (agentId: string, recordId: string, kbId?: string) =>
-  http.delete(`/api/agents/${agentId}/res/nodes/${recordId}${buildKbQuery(kbId)}`);
+  http.delete<DeleteKbRecordResponse>(`/api/agents/${agentId}/res/nodes/${recordId}${buildKbQuery(kbId)}`);
