@@ -42,7 +42,11 @@ class PdfParser:
 
         Also detect tables: lines inside a table region are tagged so they are
         never promoted to headings, and each table is rendered as markdown and
-        emitted in document order."""
+        emitted in document order.
+
+        Two-column pages are detected per-page; each line (and table) is
+        tagged with a ``column`` field so that the merge and render stages
+        can keep the two columns separate."""
         lines: list[dict] = []
         tables: list[dict] = []
         for page_no, page in enumerate(doc):
@@ -52,16 +56,8 @@ class PdfParser:
             except Exception:
                 found = []
             regions = [t.bbox for t in found]
-            for order, t in enumerate(found):
-                try:
-                    md = t.to_markdown().strip()
-                except Exception:
-                    md = ""
-                if md:
-                    tables.append(
-                        {"page": page_no, "y0": t.bbox[1], "x0": t.bbox[0],
-                         "order": order, "markdown": md}
-                    )
+            # Extract raw text lines *before* building table dicts so we can
+            # use the text-line x-centers to detect the column layout.
             raw: list[dict] = []
             for block in page.get_text("dict")["blocks"]:
                 if block.get("type") != 0:  # 0 = text block
@@ -72,6 +68,30 @@ class PdfParser:
                         rec["page"] = page_no
                         rec["in_table"] = self._inside_any(rec, regions)
                         raw.append(rec)
+            # --- column detection & assignment for this page ---
+            is_two_col, sep_x = self._detect_page_columns(raw, page_width)
+            for rec in raw:
+                rec["column"] = self._assign_column(rec, is_two_col, sep_x, page_width)
+            # Tables store column info as well so the render pass can order them.
+            for order, t in enumerate(found):
+                try:
+                    md = t.to_markdown().strip()
+                except Exception:
+                    md = ""
+                if md:
+                    tx0, ty0, tx1, ty1 = t.bbox
+                    tw = tx1 - tx0
+                    if tw > page_width * 0.55:
+                        tab_col = -1
+                    elif not is_two_col:
+                        tab_col = 0
+                    else:
+                        tab_col = 0 if ((tx0 + tx1) / 2) < sep_x else 1
+                    tables.append(
+                        {"page": page_no, "y0": ty0, "x0": tx0,
+                         "order": order, "markdown": md, "column": tab_col}
+                    )
+            # Merge same-row lines *within each column*.
             lines.extend(self._merge_same_row(raw))
         return lines, tables
 
@@ -84,6 +104,74 @@ class PdfParser:
             if x0 <= cx <= x1 and y0 <= cy <= y1:
                 return True
         return False
+
+    @staticmethod
+    def _detect_page_columns(lines: list[dict], page_width: float) -> tuple[bool, float]:
+        """Detect whether a page uses a two-column layout and return the
+        x-separator that best splits left from right columns.
+
+        Full-width lines (width > 55 % of page) are excluded from the
+        analysis so that title / abstract blocks do not hide the bimodal
+        distribution of x-centers.
+
+        The separator is chosen by scanning all gaps between consecutive
+        x-centers in the middle 60 % of the page and picking the one whose
+        *balance-weighted* gap is largest — i.e. a gap that cleanly splits
+        the centres into two similarly-sized groups is preferred over a
+        slightly wider gap created by a handful of outliers."""
+        centers: list[float] = []
+        for rec in lines:
+            w = rec["x1"] - rec["x0"]
+            if w > page_width * 0.55:
+                continue
+            centers.append((rec["x0"] + rec["x1"]) / 2)
+
+        if len(centers) < 10:
+            return False, 0.0
+
+        mid = page_width / 2
+        left_cnt = sum(1 for c in centers if c < mid)
+        right_cnt = sum(1 for c in centers if c > mid)
+        total = len(centers)
+        if left_cnt < total * 0.20 or right_cnt < total * 0.20:
+            return False, 0.0
+
+        # Scan gaps in the middle 60 % of the page, scoring each by
+        #   score = gap × balance   where balance = min(L,R) / max(L,R)
+        # so that a gap that cleanly bisects the data wins over one
+        # caused by a handful of outliers.
+        centers_sorted = sorted(centers)
+        best_score = 0.0
+        best_sep = mid
+        lo = page_width * 0.2
+        hi = page_width * 0.8
+        for i in range(len(centers_sorted) - 1):
+            c1, c2 = centers_sorted[i], centers_sorted[i + 1]
+            gm = (c1 + c2) / 2
+            if not (lo <= gm <= hi):
+                continue
+            gap = c2 - c1
+            left_n = i + 1
+            right_n = total - left_n
+            balance = min(left_n, right_n) / max(left_n, right_n)
+            score = gap * balance
+            if score > best_score:
+                best_score = score
+                best_sep = gm
+
+        if best_score < page_width * 0.01:
+            return False, 0.0
+        return True, best_sep
+
+    @staticmethod
+    def _assign_column(rec: dict, is_two_column: bool, sep_x: float, page_width: float) -> int:
+        """Tag a line record with its column: -1 = full-width, 0 = left, 1 = right."""
+        w = rec["x1"] - rec["x0"]
+        if w > page_width * 0.55:
+            return -1
+        if not is_two_column:
+            return 0
+        return 0 if ((rec["x0"] + rec["x1"]) / 2) < sep_x else 1
 
     def _line_record(self, line: dict, page_width: float) -> dict | None:
         # Preserve spaces: PyMuPDF emits whitespace as its own spans, so build
@@ -113,7 +201,10 @@ class PdfParser:
 
     def _merge_same_row(self, recs: list[dict]) -> list[dict]:
         """Join records sharing a baseline (same y0, similar size) so a split
-        "1" + "Introduction" becomes one heading candidate."""
+        "1" + "Introduction" becomes one heading candidate.
+
+        Only merges records that belong to the *same* column so that
+        two-column pages are kept cleanly separated."""
         recs = sorted(recs, key=lambda r: (round(r["y0"], 0), r["x0"]))
         merged: list[dict] = []
         for rec in recs:
@@ -123,6 +214,7 @@ class PdfParser:
                 and abs(prev["y0"] - rec["y0"]) < 3.0
                 and abs(prev["size"] - rec["size"]) < _SIZE_EPS
                 and prev["dir"] == rec["dir"]
+                and prev.get("column", 0) == rec.get("column", 0)
                 and rec["x0"] - prev["x1"] < 40.0
             ):
                 prev["text"] = f"{prev['text']} {rec['text']}".strip()
@@ -221,16 +313,80 @@ class PdfParser:
         size_to_level: dict[float, int],
         dense_pages: set[int],
     ) -> list[str]:
-        # Merge text lines and table blocks into one stream ordered by page then
-        # vertical position, so a table renders where it sits in the document.
+        # Merge text lines and table blocks into one stream ordered by page.
+        #
+        # For *two-column* pages we render full-width items first, then the
+        # left column top-to-bottom, then the right column top-to-bottom so
+        # that the reading flow within each column stays intact.
+        #
+        # A two-column page often has a *header* at the top (title, authors,
+        # abstract) where the text isn't yet split into columns.  We detect
+        # the header / body boundary by looking for the largest vertical gap
+        # in the page's y-positions; everything above that gap keeps its
+        # natural y-order while everything below uses column-major ordering.
+        #
+        # Build per-page metadata .......................................
+        page_is_two_col: dict[int, bool] = {}
+        page_body_start: dict[int, float] = {}
+        for rec in lines:
+            pg = rec["page"]
+            page_is_two_col[pg] = page_is_two_col.get(pg, False) or rec.get("column", 0) == 1
+        for pg, is_two_col in page_is_two_col.items():
+            if not is_two_col:
+                page_body_start[pg] = 0.0
+                continue
+            pg_lines = [r for r in lines if r["page"] == pg and r.get("column", -1) >= 0]
+            y_vals = sorted(set(r["y0"] for r in pg_lines))
+            body_start = 0.0
+            best_gap = 0.0
+            best_mid = 0.0
+            for i in range(len(y_vals) - 1):
+                gap = y_vals[i + 1] - y_vals[i]
+                if gap > best_gap:
+                    best_gap = gap
+                    best_mid = (y_vals[i] + y_vals[i + 1]) / 2
+            if best_gap > 40.0:
+                body_start = best_mid
+            page_body_start[pg] = body_start
+
+        # Build sorted item stream .....................................
         items: list[tuple] = []
         for rec in lines:
             if rec.get("in_table") or self._is_marginal(rec):
                 continue  # in-table text is replaced by the rendered table
-            items.append((rec["page"], rec["y0"], 0, rec))
+            col = rec.get("column", 0)
+            col_pri = 0 if col == -1 else (col + 1)  # full:0 left:1 right:2
+            pg = rec["page"]
+            # Header zone: force before body columns, ordered by y only.
+            if (
+                page_is_two_col.get(pg, False)
+                and page_body_start.get(pg, 0.0) > 0
+                and rec["y0"] < page_body_start[pg]
+            ):
+                items.append((pg, -1, rec["y0"], 0, rec))
+            else:
+                # In the body zone, full-width items (col == -1) are
+                # treated as left-column for y-ordering so they interleave
+                # with the left column at their natural vertical position
+                # instead of being forced before *all* left-column lines.
+                if col == -1:
+                    col_pri = 1
+                items.append((pg, col_pri, rec["y0"], 0, rec))
         for tab in tables:
-            items.append((tab["page"], tab["y0"], tab["order"], tab))
-        items.sort(key=lambda it: (it[0], it[1], it[2]))
+            col = tab.get("column", -1)
+            col_pri = 0 if col == -1 else (col + 1)
+            pg = tab["page"]
+            if (
+                page_is_two_col.get(pg, False)
+                and page_body_start.get(pg, 0.0) > 0
+                and tab["y0"] < page_body_start[pg]
+            ):
+                items.append((pg, -1, tab["y0"], tab["order"], tab))
+            else:
+                if col == -1:
+                    col_pri = 1
+                items.append((pg, col_pri, tab["y0"], tab["order"], tab))
+        items.sort(key=lambda it: (it[0], it[1], it[2], it[3]))
 
         parts: list[str] = []
         for *_unused, payload in items:
