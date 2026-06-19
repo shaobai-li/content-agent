@@ -72,6 +72,13 @@ class PdfParser:
             is_two_col, sep_x = self._detect_page_columns(raw, page_width)
             for rec in raw:
                 rec["column"] = self._assign_column(rec, is_two_col, sep_x, page_width)
+            # --- graphic (image / vector-drawing) region detection ---
+            graphic_regions = self._detect_graphic_regions(page)
+            caption_regions = self._detect_caption_regions(raw, page_width)
+            for rec in raw:
+                rec["in_graphic"] = self._inside_graphic(rec, graphic_regions)
+                rec["in_caption_region"] = self._inside_graphic(
+                    rec, caption_regions)
             # Tables store column info as well so the render pass can order them.
             for order, t in enumerate(found):
                 try:
@@ -87,9 +94,13 @@ class PdfParser:
                         tab_col = 0
                     else:
                         tab_col = 0 if ((tx0 + tx1) / 2) < sep_x else 1
+                    tab_in_graphic = self._inside_bbox(
+                        (tx0, ty0, tx1, ty1),
+                        graphic_regions + caption_regions)
                     tables.append(
                         {"page": page_no, "y0": ty0, "x0": tx0,
-                         "order": order, "markdown": md, "column": tab_col}
+                         "order": order, "markdown": md, "column": tab_col,
+                         "in_graphic": tab_in_graphic}
                     )
             # Merge same-row lines *within each column*.
             lines.extend(self._merge_same_row(raw))
@@ -173,6 +184,84 @@ class PdfParser:
             return 0
         return 0 if ((rec["x0"] + rec["x1"]) / 2) < sep_x else 1
 
+    @staticmethod
+    def _detect_graphic_regions(page: "fitz.Page", margin: float = 20.0,
+                                merge_gap: float = 30.0) -> list[tuple]:
+        """Return bounding boxes covering embedded-image regions.
+
+        Only raster / embedded image blocks (``type == 1``) are used.
+        Vector-graphic drawings are deliberately excluded because they
+        cannot be reliably distinguished from table borders at scale:
+        bordered-table pages often contain hundreds of cell-rectangle
+        paths that would merge into a single page-spanning region and
+        suppress all table text."""
+        raw: list[tuple] = []
+
+        # Raster / embedded image blocks ...............................
+        for block in page.get_text("dict")["blocks"]:
+            if block.get("type") == 1:
+                x0, y0, x1, y1 = block["bbox"]
+                raw.append((x0 - margin, y0 - margin,
+                            x1 + margin, y1 + margin))
+
+        if not raw:
+            return []
+
+        # Merge nearby / overlapping regions ..............................
+        raw.sort(key=lambda b: (b[1], b[0]))  # by y0 then x0
+        merged: list[list] = [list(raw[0])]
+        for b in raw[1:]:
+            prev = merged[-1]
+            if (b[0] <= prev[2] + merge_gap
+                    and b[1] <= prev[3] + merge_gap
+                    and prev[0] <= b[2] + merge_gap
+                    and prev[1] <= b[3] + merge_gap):
+                prev[0] = min(prev[0], b[0])
+                prev[1] = min(prev[1], b[1])
+                prev[2] = max(prev[2], b[2])
+                prev[3] = max(prev[3], b[3])
+            else:
+                merged.append(list(b))
+        return [tuple(m) for m in merged]
+
+    @staticmethod
+    def _inside_graphic(rec: dict, regions: list[tuple]) -> bool:
+        """True if the line's centre sits inside any graphic region."""
+        return PdfParser._inside_bbox(
+            (rec["x0"], rec["y0"], rec["x1"], rec["y1"]), regions)
+
+    @staticmethod
+    def _inside_bbox(bbox: tuple, regions: list[tuple]) -> bool:
+        """True if the bbox centre sits inside any of *regions*."""
+        if not regions:
+            return False
+        cx = (bbox[0] + bbox[2]) / 2
+        cy = (bbox[1] + bbox[3]) / 2
+        for x0, y0, x1, y1 in regions:
+            if x0 <= cx <= x1 and y0 <= cy <= y1:
+                return True
+        return False
+
+    @staticmethod
+    def _detect_caption_regions(raw_lines: list[dict],
+                                page_width: float) -> list[tuple]:
+        """Return regions anchored by ``Figure N:`` / ``Fig. N:`` captions.
+
+        Each region extends 250 pt above the caption (full page width) so
+        that short figure-internal labels are caught.  Text outside these
+        regions, or long body-text paragraphs that happen to sit inside
+        them, are *not* suppressed — the render pass applies an additional
+        length check (``len(text) < 60``) before dropping a line."""
+        import re
+        cap_re = re.compile(r'^(Figure|Fig\.)\s*\d+[:.]')
+        regions: list[tuple] = []
+        for rec in raw_lines:
+            if cap_re.match(rec["text"].strip()):
+                cap_y = rec["y0"]
+                regions.append((0.0, max(0.0, cap_y - 250.0),
+                                page_width, cap_y - 5.0))
+        return regions
+
     def _line_record(self, line: dict, page_width: float) -> dict | None:
         # Preserve spaces: PyMuPDF emits whitespace as its own spans, so build
         # the text from all spans and keep non-blank ones only for font stats.
@@ -215,6 +304,8 @@ class PdfParser:
                 and abs(prev["size"] - rec["size"]) < _SIZE_EPS
                 and prev["dir"] == rec["dir"]
                 and prev.get("column", 0) == rec.get("column", 0)
+                and prev.get("in_graphic", False) == rec.get("in_graphic", False)
+                and prev.get("in_caption_region", False) == rec.get("in_caption_region", False)
                 and rec["x0"] - prev["x1"] < 40.0
             ):
                 prev["text"] = f"{prev['text']} {rec['text']}".strip()
@@ -354,6 +445,28 @@ class PdfParser:
         for rec in lines:
             if rec.get("in_table") or self._is_marginal(rec):
                 continue  # in-table text is replaced by the rendered table
+            # Skip text inside graphic regions (figures / diagrams), but
+            # keep captions so that "Figure N: …" lines are preserved.
+            if rec.get("in_graphic"):
+                txt = rec["text"]
+                if not (txt.startswith(("Figure ", "Fig. ", "Table "))
+                        and any(c.isdigit() for c in txt[:20])):
+                    continue
+            # Caption-anchored suppression: short fragments sitting above a
+            # "Figure N:" caption are likely diagram labels.  Longer
+            # paragraphs are body text and stay.  Additionally, even short
+            # text that ends with sentence-ending punctuation (.!?。！？) is
+            # treated as a body-text fragment — important for Chinese PDFs
+            # where 60 chars can already be a substantial paragraph.
+            if rec.get("in_caption_region") and len(rec["text"]) < 60:
+                txt = rec["text"]
+                if not (txt.startswith(("Figure ", "Fig. ", "Table "))
+                        and any(c.isdigit() for c in txt[:20])):
+                    stripped = txt.rstrip()
+                    if stripped and stripped[-1] in ".!?。！？":
+                        pass  # body-text fragment — keep it
+                    else:
+                        continue
             col = rec.get("column", 0)
             col_pri = 0 if col == -1 else (col + 1)  # full:0 left:1 right:2
             pg = rec["page"]
@@ -391,7 +504,8 @@ class PdfParser:
         parts: list[str] = []
         for *_unused, payload in items:
             if "markdown" in payload:  # a table block
-                parts.append(payload["markdown"])
+                if not payload.get("in_graphic"):
+                    parts.append(payload["markdown"])
                 continue
             rec = payload
             if rec["page"] in dense_pages:
