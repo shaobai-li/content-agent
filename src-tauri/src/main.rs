@@ -95,19 +95,50 @@ fn seed_default_config(app: &tauri::App) {
     let src = resource_dir.as_ref().map(|r| r.join("config"));
 
     match (src, dest) {
-        (Some(src), Some(dest)) if src.exists() && !dest.exists() => {
-            if let Some(parent) = dest.parent() {
-                let _ = std::fs::create_dir_all(parent);
-            }
-            match copy_dir_recursively(&src, &dest) {
-                Ok(_) => tracing::info!("已复制默认 config 到 {:?}", dest),
-                Err(e) => tracing::warn!("复制默认 config 失败: {e}"),
+        (Some(src), Some(dest)) if src.exists() => {
+            if !dest.exists() {
+                // 首次启动：完整复制
+                if let Some(parent) = dest.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                match copy_dir_recursively(&src, &dest) {
+                    Ok(_) => tracing::info!("已复制默认 config 到 {:?}", dest),
+                    Err(e) => tracing::warn!("复制默认 config 失败: {e}"),
+                }
+            } else {
+                // 后续升级：合并新文件（不覆盖已有，确保新增 skill/agent 生效）
+                match merge_new_files(&src, &dest) {
+                    Ok(_) => tracing::info!("已合并新配置到 {:?}", dest),
+                    Err(e) => tracing::warn!("合并默认配置失败: {e}"),
+                }
             }
         }
         _ => {
-            // config 目录已存在或无法找到内置资源 → 跳过
+            // 无法找到内置资源 → 跳过
         }
     }
+}
+
+/// 将 src 中 dest 里不存在的文件复制过去（不覆盖已存在的文件）
+#[cfg(target_os = "macos")]
+fn merge_new_files(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let target = dst.join(entry.file_name());
+        if file_type.is_dir() {
+            if target.exists() {
+                merge_new_files(&entry.path(), &target)?;
+            } else {
+                // 全新的子目录：完整复制（copy_dir_recursively 内部会创建目录）
+                copy_dir_recursively(&entry.path(), &target)?;
+            }
+        } else if !target.exists() {
+            // 只复制目标不存在的文件（新增 skill/agent 配置）
+            std::fs::copy(entry.path(), &target)?;
+        }
+    }
+    Ok(())
 }
 
 fn copy_dir_recursively(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
