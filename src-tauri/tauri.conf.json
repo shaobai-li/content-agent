@@ -36,10 +36,9 @@
     ],
     "resources": [
       "config/visibility.yaml",
-      "config/agents/std.yaml",
-      "config/agents/admin.yaml",
-      "config/agents/skills/ingest-file/SKILL.md",
-      "config/agents/skills/memo/SKILL.md"
+      "config/agents/*.yaml",
+      "config/agents/skills/**/*.md",
+      "config/agents/skills/**/*.py"
     ]
   }
 }
