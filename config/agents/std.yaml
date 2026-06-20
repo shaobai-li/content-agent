@@ -1,5 +1,4 @@
-name: 选题和文案智能体
-base_dir: agents/agent_std
+name: 标准个人助手
 skills:
   - graph-query
   - ingest-file
