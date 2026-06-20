@@ -219,6 +219,9 @@ def delete_knowledge_base(agent_id: str, kb_id: str) -> Dict[str, Any]:
 
     database_dir = get_agent_local_data_dir(agent_id) / database_id
     if database_dir.exists():
-        shutil.rmtree(database_dir, ignore_errors=True)
+        try:
+            shutil.rmtree(database_dir)
+        except OSError as exc:
+            logger.warning("删除知识库目录失败 ({}): {} — 目录残留: {}", database_id, exc, database_dir)
 
     return {"success": True, "database": database}

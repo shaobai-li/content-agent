@@ -214,8 +214,10 @@ export function DataPanel({
         throw new Error("缺少可删除的节点标识");
       }
 
-      await deleteDataFn(targetId);
-      console.log("删除成功");
+      const response = await deleteDataFn(targetId);
+      if (response?.success === false) {
+        throw new Error(response.message || "删除失败");
+      }
       loadData();
     } catch (error) {
       console.error("删除失败:", error);
