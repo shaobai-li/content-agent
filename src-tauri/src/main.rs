@@ -130,8 +130,7 @@ fn merge_new_files(src: &std::path::Path, dst: &std::path::Path) -> std::io::Res
             if target.exists() {
                 merge_new_files(&entry.path(), &target)?;
             } else {
-                // 全新的子目录：完整复制
-                std::fs::create_dir_all(&target)?;
+                // 全新的子目录：完整复制（copy_dir_recursively 内部会创建目录）
                 copy_dir_recursively(&entry.path(), &target)?;
             }
         } else if !target.exists() {
