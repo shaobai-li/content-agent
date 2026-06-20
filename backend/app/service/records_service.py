@@ -373,6 +373,12 @@ def _cleanup_record_files(
             continue
 
         material_dir = kb_root / "raw" / f"m_{record_id}"
-        if material_dir.exists():
-            shutil.rmtree(material_dir, ignore_errors=True)
+        if not material_dir.exists():
+            logger.debug("record {} has no raw files to clean: {}", record_id, material_dir)
+            continue
+
+        try:
+            shutil.rmtree(material_dir)
             logger.info("cleaned up raw files for record {}: {}", record_id, material_dir)
+        except OSError as exc:
+            logger.warning("清理记录物理文件失败 ({}): {} — 目录: {}", record_id, exc, material_dir)
