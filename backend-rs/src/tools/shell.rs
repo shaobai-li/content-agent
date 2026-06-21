@@ -140,20 +140,19 @@ mod pyo3_backend {
 
         pub fn run_script(&self, code: &str) -> Result<String, String> {
             Python::with_gil(|py| {
-                // 1. 注入 sys.path（确保 user-site-packages 可被 import）
-                let setup = format!(
-                    "import sys\nuser_site=r'{}'\nif user_site not in sys.path:\n    sys.path.insert(0, user_site)",
-                    self.user_site.to_string_lossy()
-                );
-                let c_setup = CString::new(setup).map_err(|e| format!("CString error: {e}"))?;
-                py.run(&c_setup, None, None)
-                    .map_err(|e| format!("Python sys.path setup error: {e}"))?;
-
-                // 2. 从 PyO3 预置模块获取 io 和 sys
-                let io: Bound<'_, PyModule> = py.import("io")
-                    .map_err(|e| format!("Cannot import io: {e}"))?;
+                // 1. 通过 PyO3 直接 API 注入 user-site-packages 到 sys.path
+                //    避免使用 format! + CString 拼接 Python 代码，消除非 ASCII 路径的理论风险
                 let sys: Bound<'_, PyModule> = py.import("sys")
                     .map_err(|e| format!("Cannot import sys: {e}"))?;
+                let sys_path = sys.getattr("path")
+                    .map_err(|e| format!("Cannot get sys.path: {e}"))?;
+                let user_site_str = self.user_site.to_string_lossy();
+                sys_path.call_method1("insert", (0, &*user_site_str))
+                    .map_err(|e| format!("Cannot insert into sys.path: {e}"))?;
+
+                // 2. 获取 io 模块（用于 stdout 捕获）
+                let io: Bound<'_, PyModule> = py.import("io")
+                    .map_err(|e| format!("Cannot import io: {e}"))?;
 
                 // 3. 保存原始 stdout，创建 StringIO 缓冲区并替换 sys.stdout
                 let original_stdout = sys.getattr("stdout")
