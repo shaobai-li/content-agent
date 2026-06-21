@@ -126,7 +126,7 @@ export function DataTable({
         {
             key: "actions",
             label: "",
-            width: "50px",
+            width: "72px",
             className: "",
             render: (record: any) => (
                 <div className="flex justify-end" onDragStart={(event) => event.stopPropagation()}>
@@ -181,8 +181,22 @@ export function DataTable({
 
     return (
         <>
+            <style>{`
+              [data-table-container] {
+                container-type: inline-size;
+                container-name: data-table;
+              }
+              @container data-table (max-width: 300px) {
+                .col-file_ext,
+                .col-size_bytes,
+                .col-created_at {
+                  display: none;
+                }
+              }
+            `}</style>
             <div
                 className="overflow-hidden border rounded-lg bg-white shadow-sm"
+                data-table-container
                 style={tableMinWidth ? { minWidth: tableMinWidth } : undefined}
             >
                 <Table className="table-fixed">
@@ -191,7 +205,7 @@ export function DataTable({
                             {finalColumns.map((col) => (
                                 <TableHead
                                     key={col.key}
-                                    className="text-xs font-semibold text-muted-foreground px-6"
+                                    className={`text-xs font-semibold text-muted-foreground px-3 col-${col.key}`}
                                     style={col.width || col.minWidth ? { width: col.width, minWidth: col.minWidth } : undefined}
                                 >
                                     {col.label}
@@ -210,7 +224,7 @@ export function DataTable({
                                 {finalColumns.map((col) => (
                                     <TableCell
                                         key={col.key}
-                                        className={`px-6 py-4 ${col.className || ''}`}
+                                        className={`px-3 py-4 overflow-hidden col-${col.key} ${col.className || ''}`}
                                         style={col.width || col.minWidth ? { width: col.width, minWidth: col.minWidth } : undefined}
                                     >
                                         {col.render(item)}

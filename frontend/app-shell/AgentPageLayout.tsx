@@ -71,7 +71,7 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, lef
                     </button>
                     {leftHeader}
                 </div>
-                <div className="flex min-h-0 flex-1 flex-col p-6 border bg-neutral-50">
+                <div className="flex min-h-0 flex-1 flex-col p-6 border bg-neutral-50 min-w-0">
                     {leftBody}
                 </div>
             </div>
