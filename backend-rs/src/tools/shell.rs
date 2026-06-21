@@ -597,7 +597,17 @@ impl Tool for RunCommandTool {
             }
             CommandCategory::PythonInline(code) => match &self.python_backend {
                 #[cfg(feature = "embedded-python")]
-                Some(PythonBackend::Embedded(runtime)) => runtime.run_script(&code),
+                Some(PythonBackend::Embedded(runtime)) => {
+                    // 将同步 GIL 操作移出 Tokio 异步上下文，防止阻塞 worker 线程
+                    let code = code.clone();
+                    let user_site = runtime.user_site.clone();
+                    tokio::task::spawn_blocking(move || {
+                        let rt = pyo3_backend::PyO3Runtime { user_site };
+                        rt.run_script(&code)
+                    })
+                    .await
+                    .map_err(|e| format!("Spawn blocking error: {e}"))?
+                }
                 #[cfg(not(feature = "embedded-python"))]
                 Some(PythonBackend::System(runtime)) => runtime.run_script(&code).await,
                 None => Ok(
@@ -607,7 +617,16 @@ impl Tool for RunCommandTool {
             },
             CommandCategory::PythonFile(path) => match &self.python_backend {
                 #[cfg(feature = "embedded-python")]
-                Some(PythonBackend::Embedded(runtime)) => runtime.run_file(&path),
+                Some(PythonBackend::Embedded(runtime)) => {
+                    let path = path.clone();
+                    let user_site = runtime.user_site.clone();
+                    tokio::task::spawn_blocking(move || {
+                        let rt = pyo3_backend::PyO3Runtime { user_site };
+                        rt.run_file(&path)
+                    })
+                    .await
+                    .map_err(|e| format!("Spawn blocking error: {e}"))?
+                }
                 #[cfg(not(feature = "embedded-python"))]
                 Some(PythonBackend::System(runtime)) => runtime.run_file(&path).await,
                 None => Ok(
