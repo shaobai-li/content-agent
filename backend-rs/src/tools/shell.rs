@@ -282,12 +282,13 @@ fn classify_command(command: &str) -> CommandCategory {
         );
     }
 
-    // python script.py
+    // python script.py [args...]
     if let Some(path_str) = trimmed
         .strip_prefix("python3 ")
         .or_else(|| trimmed.strip_prefix("python "))
     {
-        let path = PathBuf::from(path_str.trim());
+        // 仅取第一个 token 作为脚本路径，剥离多余参数
+        let path = PathBuf::from(path_str.trim().split_whitespace().next().unwrap_or(""));
         if path.extension().is_some_and(|e| e == "py") {
             return CommandCategory::PythonFile(path);
         }
