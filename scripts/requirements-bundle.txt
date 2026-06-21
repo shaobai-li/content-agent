@@ -1,0 +1,9 @@
+# ============================================
+# Bundle Python packages — Tauri desktop app
+# These are pre-installed in resources/python/
+# pip >=24 for speed
+# ============================================
+openpyxl>=3.1
+python-docx>=1.1
+pyyaml>=6.0
+requests>=2.31
