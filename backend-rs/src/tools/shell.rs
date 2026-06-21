@@ -197,20 +197,24 @@ mod pyo3_backend {
 mod subprocess_backend {
     use std::path::Path;
 
-    pub struct SubprocessPython;
+    pub struct SubprocessPython {
+        python_cmd: String,
+    }
 
     impl SubprocessPython {
-        pub fn new() -> Self {
-            Self
+        pub fn new(python_cmd: &str) -> Self {
+            Self {
+                python_cmd: python_cmd.to_string(),
+            }
         }
 
-        pub async fn run_script(&self, code: &str) -> Result<String, String> {
-            let output = tokio::process::Command::new("python3")
-                .arg("-c")
-                .arg(code)
+        async fn run_command(&self, arg: &str, code_or_path: &str) -> Result<String, String> {
+            let output = tokio::process::Command::new(&self.python_cmd)
+                .arg(arg)
+                .arg(code_or_path)
                 .output()
                 .await
-                .map_err(|e| format!("Failed to run python3: {e}"))?;
+                .map_err(|e| format!("Failed to run {}: {e}", self.python_cmd))?;
 
             Ok(super::format_command_output(
                 &output.stdout,
@@ -219,12 +223,16 @@ mod subprocess_backend {
             ))
         }
 
+        pub async fn run_script(&self, code: &str) -> Result<String, String> {
+            self.run_command("-c", code).await
+        }
+
         pub async fn run_file(&self, path: &Path) -> Result<String, String> {
-            let output = tokio::process::Command::new("python3")
-                .arg(path)
+            let output = tokio::process::Command::new(&self.python_cmd)
+                .arg(path.as_os_str())
                 .output()
                 .await
-                .map_err(|e| format!("Failed to run python3: {e}"))?;
+                .map_err(|e| format!("Failed to run {}: {e}", self.python_cmd))?;
 
             Ok(super::format_command_output(
                 &output.stdout,
@@ -286,6 +294,25 @@ fn classify_command(command: &str) -> CommandCategory {
     }
 
     CommandCategory::Shell(trimmed.to_string())
+}
+
+// ============================================================
+// Python 命令解析（共享给 init_python_backend 和 subprocess_backend）
+// ============================================================
+
+/// 按优先级尝试可用的 Python 命令，返回找到的第一个命令名
+fn resolve_python_cmd() -> Option<String> {
+    for cmd in &["python3", "python", "py"] {
+        if std::process::Command::new(cmd)
+            .arg("--version")
+            .output()
+            .ok()
+            .is_some_and(|o| o.status.success())
+        {
+            return Some(cmd.to_string());
+        }
+    }
+    None
 }
 
 // ============================================================
@@ -406,25 +433,16 @@ impl RunCommandTool {
         }
         #[cfg(not(feature = "embedded-python"))]
         {
-            // Server 场景：检查系统 python3 是否可用
-            let has_python = std::process::Command::new("python3")
-                .arg("--version")
-                .output()
-                .ok()
-                .and_then(|o| {
-                    if o.status.success() {
-                        Some(())
-                    } else {
-                        None
-                    }
-                })
-                .is_some();
-            if has_python {
-                tracing::info!("System python3 detected");
-                Some(PythonBackend::System(subprocess_backend::SubprocessPython::new()))
-            } else {
-                tracing::warn!("python3 not found in PATH — Python skills disabled");
-                None
+            // Server 场景：按优先级尝试可用 Python 命令
+            match resolve_python_cmd() {
+                Some(cmd) => {
+                    tracing::info!("System Python detected: {cmd}");
+                    Some(PythonBackend::System(subprocess_backend::SubprocessPython::new(&cmd)))
+                }
+                None => {
+                    tracing::warn!("No Python (python3/python/py) found in PATH — Python skills disabled");
+                    None
+                }
             }
         }
     }
