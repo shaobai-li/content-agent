@@ -45,12 +45,16 @@ if command -v rsync &>/dev/null; then
     # 保留 ensurepip 用于安装 pip
     rsync -a "$PREFIX/lib/python$PY_VER/ensurepip/" "$OUTPUT/lib/python$PY_VER/ensurepip/"
 else
-    info "rsync not available, using cp fallback (stdlib may be larger)"
-    cp -r "$PREFIX/lib/python$PY_VER"/*.py "$OUTPUT/lib/python$PY_VER/" 2>/dev/null || true
-    # 至少复制必要模块
-    for mod in os sys json re math datetime pathlib io collections functools itertools copy textwrap string enum abc typing inspect pprint hashlib base64 binascii struct pickle warnings contextlib logging configparser csv fractions decimal random statistics uuid xml zipfile tarfile tempfile shutil fileinput fnmatch glob linecache bisect heapq array weakref types numbers operator traceback pdb platform subprocess signal select socket ssl urllib http email html xmlrpc mimetypes webbrowser difflib pkgutil importlib ast tokenize keyword token unicodedata re reprlib codecs codeop threading multiprocessing concurrent queue selectors socketserver ctypes ctypes._endian ctypes.util distutils ensurepip; do
-        [ -d "$PREFIX/lib/python$PY_VER/$mod" ] && cp -r "$PREFIX/lib/python$PY_VER/$mod" "$OUTPUT/lib/python$PY_VER/" 2>/dev/null || true
-        [ -f "$PREFIX/lib/python$PY_VER/$mod.py" ] && cp "$PREFIX/lib/python$PY_VER/$mod.py" "$OUTPUT/lib/python$PY_VER/" 2>/dev/null || true
+    info "rsync not available, using cp fallback"
+    # 复制 stdlib 根目录的 .py 文件
+    cp "$PREFIX/lib/python$PY_VER"/*.py "$OUTPUT/lib/python$PY_VER/" 2>/dev/null || true
+    # 复制所有模块目录（自动覆盖任意 Python 版本的 stdlib，无需维护硬编码清单）
+    for dir in "$PREFIX/lib/python$PY_VER"/*/; do
+        base=$(basename "$dir")
+        case "$base" in
+            test|tests|tkinter|idlelib|turtledemo|__pycache__) continue ;;
+        esac
+        cp -r "$dir" "$OUTPUT/lib/python$PY_VER/" 2>/dev/null || true
     done
 fi
 
