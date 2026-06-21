@@ -6,6 +6,11 @@ edition = "2021"
 [lib]
 name = "omniage_backend_rs"
 
+[features]
+default = []
+# Tauri 桌面端：将 Python 解释器嵌入 Rust 进程
+embedded-python = ["dep:pyo3", "dep:python3-dll-a"]
+
 [dependencies]
 axum = { version = "0.7", features = ["multipart"] }
 tokio = { version = "1", features = ["full"] }
@@ -31,6 +36,14 @@ sha2 = "0.10"
 pdf-extract = "0.7"
 zip = "2"
 quick-xml = "0.36"
+
+# Python 嵌入式解释器（可选，仅 Tauri 桌面端启用）
+pyo3 = { version = "0.23", optional = true, default-features = false, features = [
+    "auto-initialize",
+    "macros",
+] }
+# Windows 上辅助定位 python3.dll
+python3-dll-a = { version = "0.2", optional = true }
 
 [dev-dependencies]
 tempfile = "3"

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -30,6 +30,7 @@ fn decode_non_utf8(bytes: &[u8]) -> String {
 fn decode_non_utf8(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).into_owned()
 }
+
 const MAX_TIMEOUT: u64 = 600;
 
 static DENY_PATTERNS: Lazy<Vec<Regex>> = Lazy::new(|| {
@@ -61,13 +62,12 @@ fn resolve_run_cwd(workspace: &str, cwd_mode: &str, skill_name: &str) -> Result<
             }
 
             // 1. 优先查用户 skill 目录（data/u_<uid>/data/<agent>/.agent/skills/<name>/）
-            let user_dir = ws
-                .join(".agent")
-                .join("skills")
-                .join(name);
+            let user_dir = ws.join(".agent").join("skills").join(name);
             if user_dir.exists() {
                 return Ok(crate::utils::helpers::normalize_path(
-                    user_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+                    user_dir
+                        .canonicalize()
+                        .map_err(|e| format!("Error: {e}"))?,
                 ));
             }
 
@@ -78,7 +78,9 @@ fn resolve_run_cwd(workspace: &str, cwd_mode: &str, skill_name: &str) -> Result<
                 .join(name);
             if bundled_dir.exists() {
                 return Ok(crate::utils::helpers::normalize_path(
-                    bundled_dir.canonicalize().map_err(|e| format!("Error: {e}"))?,
+                    bundled_dir
+                        .canonicalize()
+                        .map_err(|e| format!("Error: {e}"))?,
                 ));
             }
 
@@ -95,20 +97,273 @@ fn resolve_run_cwd(workspace: &str, cwd_mode: &str, skill_name: &str) -> Result<
     }
 }
 
-fn build_env(workspace: &str, cwd: &PathBuf, use_skills_cwd: bool) -> Vec<(String, String)> {
-    let ws = PathBuf::from(workspace);
+// ============================================================
+// Python 执行后端 —— 条件编译二选一
+// ============================================================
 
-    let agent_skills = if use_skills_cwd {
-        cwd.to_string_lossy().to_string()
+/// Python 命令执行后端
+enum PythonBackend {
+    #[cfg(feature = "embedded-python")]
+    Embedded(pyo3_backend::PyO3Runtime),
+    #[cfg(not(feature = "embedded-python"))]
+    System(subprocess_backend::SubprocessPython),
+}
+
+// ── PyO3 嵌入式解释器（仅 embedded-python feature） ─────────
+#[cfg(feature = "embedded-python")]
+mod pyo3_backend {
+    use std::ffi::CString;
+    use std::path::Path;
+
+    use pyo3::prelude::*;
+    use pyo3::types::PyAnyMethods;
+    use pyo3::types::PyModule;
+
+    pub struct PyO3Runtime {
+        pub user_site: std::path::PathBuf,
+    }
+
+    impl PyO3Runtime {
+        pub fn new(python_home: &Path) -> Result<Self, String> {
+            std::env::set_var("PYTHONHOME", python_home);
+
+            let omniage_root = std::env::var("OMNIAGE_ROOT")
+                .map_err(|_| "OMNIAGE_ROOT not set".to_string())?;
+            let user_site = std::path::PathBuf::from(&omniage_root)
+                .join("data")
+                .join("user-site-packages");
+            std::fs::create_dir_all(&user_site).map_err(|e| e.to_string())?;
+
+            tracing::info!("PyO3 runtime initialized, user-site-packages at {:?}", user_site);
+            Ok(Self { user_site })
+        }
+
+        pub fn run_script(&self, code: &str) -> Result<String, String> {
+            Python::with_gil(|py| {
+                // 1. 通过 PyO3 直接 API 注入 user-site-packages 到 sys.path
+                //    避免使用 format! + CString 拼接 Python 代码，消除非 ASCII 路径的理论风险
+                let sys: Bound<'_, PyModule> = py.import("sys")
+                    .map_err(|e| format!("Cannot import sys: {e}"))?;
+                let sys_path = sys.getattr("path")
+                    .map_err(|e| format!("Cannot get sys.path: {e}"))?;
+                let user_site_str = self.user_site.to_string_lossy();
+                sys_path.call_method1("insert", (0, &*user_site_str))
+                    .map_err(|e| format!("Cannot insert into sys.path: {e}"))?;
+
+                // 2. 获取 io 模块（用于 stdout 捕获）
+                let io: Bound<'_, PyModule> = py.import("io")
+                    .map_err(|e| format!("Cannot import io: {e}"))?;
+
+                // 3. 保存原始 stdout，创建 StringIO 缓冲区并替换 sys.stdout
+                let original_stdout = sys.getattr("stdout")
+                    .map_err(|e| format!("Cannot get original sys.stdout: {e}"))?;
+                let buffer = io.call_method0("StringIO")
+                    .map_err(|e| format!("Cannot create StringIO: {e}"))?;
+                sys.setattr("stdout", &buffer)
+                    .map_err(|e| format!("Cannot set sys.stdout: {e}"))?;
+
+                // 4. 执行用户代码（无论成功或失败，finally 恢复 stdout）
+                let result = (|| -> Result<String, String> {
+                    let c_code = CString::new(code).map_err(|e| format!("CString error: {e}"))?;
+                    py.run(&c_code, None, None)
+                        .map_err(|e| format!("Python error:\n{e}"))?;
+
+                    // 5. 获取捕获的输出
+                    let stdout_obj = sys.getattr("stdout")
+                        .map_err(|e| format!("Cannot get sys.stdout: {e}"))?;
+                    let output = stdout_obj.call_method0("getvalue")
+                        .map_err(|e| format!("Cannot get StringIO value: {e}"))?;
+                    Ok(output.extract::<String>().unwrap_or_default())
+                })();
+
+                // 6. 恢复原始 stdout
+                let _ = sys.setattr("stdout", &original_stdout);
+
+                result
+            })
+        }
+
+        pub fn run_file(&self, path: &Path) -> Result<String, String> {
+            let code =
+                std::fs::read_to_string(path).map_err(|e| format!("Cannot read script: {e}"))?;
+            self.run_script(&code)
+        }
+    }
+}
+
+// ── 系统 Python 子进程（默认，非 embedded-python） ──────────
+#[cfg(not(feature = "embedded-python"))]
+mod subprocess_backend {
+    use std::path::Path;
+
+    pub struct SubprocessPython {
+        python_cmd: String,
+    }
+
+    impl SubprocessPython {
+        pub fn new(python_cmd: &str) -> Self {
+            Self {
+                python_cmd: python_cmd.to_string(),
+            }
+        }
+
+        async fn run_command(&self, arg: &str, code_or_path: &str) -> Result<String, String> {
+            let output = tokio::process::Command::new(&self.python_cmd)
+                .arg(arg)
+                .arg(code_or_path)
+                .output()
+                .await
+                .map_err(|e| format!("Failed to run {}: {e}", self.python_cmd))?;
+
+            Ok(super::format_command_output(
+                &output.stdout,
+                &output.stderr,
+                output.status.code().unwrap_or(-1),
+            ))
+        }
+
+        pub async fn run_script(&self, code: &str) -> Result<String, String> {
+            self.run_command("-c", code).await
+        }
+
+        pub async fn run_file(&self, path: &Path) -> Result<String, String> {
+            let output = tokio::process::Command::new(&self.python_cmd)
+                .arg(path.as_os_str())
+                .output()
+                .await
+                .map_err(|e| format!("Failed to run {}: {e}", self.python_cmd))?;
+
+            Ok(super::format_command_output(
+                &output.stdout,
+                &output.stderr,
+                output.status.code().unwrap_or(-1),
+            ))
+        }
+    }
+}
+
+// ============================================================
+// 命令分类
+// ============================================================
+
+/// 命令类型分类
+enum CommandCategory {
+    /// pip install / pip list 等 → 走 subprocess（用 bundle 或系统 Python）
+    Pip,
+    /// python -c 'code' → 用 Python 后端执行
+    PythonInline(String),
+    /// python script.py → 用 Python 后端读取文件执行
+    PythonFile(PathBuf),
+    /// 其他 shell 命令 → 原有 subprocess 路径
+    Shell(String),
+}
+
+/// 从命令字符串中分类并提取 Python 代码
+fn classify_command(command: &str) -> CommandCategory {
+    let trimmed = command.trim();
+
+    // pip 操作
+    if trimmed.starts_with("pip ")
+        || trimmed.starts_with("pip3 ")
+        || trimmed.contains("python -m pip ")
+        || trimmed.contains("python3 -m pip ")
+    {
+        return CommandCategory::Pip;
+    }
+
+    // python -c 'code'
+    if let Some(code) = trimmed
+        .strip_prefix("python3 -c ")
+        .or_else(|| trimmed.strip_prefix("python -c "))
+    {
+        return CommandCategory::PythonInline(
+            code.trim_matches('\'').trim_matches('"').to_string(),
+        );
+    }
+
+    // python script.py [args...]
+    if let Some(path_str) = trimmed
+        .strip_prefix("python3 ")
+        .or_else(|| trimmed.strip_prefix("python "))
+    {
+        // 仅取第一个 token 作为脚本路径，剥离多余参数
+        let path = PathBuf::from(path_str.trim().split_whitespace().next().unwrap_or(""));
+        if path.extension().is_some_and(|e| e == "py") {
+            return CommandCategory::PythonFile(path);
+        }
+    }
+
+    CommandCategory::Shell(trimmed.to_string())
+}
+
+// ============================================================
+// Python 命令解析（共享给 init_python_backend 和 subprocess_backend）
+// ============================================================
+
+/// 按优先级尝试可用的 Python 命令，返回找到的第一个命令名
+fn resolve_python_cmd() -> Option<String> {
+    for cmd in &["python3", "python", "py"] {
+        if std::process::Command::new(cmd)
+            .arg("--version")
+            .output()
+            .ok()
+            .is_some_and(|o| o.status.success())
+        {
+            return Some(cmd.to_string());
+        }
+    }
+    None
+}
+
+// ============================================================
+// 共享的输出格式化（RunCommandTool + subprocess_backend 共用）
+// ============================================================
+
+/// 格式化命令的标准输出/标准错误/退出码，统一截断逻辑
+fn format_command_output(stdout: &[u8], stderr: &[u8], exit_code: i32) -> String {
+    let stdout_str = decode_command_output(stdout);
+    let stderr_str = decode_command_output(stderr);
+
+    let mut parts: Vec<String> = Vec::new();
+    if !stdout_str.is_empty() {
+        parts.push(stdout_str.to_string());
+    }
+    if !stderr_str.trim().is_empty() {
+        parts.push(format!("[stderr]\n{}", stderr_str));
+    }
+    parts.push(format!("\nExit code: {exit_code}"));
+
+    let mut result = if parts.is_empty() {
+        "(no output)".to_string()
     } else {
-        String::new()
+        parts.join("\n")
     };
 
-    vec![
-        ("AGENT_WORKSPACE".to_string(), ws.to_string_lossy().to_string()),
-        ("AGENT_SKILLS".to_string(), agent_skills),
-    ]
+    // Truncate if too long, using char-boundary-safe slicing
+    if result.len() > MAX_OUTPUT {
+        let half = MAX_OUTPUT / 2;
+        let head_end = (0..=half)
+            .rev()
+            .find(|&i| result.is_char_boundary(i))
+            .unwrap_or(0);
+        let tail_start = (result.len() - half..result.len())
+            .find(|&i| result.is_char_boundary(i))
+            .unwrap_or(result.len());
+
+        result = format!(
+            "{}\n... ({} bytes truncated) ...\n{}",
+            &result[..head_end],
+            result.len() - MAX_OUTPUT,
+            &result[tail_start..],
+        );
+    }
+
+    result
 }
+
+// ============================================================
+// RunCommandTool
+// ============================================================
 
 static RUN_COMMAND_PARAMS: Lazy<Value> = Lazy::new(|| {
     serde_json::json!({
@@ -142,14 +397,165 @@ static RUN_COMMAND_PARAMS: Lazy<Value> = Lazy::new(|| {
 pub struct RunCommandTool {
     workspace: String,
     timeout_secs: u64,
+    /// Python 执行后端（None = 不可用）
+    python_backend: Option<PythonBackend>,
 }
 
 impl RunCommandTool {
     pub fn new(workspace: &str, timeout_secs: u64) -> Self {
+        let python_backend = Self::init_python_backend();
         Self {
             workspace: workspace.to_string(),
             timeout_secs: timeout_secs.min(MAX_TIMEOUT),
+            python_backend,
         }
+    }
+
+    /// 根据编译 feature 和运行时环境初始化 Python 后端
+    fn init_python_backend() -> Option<PythonBackend> {
+        #[cfg(feature = "embedded-python")]
+        {
+            // Tauri 场景：从 OMNIAGE_ROOT 查找 bundle Python
+            if let Ok(python_home) = std::env::var("PYTHONHOME") {
+                let path = std::path::PathBuf::from(&python_home);
+                if path.exists() {
+                    match pyo3_backend::PyO3Runtime::new(&path) {
+                        Ok(runtime) => {
+                            tracing::info!("PyO3 embedded Python initialized");
+                            return Some(PythonBackend::Embedded(runtime));
+                        }
+                        Err(e) => tracing::warn!("PyO3 init failed: {e}"),
+                    }
+                }
+            }
+            tracing::warn!("PYTHONHOME not set or bundle not found — Python skills disabled");
+            None
+        }
+        #[cfg(not(feature = "embedded-python"))]
+        {
+            // Server 场景：按优先级尝试可用 Python 命令
+            match resolve_python_cmd() {
+                Some(cmd) => {
+                    tracing::info!("System Python detected: {cmd}");
+                    Some(PythonBackend::System(subprocess_backend::SubprocessPython::new(&cmd)))
+                }
+                None => {
+                    tracing::warn!("No Python (python3/python/py) found in PATH — Python skills disabled");
+                    None
+                }
+            }
+        }
+    }
+
+    /// 构建最小环境变量，支持 bundle Python PATH 注入
+    fn build_env(&self, workspace: &str, cwd: &Path, use_skills_cwd: bool) -> Vec<(String, String)> {
+        let ws = std::path::PathBuf::from(workspace);
+
+        let agent_skills = if use_skills_cwd {
+            cwd.to_string_lossy().to_string()
+        } else {
+            String::new()
+        };
+
+        // mut 在 embedded-python feature 下需要（push PATH），
+        // 无 feature 时 push 被编译掉，加 allow 消除警告
+        #[allow(unused_mut)]
+        let mut env = vec![
+            ("AGENT_WORKSPACE".to_string(), ws.to_string_lossy().to_string()),
+            ("AGENT_SKILLS".to_string(), agent_skills),
+        ];
+
+        // 注入 bundle Python PATH（仅 embedded-python 场景，Tauri 桌面端）
+        #[cfg(feature = "embedded-python")]
+        if let Ok(root) = std::env::var("OMNIAGE_ROOT") {
+            let bundle_bin = std::path::PathBuf::from(&root)
+                .join("resources").join("python").join("bin");
+            if bundle_bin.exists() {
+                let existing_path = std::env::var("PATH").unwrap_or_default();
+                let separator = if cfg!(target_os = "windows") { ";" } else { ":" };
+                env.push(("PATH".to_string(), format!("{}{}{}", bundle_bin.display(), separator, existing_path)));
+            }
+        }
+
+        env
+    }
+
+    async fn run_shell_command(
+        &self,
+        command: &str,
+        cwd: &Path,
+        timeout_secs: u64,
+    ) -> Result<String, String> {
+        let env = self.build_env(&self.workspace, cwd, false);
+
+        if cfg!(target_os = "windows") {
+            self.run_cmd(command, cwd, &env, timeout_secs).await
+        } else {
+            self.run_bash(command, cwd, &env, timeout_secs).await
+        }
+    }
+
+    async fn run_cmd(
+        &self,
+        command: &str,
+        cwd: &Path,
+        env: &[(String, String)],
+        timeout_secs: u64,
+    ) -> Result<String, String> {
+        let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string());
+        let mut cmd = tokio::process::Command::new(&comspec);
+        cmd.arg("/c").arg(command);
+        cmd.current_dir(cwd);
+        for (k, v) in env {
+            cmd.env(k, v);
+        }
+
+        let output = tokio::time::timeout(Duration::from_secs(timeout_secs), cmd.output())
+            .await
+            .map_err(|_| {
+                format!(
+                    "Error: Command timed out after {} seconds",
+                    timeout_secs
+                )
+            })?
+            .map_err(|e| format!("Error executing command: {e}"))?;
+
+        Ok(format_command_output(
+            &output.stdout,
+            &output.stderr,
+            output.status.code().unwrap_or(-1),
+        ))
+    }
+
+    async fn run_bash(
+        &self,
+        command: &str,
+        cwd: &Path,
+        env: &[(String, String)],
+        timeout_secs: u64,
+    ) -> Result<String, String> {
+        let mut cmd = tokio::process::Command::new("bash");
+        cmd.arg("-c").arg(command);
+        cmd.current_dir(cwd);
+        for (k, v) in env {
+            cmd.env(k, v);
+        }
+
+        let output = tokio::time::timeout(Duration::from_secs(timeout_secs), cmd.output())
+            .await
+            .map_err(|_| {
+                format!(
+                    "Error: Command timed out after {} seconds",
+                    timeout_secs
+                )
+            })?
+            .map_err(|e| format!("Error executing command: {e}"))?;
+
+        Ok(format_command_output(
+            &output.stdout,
+            &output.stderr,
+            output.status.code().unwrap_or(-1),
+        ))
     }
 }
 
@@ -182,10 +588,7 @@ impl Tool for RunCommandTool {
             .and_then(|v| v.as_str())
             .unwrap_or("workspace");
 
-        let skill_name = params
-            .get("skill_name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let skill_name = params.get("skill_name").and_then(|v| v.as_str()).unwrap_or("");
 
         let effective_timeout = params
             .get("timeout")
@@ -193,97 +596,66 @@ impl Tool for RunCommandTool {
             .map(|t| t.min(MAX_TIMEOUT))
             .unwrap_or(self.timeout_secs);
 
-        // Safety guard
+        // 安全守卫
         if is_blocked(command) {
-            return Ok("Error: Command blocked by safety guard (dangerous pattern detected)".to_string());
-        }
-
-        // Resolve working directory
-        let run_cwd = resolve_run_cwd(&self.workspace, cwd_mode, skill_name)?;
-        let use_skills = cwd_mode == "skills";
-        let env = build_env(&self.workspace, &run_cwd, use_skills);
-
-        if cfg!(target_os = "windows") {
-            self.run_cmd(command, &run_cwd, &env, effective_timeout).await
-        } else {
-            self.run_bash(command, &run_cwd, &env, effective_timeout).await
-        }
-    }
-}
-
-impl RunCommandTool {
-    async fn run_cmd(&self, command: &str, cwd: &PathBuf, env: &[(String, String)], timeout_secs: u64) -> Result<String, String> {
-        let comspec = std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string());
-        let mut cmd = tokio::process::Command::new(&comspec);
-        cmd.arg("/c").arg(command);
-        cmd.current_dir(cwd);
-        for (k, v) in env {
-            cmd.env(k, v);
-        }
-
-        let output = tokio::time::timeout(Duration::from_secs(timeout_secs), cmd.output())
-            .await
-            .map_err(|_| format!("Error: Command timed out after {} seconds", timeout_secs))?
-            .map_err(|e| format!("Error executing command: {e}"))?;
-
-        Ok(self.format_output(&output.stdout, &output.stderr, output.status.code().unwrap_or(-1)))
-    }
-
-    async fn run_bash(&self, command: &str, cwd: &PathBuf, env: &[(String, String)], timeout_secs: u64) -> Result<String, String> {
-        let mut cmd = tokio::process::Command::new("bash");
-        cmd.arg("-c").arg(command);
-        cmd.current_dir(cwd);
-        for (k, v) in env {
-            cmd.env(k, v);
-        }
-
-        let output = tokio::time::timeout(Duration::from_secs(timeout_secs), cmd.output())
-            .await
-            .map_err(|_| format!("Error: Command timed out after {} seconds", timeout_secs))?
-            .map_err(|e| format!("Error executing command: {e}"))?;
-
-        Ok(self.format_output(&output.stdout, &output.stderr, output.status.code().unwrap_or(-1)))
-    }
-
-    fn format_output(&self, stdout: &[u8], stderr: &[u8], exit_code: i32) -> String {
-        let stdout_str = decode_command_output(stdout);
-        let stderr_str = decode_command_output(stderr);
-
-        let mut parts: Vec<String> = Vec::new();
-        if !stdout_str.is_empty() {
-            parts.push(stdout_str.to_string());
-        }
-        if !stderr_str.trim().is_empty() {
-            parts.push(format!("[stderr]\n{}", stderr_str));
-        }
-        parts.push(format!("\nExit code: {exit_code}"));
-
-        let mut result = if parts.is_empty() {
-            "(no output)".to_string()
-        } else {
-            parts.join("\n")
-        };
-
-        // Truncate if too long, using char-boundary-safe slicing
-        if result.len() > MAX_OUTPUT {
-            let half = MAX_OUTPUT / 2;
-            // 调整到有效 UTF-8 字符边界，避免切碎多字节字符
-            let head_end = (0..=half)
-                .rev()
-                .find(|&i| result.is_char_boundary(i))
-                .unwrap_or(0);
-            let tail_start = (result.len() - half..result.len())
-                .find(|&i| result.is_char_boundary(i))
-                .unwrap_or(result.len());
-
-            result = format!(
-                "{}\n... ({} bytes truncated) ...\n{}",
-                &result[..head_end],
-                result.len() - MAX_OUTPUT,
-                &result[tail_start..],
+            return Ok(
+                "Error: Command blocked by safety guard (dangerous pattern detected)".to_string(),
             );
         }
 
-        result
+        // 解析工作目录
+        let run_cwd = resolve_run_cwd(&self.workspace, cwd_mode, skill_name)?;
+
+        // 命令分类与分发
+        match classify_command(command) {
+            CommandCategory::Pip => {
+                // pip 操作：直接走 subprocess（env 已由 build_env 注入 bundle PATH）
+                self.run_shell_command(command, &run_cwd, effective_timeout)
+                    .await
+            }
+            CommandCategory::PythonInline(code) => match &self.python_backend {
+                #[cfg(feature = "embedded-python")]
+                Some(PythonBackend::Embedded(runtime)) => {
+                    // 将同步 GIL 操作移出 Tokio 异步上下文，防止阻塞 worker 线程
+                    let code = code.clone();
+                    let user_site = runtime.user_site.clone();
+                    tokio::task::spawn_blocking(move || {
+                        let rt = pyo3_backend::PyO3Runtime { user_site };
+                        rt.run_script(&code)
+                    })
+                    .await
+                    .map_err(|e| format!("Spawn blocking error: {e}"))?
+                }
+                #[cfg(not(feature = "embedded-python"))]
+                Some(PythonBackend::System(runtime)) => runtime.run_script(&code).await,
+                None => Ok(
+                    "Error: Python backend not available. For desktop app, ensure Python bundle is included. For server, install python3."
+                        .to_string(),
+                ),
+            },
+            CommandCategory::PythonFile(path) => match &self.python_backend {
+                #[cfg(feature = "embedded-python")]
+                Some(PythonBackend::Embedded(runtime)) => {
+                    let path = path.clone();
+                    let user_site = runtime.user_site.clone();
+                    tokio::task::spawn_blocking(move || {
+                        let rt = pyo3_backend::PyO3Runtime { user_site };
+                        rt.run_file(&path)
+                    })
+                    .await
+                    .map_err(|e| format!("Spawn blocking error: {e}"))?
+                }
+                #[cfg(not(feature = "embedded-python"))]
+                Some(PythonBackend::System(runtime)) => runtime.run_file(&path).await,
+                None => Ok(
+                    "Error: Python backend not available. For desktop app, ensure Python bundle is included. For server, install python3."
+                        .to_string(),
+                ),
+            },
+            CommandCategory::Shell(cmd) => {
+                self.run_shell_command(&cmd, &run_cwd, effective_timeout)
+                    .await
+            }
+        }
     }
 }
