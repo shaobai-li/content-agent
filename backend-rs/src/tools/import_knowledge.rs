@@ -548,6 +548,50 @@ fn extract_pptx_text(path: &Path) -> Result<String, String> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// Critical import path (等价 Python try 块)
+// ═══════════════════════════════════════════════════════════════════════
+
+/// 执行解析 → 写 record → 写 metadata 的核心流程。
+/// 成功返回 (record_path, parsed)，失败返回 (error_message, metadata_for_failure)。
+fn try_critical_import(
+    src: &Path,
+    m_dir: &Path,
+    kb: &Path,
+    m_id: &str,
+    sha256_hex: &str,
+    metadata: Value,
+) -> Result<(PathBuf, Option<Value>), (String, Value)> {
+    let parsed = match extract_parsed_md(src, m_dir) {
+        Ok(p) => p,
+        Err(e) => return Err((e, metadata)),
+    };
+
+    let mut record = build_record(m_id, src, sha256_hex, "imported", None);
+    if let Some(ref p) = parsed {
+        record["parsed"] = p.clone();
+    }
+    if let Some(cp) = content_paths(src, parsed.as_ref()).as_object() {
+        for (k, v) in cp {
+            record[k.as_str()] = v.clone();
+        }
+    }
+    let record_path = match save_record_json(m_dir, &record) {
+        Ok(p) => p,
+        Err(e) => return Err((e, metadata)),
+    };
+
+    let updated_meta = append_import_to_metadata(metadata, m_id, sha256_hex, src);
+    if let Err(e) = save_metadata(kb, &updated_meta) {
+        return Err((e, updated_meta));
+    }
+
+    // Sync to nodes.json (non-critical)
+    let _ = sync_import_to_nodes(kb, m_id, src, sha256_hex);
+
+    Ok((record_path, parsed))
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // Single file import
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -630,88 +674,48 @@ fn import_single_file(src_path: &Path, kb_root: &Path) -> Value {
         let _ = save_record_json(&m_dir, &parsing_record);
     }
 
-    // Parse document
-    let parsed = match extract_parsed_md(&src, &m_dir) {
-        Ok(p) => p,
-        Err(e) => {
-            // Parsing failure → save failed record
-            let rec = build_record(&m_id, &src, &sha256_hex, "failed", Some(&e));
+    // ── 单点 try/except 等价逻辑 ──────────────────────────────────
+    match try_critical_import(&src, &m_dir, &kb, &m_id, &sha256_hex, metadata) {
+        Ok((record_path, parsed)) => {
+            // 成功：构建返回值
+            let mut result = json!({
+                "ok": true,
+                "status": "imported",
+                "m_id": m_id,
+                "file_name": src.file_name().map(|n| n.to_string_lossy()).unwrap_or_default(),
+                "record_path": record_path.to_string_lossy(),
+                "sha256": sha256_hex,
+                "kb_root": kb.to_string_lossy(),
+            });
+            if let Some(cp) = content_paths(&src, parsed.as_ref()).as_object() {
+                for (k, v) in cp {
+                    result[k.as_str()] = v.clone();
+                }
+            }
+            if let Some(ref p) = parsed {
+                result["parsed"] = p.clone();
+            }
+            result
+        }
+        Err((error_msg, meta_for_failure)) => {
+            // 失败：写 failed record + failure metadata（等价 Python except 块）
+            let rec = build_record(&m_id, &src, &sha256_hex, "failed", Some(&error_msg));
             let _ = save_record_json(&m_dir, &rec);
-            let meta = append_failure_to_metadata(metadata, &m_id, Some(&sha256_hex), &e, Some(&src));
+            let meta = append_failure_to_metadata(
+                meta_for_failure, &m_id, Some(&sha256_hex), &error_msg, Some(&src),
+            );
             let _ = save_metadata(&kb, &meta);
-            return json!({
+            json!({
                 "ok": false,
                 "status": "failed",
                 "m_id": m_id,
                 "file_name": src.file_name().map(|n| n.to_string_lossy()).unwrap_or_default(),
                 "sha256": sha256_hex,
-                "error": e,
+                "error": error_msg,
                 "kb_root": kb.to_string_lossy(),
-            });
-        }
-    };
-
-    // Build & save record
-    let mut record = build_record(&m_id, &src, &sha256_hex, "imported", None);
-    if let Some(ref p) = parsed {
-        record["parsed"] = p.clone();
-    }
-    if let Some(cp) = content_paths(&src, parsed.as_ref()).as_object() {
-        for (k, v) in cp {
-            record[k.as_str()] = v.clone();
+            })
         }
     }
-    let record_path = match save_record_json(&m_dir, &record) {
-        Ok(p) => p,
-        Err(e) => {
-            return json!({
-                "ok": false,
-                "status": "failed",
-                "m_id": m_id,
-                "file_name": src.file_name().map(|n| n.to_string_lossy()).unwrap_or_default(),
-                "sha256": sha256_hex,
-                "error": e,
-                "kb_root": kb.to_string_lossy(),
-            });
-        }
-    };
-
-    // Update metadata
-    let updated_meta = append_import_to_metadata(metadata, &m_id, &sha256_hex, &src);
-    if let Err(e) = save_metadata(&kb, &updated_meta) {
-        return json!({
-            "ok": false,
-            "status": "failed",
-            "m_id": m_id,
-            "file_name": src.file_name().map(|n| n.to_string_lossy()).unwrap_or_default(),
-            "sha256": sha256_hex,
-            "error": e,
-            "kb_root": kb.to_string_lossy(),
-        });
-    }
-
-    // Sync to nodes.json (non-critical)
-    let _ = sync_import_to_nodes(&kb, &m_id, &src, &sha256_hex);
-
-    // Build result
-    let mut result = json!({
-        "ok": true,
-        "status": "imported",
-        "m_id": m_id,
-        "file_name": src.file_name().map(|n| n.to_string_lossy()).unwrap_or_default(),
-        "record_path": record_path.to_string_lossy(),
-        "sha256": sha256_hex,
-        "kb_root": kb.to_string_lossy(),
-    });
-    if let Some(cp) = content_paths(&src, parsed.as_ref()).as_object() {
-        for (k, v) in cp {
-            result[k.as_str()] = v.clone();
-        }
-    }
-    if let Some(ref p) = parsed {
-        result["parsed"] = p.clone();
-    }
-    result
 }
 
 // ═══════════════════════════════════════════════════════════════════════
