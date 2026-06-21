@@ -39,6 +39,7 @@ import app.agents.write_agent
 # 导入统一 API 路由
 from app.api.agents import router as agents_router, list_router as agents_list_router
 from app.api.agent_config import router as agent_config_router
+from app.api.knowledge_base import router as knowledge_base_router
 from app.api.settings import router as settings_router
 from app.api.management import router as management_router
 from app.core.auth import require_user_id
@@ -102,6 +103,7 @@ app.include_router(agents_router, dependencies=[Depends(require_user_id)])
 app.include_router(agent_config_router, dependencies=[Depends(require_user_id)])
 app.include_router(settings_router, dependencies=[Depends(require_user_id)])
 app.include_router(management_router, dependencies=[Depends(require_user_id)])
+app.include_router(knowledge_base_router, dependencies=[Depends(require_user_id)])
 
 
 @app.on_event("startup")
