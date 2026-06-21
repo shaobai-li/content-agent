@@ -184,3 +184,15 @@ export const moveKbRecord = (agentId: string, nodeId: string, parentId: string, 
 
 export const deleteKbRecord = (agentId: string, recordId: string, kbId?: string) =>
   http.delete<DeleteKbRecordResponse>(`/api/agents/${agentId}/res/nodes/${recordId}${buildKbQuery(kbId)}`);
+
+export type RecordContentResponse = {
+  record_id: string;
+  file_name: string;
+  content: string;
+  content_type: "parsed" | "source";
+};
+
+export const fetchKbRecordContent = (agentId: string, kbId: string, recordId: string) =>
+  http.get<RecordContentResponse>(
+    `/api/agents/${agentId}/kb/${kbId}/records/${recordId}/content`,
+  );
