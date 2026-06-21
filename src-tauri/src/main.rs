@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::path::Path;
 use tauri::Manager;
 
 #[tauri::command]
@@ -168,6 +169,9 @@ fn main() {
     dotenvy::from_path(&env_path).ok();
     std::env::set_var("ENV_PATH", env_path.to_string_lossy().to_string());
 
+    // 初始化 Python bundle（桌面端：PATH/PYTHONHOME/PIP_TARGET）
+    init_python_bundle(&omniage_root);
+
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -209,4 +213,47 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// 初始化 Python bundle 环境变量（仅 desktop 构建生效）
+///
+/// - PYTHONHOME：指向 bundle 中的 Python stdlib
+/// - PATH：插入 bundle bin/ 目录，使 pip/python 优先使用 bundle 版
+/// - PIP_TARGET：指向 data/user-site-packages/，隔离用户安装的包
+fn init_python_bundle(omniage_root: &Path) {
+    let python_home = omniage_root.join("resources").join("python");
+    if !python_home.exists() {
+        tracing::warn!(
+            "Python bundle not found at {:?}. Run 'scripts/bundle-python.sh' first.",
+            python_home
+        );
+        return;
+    }
+
+    // 1. PYTHONHOME — 让 PyO3 找到 stdlib
+    std::env::set_var("PYTHONHOME", &python_home);
+
+    // 2. PATH — 让 pip install / python3 等 subprocess 命令优先使用 bundle
+    let bundle_bin = python_home.join("bin");
+    if bundle_bin.exists() {
+        let orig_path = std::env::var("PATH").unwrap_or_default();
+        let new_path = if cfg!(target_os = "windows") {
+            format!("{};{}", bundle_bin.display(), orig_path)
+        } else {
+            format!("{}:{}", bundle_bin.display(), orig_path)
+        };
+        std::env::set_var("PATH", &new_path);
+        tracing::info!("Bundle Python bin added to PATH: {:?}", bundle_bin);
+    }
+
+    // 3. PIP_TARGET — pip install 默认安装到 user-site-packages
+    let user_site_dir = omniage_root.join("data").join("user-site-packages");
+    std::fs::create_dir_all(&user_site_dir).ok();
+    std::env::set_var("PIP_TARGET", &user_site_dir);
+
+    tracing::info!(
+        "Python bundle initialized: PYTHONHOME={:?}, PIP_TARGET={:?}",
+        python_home,
+        user_site_dir
+    );
 }

@@ -25,5 +25,9 @@ src-tauri/target/
 src-tauri/gen/
 src-tauri/u_*/
 
+# Python bundle（由 bundle-python.sh 生成，仅保留 placeholder 文件用于编译通过）
+/src-tauri/resources/python/*
+!/src-tauri/resources/python/placeholder.py
+
 # Data directory
 /data/
