@@ -46,6 +46,7 @@ pub fn build_app() -> axum::Router {
         .merge(routes::messages::router())
         .merge(routes::knowledge_base::router())
         .merge(routes::nodes::router())
+        .merge(routes::kb_record_content::router())
         .merge(routes::files::router())
         .merge(routes::chat::router())
         .layer(axum::middleware::from_fn(auth_middleware));
