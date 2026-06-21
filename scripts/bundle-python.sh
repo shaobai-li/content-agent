@@ -28,7 +28,7 @@ ARCH=$(uname)
 info "Python $PY_VER at $PREFIX, target: $ARCH"
 
 # ── 清理旧 bundle ────────────────────────────────
-rm -rf "$OUTPUT"
+[ -d "$OUTPUT" ] && rm -rf "$OUTPUT"
 mkdir -p "$OUTPUT/lib" "$OUTPUT/bin"
 
 # ── 1. 复制 stdlib（精简） ─────────────────────────
