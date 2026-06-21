@@ -17,6 +17,7 @@ from app.agents.tools.schema import (
     StringSchema,
     tool_parameters_schema,
 )
+from app.agents.tools.import_knowledge import ImportKnowledgeTool
 from app.agents.tools.shell import RunCommandTool
 from app.agents.tools.skill import InvokeSkillTool
 from app.agents.tools.web import WebFetchTool, WebSearchTool
@@ -41,6 +42,7 @@ __all__ = [
     "WebSearchTool",
     "WebFetchTool",
     "InvokeSkillTool",
+    "ImportKnowledgeTool",
     "GenerateHTMLTool",
     "create_tool_registry",
 ]
@@ -75,4 +77,5 @@ def create_tool_registry(
     registry.register(WebFetchTool())
     registry.register(InvokeSkillTool(agent_id))
     registry.register(GenerateHTMLTool(provider_name=provider_name, model=model))
+    registry.register(ImportKnowledgeTool(workspace=workspace, agent_id=agent_id))
     return registry
