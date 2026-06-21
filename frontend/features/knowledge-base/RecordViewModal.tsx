@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import { ScrollArea } from "@/shared/ui/scroll-area";
 import { fetchKbRecordContent } from "@/shared/api/records";
 import type { RecordContentResponse } from "@/shared/api/records";
 
@@ -63,12 +62,12 @@ export function RecordViewModal({
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="truncate pr-6">{fileName}</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <div className="flex-1 min-h-0 overflow-y-auto -mx-6 px-6">
           <div className="min-h-0 py-2">
             {loading && (
               <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
@@ -100,7 +99,7 @@ export function RecordViewModal({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
