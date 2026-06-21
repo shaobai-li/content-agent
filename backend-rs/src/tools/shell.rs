@@ -155,23 +155,32 @@ mod pyo3_backend {
                 let sys: Bound<'_, PyModule> = py.import("sys")
                     .map_err(|e| format!("Cannot import sys: {e}"))?;
 
-                // 3. 创建 StringIO 缓冲区并替换 sys.stdout
+                // 3. 保存原始 stdout，创建 StringIO 缓冲区并替换 sys.stdout
+                let original_stdout = sys.getattr("stdout")
+                    .map_err(|e| format!("Cannot get original sys.stdout: {e}"))?;
                 let buffer = io.call_method0("StringIO")
                     .map_err(|e| format!("Cannot create StringIO: {e}"))?;
                 sys.setattr("stdout", &buffer)
                     .map_err(|e| format!("Cannot set sys.stdout: {e}"))?;
 
-                // 4. 执行用户代码
-                let c_code = CString::new(code).map_err(|e| format!("CString error: {e}"))?;
-                py.run(&c_code, None, None)
-                    .map_err(|e| format!("Python error:\n{e}"))?;
+                // 4. 执行用户代码（无论成功或失败，finally 恢复 stdout）
+                let result = (|| -> Result<String, String> {
+                    let c_code = CString::new(code).map_err(|e| format!("CString error: {e}"))?;
+                    py.run(&c_code, None, None)
+                        .map_err(|e| format!("Python error:\n{e}"))?;
 
-                // 5. 获取捕获的输出
-                let stdout_obj = sys.getattr("stdout")
-                    .map_err(|e| format!("Cannot get sys.stdout: {e}"))?;
-                let output = stdout_obj.call_method0("getvalue")
-                    .map_err(|e| format!("Cannot get StringIO value: {e}"))?;
-                Ok(output.extract::<String>().unwrap_or_default())
+                    // 5. 获取捕获的输出
+                    let stdout_obj = sys.getattr("stdout")
+                        .map_err(|e| format!("Cannot get sys.stdout: {e}"))?;
+                    let output = stdout_obj.call_method0("getvalue")
+                        .map_err(|e| format!("Cannot get StringIO value: {e}"))?;
+                    Ok(output.extract::<String>().unwrap_or_default())
+                })();
+
+                // 6. 恢复原始 stdout
+                let _ = sys.setattr("stdout", &original_stdout);
+
+                result
             })
         }
 
