@@ -527,15 +527,9 @@ class ImportKnowledgeTool(Tool):
         )
         if kb is None:
             available = [db["name"] for db in databases]
-            return json.dumps(
-                {
-                    "ok": False,
-                    "error": (
-                        f"知识库「{database_name}」未找到。"
-                        f"可用知识库：{available}"
-                    ),
-                },
-                ensure_ascii=False,
+            raise ValueError(
+                f"知识库「{database_name}」未找到。"
+                f"可用知识库：{available}"
             )
 
         kb_id = kb["id"]
