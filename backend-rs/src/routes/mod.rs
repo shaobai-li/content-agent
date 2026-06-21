@@ -6,6 +6,7 @@ pub mod settings;
 pub mod chat;
 pub mod files;
 pub mod health;
+pub mod kb_record_content;
 pub mod knowledge_base;
 pub mod messages;
 pub mod nodes;
