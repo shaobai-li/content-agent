@@ -93,7 +93,6 @@ pub fn format_tool_hint(name: &str, arguments: &serde_json::Value) -> String {
         "web_search" => (&["query"][..], false),
         "web_fetch" => (&["url"][..], true),
         "invoke_skill" => (&["skill_id"][..], false),
-        "generate_html" => (&["prompt"][..], false),
         _ => (&[][..], false),
     };
 
@@ -174,11 +173,4 @@ mod tests {
         assert!(r.starts_with("list_dir ("));
     }
 
-    #[test]
-    fn test_generate_html() {
-        assert_eq!(
-            format_tool_hint("generate_html", &json!({"prompt": "create a landing page"})),
-            "generate_html (create a landing page)"
-        );
-    }
 }
