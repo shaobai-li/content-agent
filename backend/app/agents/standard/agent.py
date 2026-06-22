@@ -187,12 +187,13 @@ class StandardAgent(BaseAgent):
 
             result = await runner_task
 
-            # 从完整结果中检测 generate_html 工具完成，推送 Canvas
+            # 从完整结果中检测 generate_html / load_html_to_canvas 工具完成，推送 Canvas
             for tool_msg in result.messages:
-                if tool_msg.get("role") == "tool" and tool_msg.get("name") == "generate_html":
+                if tool_msg.get("role") == "tool" and tool_msg.get("name") in ("generate_html", "load_html_to_canvas"):
                     html = tool_msg.get("content", "").strip()
                     if html and not html.startswith("Error"):
-                        yield build_canvas_card(content=html, card_type="html", title="HTML 生成结果")
+                        title = "HTML 生成结果" if tool_msg["name"] == "generate_html" else "HTML 加载结果"
+                        yield build_canvas_card(content=html, card_type="html", title=title)
                         break
 
             # 兜底流式输出：AgentRunner 内部产生的终端消息（max_iterations / error / empty）
