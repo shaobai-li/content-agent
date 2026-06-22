@@ -1,8 +1,5 @@
 name: 标准个人助手
 skills:
-  - graph-query
-  - ingest-file
-  - build-knowledge-graph
 layout:
   left:
     - history
