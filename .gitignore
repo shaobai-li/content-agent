@@ -27,3 +27,6 @@ src-tauri/u_*/
 
 # Data directory
 /data/
+
+# Python bundle（由 bundle-python.sh 生成，不提交 git）
+/src-tauri/resources/python/

@@ -104,10 +104,28 @@ fn build_env(workspace: &str, cwd: &PathBuf, use_skills_cwd: bool) -> Vec<(Strin
         String::new()
     };
 
-    vec![
+    let mut env = vec![
         ("AGENT_WORKSPACE".to_string(), ws.to_string_lossy().to_string()),
         ("AGENT_SKILLS".to_string(), agent_skills),
-    ]
+    ];
+
+    // 如果 OMNIAGE_ROOT 下存在 bundle Python，将目录插入 PATH 头部
+    if let Ok(root) = std::env::var("OMNIAGE_ROOT") {
+        let bundle_dir = std::path::PathBuf::from(&root)
+            .join("resources")
+            .join("python");
+
+        if bundle_dir.exists() {
+            let orig_path = std::env::var("PATH").unwrap_or_default();
+            let sep = if cfg!(target_os = "windows") { ";" } else { ":" };
+            env.push((
+                "PATH".to_string(),
+                format!("{}{}{}", bundle_dir.display(), sep, orig_path),
+            ));
+        }
+    }
+
+    env
 }
 
 static RUN_COMMAND_PARAMS: Lazy<Value> = Lazy::new(|| {
