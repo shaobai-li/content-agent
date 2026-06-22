@@ -4,12 +4,12 @@
 # Tauri 将其打包进安装包，运行时通过 subprocess 调用 python.exe
 #
 # Usage:
-#   export PYO3_PYTHON=/path/to/python3
+#   export BUNDLE_PYTHON=/path/to/python3
 #   bash scripts/bundle-python.sh
 #
 set -euo pipefail
 
-PYTHON="${PYO3_PYTHON:-python3}"
+PYTHON="${BUNDLE_PYTHON:-python3}"
 OUTPUT="src-tauri/resources/python"
 REQUIREMENTS="scripts/requirements-bundle.txt"
 

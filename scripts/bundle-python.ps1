@@ -3,13 +3,13 @@
 # Tauri 将其打包进安装包，运行时通过 subprocess 调用 python.exe
 #
 # Usage:
-#   $env:PYO3_PYTHON = "C:\Python313\python.exe"
+#   $env:BUNDLE_PYTHON = "C:\Python313\python.exe"
 #   .\scripts\bundle-python.ps1
 #
 param()
 
 $ErrorActionPreference = "Stop"
-$PYTHON = if ($env:PYO3_PYTHON) { $env:PYO3_PYTHON } else { "python" }
+$PYTHON = if ($env:BUNDLE_PYTHON) { $env:BUNDLE_PYTHON } else { "python" }
 $OUTPUT = "src-tauri/resources/python"
 $REQUIREMENTS = "scripts/requirements-bundle.txt"
 
