@@ -41,7 +41,13 @@ fn abbrev_path(path: &str, max_len: usize) -> String {
     let parts: Vec<&str> = normalized.trim_end_matches('/').split('/').collect();
     if parts.len() <= 1 {
         let mut s = normalized;
-        s.truncate(max_len - 1);
+        let new_len = max_len.saturating_sub(1);
+        // 回退到安全的字符边界，避免截断多字节 UTF-8 字符
+        let truncate_to = (0..=new_len.min(s.len()))
+            .rev()
+            .find(|&i| s.is_char_boundary(i))
+            .unwrap_or(0);
+        s.truncate(truncate_to);
         s.push('…');
         return s;
     }
@@ -102,7 +108,12 @@ pub fn format_tool_hint(name: &str, arguments: &serde_json::Value) -> String {
             let display = if is_path {
                 abbrev_path(&val, 40)
             } else if val.len() > 40 {
-                format!("{}…", &val[..39])
+                // 回退到安全的字符边界，避免截断多字节 UTF-8 字符
+                let end = (0..=39.min(val.len()))
+                    .rev()
+                    .find(|&i| val.is_char_boundary(i))
+                    .unwrap_or(0);
+                format!("{}…", &val[..end])
             } else {
                 val
             };
@@ -115,7 +126,12 @@ pub fn format_tool_hint(name: &str, arguments: &serde_json::Value) -> String {
         if let Some(s) = val.as_str() {
             if !s.is_empty() {
                 let display = if s.len() > 40 {
-                    format!("{}…", &s[..39])
+                    // 回退到安全的字符边界，避免截断多字节 UTF-8 字符
+                    let end = (0..=39.min(s.len()))
+                        .rev()
+                        .find(|&i| s.is_char_boundary(i))
+                        .unwrap_or(0);
+                    format!("{}…", &s[..end])
                 } else {
                     s.to_string()
                 };
