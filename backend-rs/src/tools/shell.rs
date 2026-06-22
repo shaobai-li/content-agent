@@ -104,10 +104,37 @@ fn build_env(workspace: &str, cwd: &PathBuf, use_skills_cwd: bool) -> Vec<(Strin
         String::new()
     };
 
-    vec![
+    let mut env = vec![
         ("AGENT_WORKSPACE".to_string(), ws.to_string_lossy().to_string()),
         ("AGENT_SKILLS".to_string(), agent_skills),
-    ]
+    ];
+
+    // 查找 bundle Python 目录，将其插入 PATH 头部
+    // 生产模式（安装包）：bundle 在 <root>/resources/python/
+    // 开发模式（cargo tauri dev）：bundle 在 <root>/src-tauri/resources/python/
+    if let Ok(root) = std::env::var("OMNIAGE_ROOT") {
+        let candidates = [
+            // 生产模式路径
+            std::path::PathBuf::from(&root)
+                .join("resources").join("python"),
+            // 开发模式路径（cargo tauri dev）
+            std::path::PathBuf::from(&root)
+                .join("src-tauri").join("resources").join("python"),
+        ];
+
+        let bundle_dir = candidates.iter().find(|p| p.exists());
+
+        if let Some(dir) = bundle_dir {
+            let orig_path = std::env::var("PATH").unwrap_or_default();
+            let sep = if cfg!(target_os = "windows") { ";" } else { ":" };
+            env.push((
+                "PATH".to_string(),
+                format!("{}{}{}", dir.display(), sep, orig_path),
+            ));
+        }
+    }
+
+    env
 }
 
 static RUN_COMMAND_PARAMS: Lazy<Value> = Lazy::new(|| {
