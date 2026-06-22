@@ -17,6 +17,7 @@ _TOOL_FORMATS: dict[str, tuple[list[str], bool]] = {
     "web_fetch":    (["url"],                     True),
     "invoke_skill": (["skill_id"],                False),
     "generate_html":(["prompt"],                  False),
+    "load_html_to_canvas":(["path"],               True),
 }
 
 # 匹配文件路径（包括含空格的引号路径）
