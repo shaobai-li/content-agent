@@ -17,7 +17,7 @@ use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
 use crate::service::context_utils::{append_attachments_to_user_text, get_article_context_messages};
 use crate::service::messages::save_message;
 use crate::service::stream::{
-    build_stream_chunk, build_stream_done,
+    build_canvas_card, build_stream_chunk, build_stream_done,
     build_tool_exec_end, build_tool_exec_start,
 };
 use crate::tools::create_tool_registry;
@@ -181,6 +181,19 @@ impl BaseAgent for StandardAgent {
                             None,
                             msg.get("name").and_then(|v| v.as_str()),
                         );
+                    }
+                }
+
+                // 从完整结果中检测 load_html_to_canvas 工具完成，推送 Canvas
+                for tool_msg in result.messages[initial_msg_len..].iter() {
+                    if tool_msg.get("role").and_then(|v| v.as_str()) == Some("tool")
+                        && tool_msg.get("name").and_then(|v| v.as_str()) == Some("load_html_to_canvas")
+                    {
+                        let html = tool_msg.get("content").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                        if !html.is_empty() && !html.starts_with("Error") {
+                            let _ = tx.send(build_canvas_card(&html, "html", "HTML 加载结果"));
+                        }
+                        break;
                     }
                 }
 
