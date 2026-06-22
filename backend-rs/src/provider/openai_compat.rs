@@ -243,7 +243,7 @@ impl OpenAICompatProvider {
         messages: &[Value],
         tools: Option<&[Value]>,
         model: Option<&str>,
-        max_tokens: u32,
+        max_tokens: Option<u32>,
         temperature: f64,
         reasoning_effort: Option<&str>,
         tool_choice: Option<&Value>,
@@ -271,11 +271,11 @@ impl OpenAICompatProvider {
             payload["temperature"] = Value::from(temperature);
         }
 
-        if let Some(spec) = &self.spec {
+        if let (Some(spec), Some(mt)) = (&self.spec, max_tokens) {
             if spec.supports_max_completion_tokens {
-                payload["max_completion_tokens"] = Value::from(max_tokens.max(1));
+                payload["max_completion_tokens"] = Value::from(mt.max(1));
             } else {
-                payload["max_tokens"] = Value::from(max_tokens.max(1));
+                payload["max_tokens"] = Value::from(mt.max(1));
             }
 
             // Apply model-specific overrides
@@ -290,8 +290,8 @@ impl OpenAICompatProvider {
                     break;
                 }
             }
-        } else {
-            payload["max_tokens"] = Value::from(max_tokens.max(1));
+        } else if let Some(mt) = max_tokens {
+            payload["max_tokens"] = Value::from(mt.max(1));
         }
 
         // Reasoning effort
@@ -581,7 +581,6 @@ impl OpenAICompatProvider {
         retry_mode: &str,
         on_retry_wait: Option<Box<dyn Fn(String) + Send>>,
     ) -> LLMResponse {
-        let max_tokens = max_tokens.unwrap_or(4096);
         let temperature = temperature.unwrap_or(0.7);
 
         let messages_clone = messages.clone();
@@ -595,7 +594,7 @@ impl OpenAICompatProvider {
                     messages_clone.clone(),
                     tools_clone.clone(),
                     model_clone.as_deref(),
-                    Some(max_tokens),
+                    max_tokens,
                     Some(temperature),
                     reasoning_clone.as_deref(),
                     tool_choice.clone(),
@@ -619,7 +618,6 @@ impl OpenAICompatProvider {
         retry_mode: &str,
         on_retry_wait: Option<Box<dyn Fn(String) + Send>>,
     ) -> LLMResponse {
-        let max_tokens = max_tokens.unwrap_or(4096);
         let temperature = temperature.unwrap_or(0.7);
         let delta: std::sync::Arc<Option<Box<dyn Fn(String) + Send>>> = std::sync::Arc::new(on_content_delta);
 
@@ -637,7 +635,7 @@ impl OpenAICompatProvider {
                         messages,
                         tools,
                         model.as_deref(),
-                        Some(max_tokens),
+                        max_tokens,
                         Some(temperature),
                         reasoning.as_deref(),
                         tool_choice,
@@ -728,7 +726,6 @@ impl LLMProvider for OpenAICompatProvider {
         reasoning_effort: Option<&str>,
         tool_choice: Option<Value>,
     ) -> LLMResponse {
-        let max_tokens = max_tokens.unwrap_or(4096);
         let temperature = temperature.unwrap_or(0.7);
 
         let payload = self.build_chat_payload(
@@ -784,7 +781,6 @@ impl LLMProvider for OpenAICompatProvider {
         tool_choice: Option<Value>,
         on_content_delta: Option<Box<dyn Fn(String) + Send>>,
     ) -> LLMResponse {
-        let max_tokens = max_tokens.unwrap_or(4096);
         let temperature = temperature.unwrap_or(0.7);
         let idle_timeout_s: u64 = std::env::var("STREAM_IDLE_TIMEOUT_S")
             .ok()
