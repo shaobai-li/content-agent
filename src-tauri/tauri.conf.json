@@ -39,7 +39,8 @@
       "config/agents/*.yaml",
       "config/agents/skills/**/*.md",
       "config/agents/skills/**/*.py",
-      "resources/python/**/*"
+      "resources/python/**/*",
+      "resources/node/**/*"
     ]
   }
 }
