@@ -2,6 +2,7 @@ pub mod base;
 pub mod file_state;
 pub mod filesystem;
 pub mod import_knowledge;
+pub mod load_html_to_canvas;
 pub mod registry;
 pub mod shell;
 pub mod skill;
@@ -13,6 +14,7 @@ pub use registry::ToolRegistry;
 use file_state::FileStateTool;
 use filesystem::{EditFileTool, ListDirTool, ReadFileTool, WriteFileTool};
 use import_knowledge::ImportKnowledgeTool;
+use load_html_to_canvas::LoadHTMLToCanvasTool;
 use shell::RunCommandTool;
 use skill::InvokeSkillTool;
 use web::{WebFetchTool, WebSearchTool};
@@ -35,5 +37,6 @@ pub fn create_tool_registry(
     registry.register(Box::new(WebFetchTool));
     registry.register(Box::new(InvokeSkillTool::new(agent_id)));
     registry.register(Box::new(ImportKnowledgeTool::new(workspace, agent_id)));
+    registry.register(Box::new(LoadHTMLToCanvasTool::new(workspace)));
     registry
 }

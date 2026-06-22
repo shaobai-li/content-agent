@@ -93,6 +93,7 @@ pub fn format_tool_hint(name: &str, arguments: &serde_json::Value) -> String {
         "web_search" => (&["query"][..], false),
         "web_fetch" => (&["url"][..], true),
         "invoke_skill" => (&["skill_id"][..], false),
+        "load_html_to_canvas" => (&["path"][..], true),
         _ => (&[][..], false),
     };
 
