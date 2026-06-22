@@ -295,7 +295,7 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
                   >
                     <iframe
                       srcDoc={card.content}
-                      sandbox=""
+                      sandbox="allow-scripts"
                       className="canvas-card-iframe"
                       title={card.title}
                     />
@@ -341,7 +341,7 @@ export function CanvasPanel({ agentId }: CanvasPanelProps) {
             </div>
             <iframe
               srcDoc={cards.find(c => c.id === expandedCardId)?.content || ""}
-              sandbox=""
+              sandbox="allow-scripts"
               className="canvas-expanded-iframe"
             />
           </div>
