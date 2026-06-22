@@ -106,8 +106,8 @@ function renderParts(parts: MessagePart[]) {
               pre({ children }) {
                 const codeText = extractTextContent(children);
                 return (
-                  <div className="relative group">
-                    <pre>{children}</pre>
+                  <div className="relative group" style={{ width: '1px', minWidth: '100%', maxWidth: '100%', overflowX: 'auto' }}>
+                    <pre className="[overflow:visible]">{children}</pre>
                     <CopyButton code={codeText} />
                   </div>
                 );

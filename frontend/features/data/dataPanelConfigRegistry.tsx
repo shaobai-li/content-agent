@@ -36,13 +36,12 @@ export const createKnowledgeBasePanelConfig = (agentId: AgentId, databaseId: str
         size_bytes: "大小",
         created_at: "添加时间",
     },
-    columnWidths: {
-        name: "30%",
-        file_ext: "100px",
-        size_bytes: "120px",
-        created_at: "180px",
+    columnMinWidths: {
+        name: "120px",
+        file_ext: "60px",
+        size_bytes: "80px",
+        created_at: "120px",
     },
-    tableMinWidth: "720px",
     getDragData: (row) => {
         if (row.node_type === "folder" && typeof row.id === "string" && typeof row.name === "string") {
             return {
@@ -92,19 +91,26 @@ export const createKnowledgeBasePanelConfig = (agentId: AgentId, databaseId: str
                 </div>
             );
         },
-        file_ext: (row) =>
-            row.node_type === "folder"
+        file_ext: (row) => {
+            const text = row.node_type === "folder"
                 ? "文件夹"
-                : String(row.file_ext || row.type || "").toUpperCase() || "",
+                : String(row.file_ext || row.type || "").toUpperCase() || "";
+            return <span className="min-w-0 truncate block" title={text}>{text}</span>;
+        },
         size_bytes: (row) => {
             if (row.node_type === "folder") return "";
             const n = row.size_bytes ?? row.size;
-            if (typeof n === "string") return n;
-            if (typeof n !== "number") return "";
-            if (n < 1024) return `${n} B`;
-            if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-            return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+            let text;
+            if (typeof n === "string") text = n;
+            else if (typeof n !== "number") text = "";
+            else if (n < 1024) text = `${n} B`;
+            else if (n < 1024 * 1024) text = `${(n / 1024).toFixed(1)} KB`;
+            else text = `${(n / (1024 * 1024)).toFixed(1)} MB`;
+            return <span className="min-w-0 truncate block" title={text}>{text}</span>;
         },
-        created_at: (row) => formatLocalDateTime(row.created_at || row.date_added || ""),
+        created_at: (row) => {
+            const text = formatLocalDateTime(row.created_at || row.date_added || "");
+            return <span className="min-w-0 truncate block" title={text}>{text}</span>;
+        },
     },
 });
