@@ -27,6 +27,17 @@ fn get_first_str_arg(args: &HashMap<String, serde_json::Value>, key_args: &[&str
     None
 }
 
+/// 在不超过 `max_byte` 的位置找到安全的 UTF-8 字符边界索引。
+///
+/// 避免直接用 `&s[..max_byte]` 切片时切到多字节字符中间导致 panic。
+/// `shell.rs`、`runner.rs`、`web.rs` 中也用了相同的 `is_char_boundary` 模式。
+fn safe_truncate_end(s: &str, max_byte: usize) -> usize {
+    (0..=max_byte.min(s.len()))
+        .rev()
+        .find(|&i| s.is_char_boundary(i))
+        .unwrap_or(0)
+}
+
 /// 缩写文件路径，保留 basename 和最近几级父目录。
 fn abbrev_path(path: &str, max_len: usize) -> String {
     if path.is_empty() {
@@ -41,13 +52,8 @@ fn abbrev_path(path: &str, max_len: usize) -> String {
     let parts: Vec<&str> = normalized.trim_end_matches('/').split('/').collect();
     if parts.len() <= 1 {
         let mut s = normalized;
-        let new_len = max_len.saturating_sub(1);
-        // 回退到安全的字符边界，避免截断多字节 UTF-8 字符
-        let truncate_to = (0..=new_len.min(s.len()))
-            .rev()
-            .find(|&i| s.is_char_boundary(i))
-            .unwrap_or(0);
-        s.truncate(truncate_to);
+        let end = safe_truncate_end(&s, max_len.saturating_sub(1));
+        s.truncate(end);
         s.push('…');
         return s;
     }
@@ -108,12 +114,7 @@ pub fn format_tool_hint(name: &str, arguments: &serde_json::Value) -> String {
             let display = if is_path {
                 abbrev_path(&val, 40)
             } else if val.len() > 40 {
-                // 回退到安全的字符边界，避免截断多字节 UTF-8 字符
-                let end = (0..=39.min(val.len()))
-                    .rev()
-                    .find(|&i| val.is_char_boundary(i))
-                    .unwrap_or(0);
-                format!("{}…", &val[..end])
+                format!("{}…", &val[..safe_truncate_end(&val, 39)])
             } else {
                 val
             };
@@ -126,12 +127,7 @@ pub fn format_tool_hint(name: &str, arguments: &serde_json::Value) -> String {
         if let Some(s) = val.as_str() {
             if !s.is_empty() {
                 let display = if s.len() > 40 {
-                    // 回退到安全的字符边界，避免截断多字节 UTF-8 字符
-                    let end = (0..=39.min(s.len()))
-                        .rev()
-                        .find(|&i| s.is_char_boundary(i))
-                        .unwrap_or(0);
-                    format!("{}…", &s[..end])
+                    format!("{}…", &s[..safe_truncate_end(&s, 39)])
                 } else {
                     s.to_string()
                 };
