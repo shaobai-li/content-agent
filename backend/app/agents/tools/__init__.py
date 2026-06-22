@@ -7,6 +7,7 @@ from typing import Any
 from app.agents.tools.base import Schema, Tool, tool_parameters
 from app.agents.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
 from app.agents.tools.generate_html import GenerateHTMLTool
+from app.agents.tools.load_html_to_canvas import LoadHTMLToCanvasTool
 from app.agents.tools.registry import ToolRegistry
 from app.agents.tools.schema import (
     ArraySchema,
@@ -44,6 +45,7 @@ __all__ = [
     "InvokeSkillTool",
     "ImportKnowledgeTool",
     "GenerateHTMLTool",
+    "LoadHTMLToCanvasTool",
     "create_tool_registry",
 ]
 
@@ -78,4 +80,5 @@ def create_tool_registry(
     registry.register(InvokeSkillTool(agent_id))
     registry.register(GenerateHTMLTool(provider_name=provider_name, model=model))
     registry.register(ImportKnowledgeTool(workspace=workspace, agent_id=agent_id))
+    registry.register(LoadHTMLToCanvasTool(workspace))
     return registry
