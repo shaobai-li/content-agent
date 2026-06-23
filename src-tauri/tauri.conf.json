@@ -38,9 +38,7 @@
       "config/visibility.yaml",
       "config/agents/*.yaml",
       "config/agents/skills/**/*.md",
-      "config/agents/skills/**/*.py",
-      "resources/python/**/*",
-      "resources/node/**/*"
+      "config/agents/skills/**/*.py"
     ]
   }
 }

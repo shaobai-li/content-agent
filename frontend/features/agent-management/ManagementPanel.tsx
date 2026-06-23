@@ -89,7 +89,9 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
         ))}
         <button
           type="button"
-          onClick={() => {}}
+          onClick={() => {
+              // TODO: 实现新增 agent 功能
+            }}
           className="flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-transparent py-6 shadow-none outline-none transition-colors hover:border-muted-foreground/50 hover:bg-muted/30 focus-visible:border-border focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/45 text-muted-foreground">
