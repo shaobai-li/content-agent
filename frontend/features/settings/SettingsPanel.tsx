@@ -261,7 +261,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
 
       {/* Application tab: skills */}
       {activeTab === "application" && (
-        <div className="flex min-w-0 flex-col gap-2" role="tabpanel">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
           {/* 隐藏的文件选择器（用于上传技能文件夹） */}
           <input
             ref={fileInputRef}
