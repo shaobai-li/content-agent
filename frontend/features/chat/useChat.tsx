@@ -90,14 +90,6 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
     return parts;
   }
 
-  /** 确保尾部有 thinking part（无则追加） */
-  function ensureThinking(parts: MessagePart[]): MessagePart[] {
-    if (parts.length > 0 && parts[parts.length - 1].type === "thinking") {
-      return parts;
-    }
-    return [...parts, { type: "thinking" }];
-  }
-
   const handleSend = useCallback(async (payload: SendPayload) => {
     const { text, mentions, attachments, attachmentPaths } = payload;
 
