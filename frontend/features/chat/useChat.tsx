@@ -82,6 +82,22 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
 
   const streamEndpoint = `${apiEndpoint}/stream`;
 
+  /** 移除尾部 thinking part */
+  function stripThinking(parts: MessagePart[]): MessagePart[] {
+    if (parts.length > 0 && parts[parts.length - 1].type === "thinking") {
+      return parts.slice(0, -1);
+    }
+    return parts;
+  }
+
+  /** 确保尾部有 thinking part（无则追加） */
+  function ensureThinking(parts: MessagePart[]): MessagePart[] {
+    if (parts.length > 0 && parts[parts.length - 1].type === "thinking") {
+      return parts;
+    }
+    return [...parts, { type: "thinking" }];
+  }
+
   const handleSend = useCallback(async (payload: SendPayload) => {
     const { text, mentions, attachments, attachmentPaths } = payload;
 
@@ -148,7 +164,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
         id: assistantMsgId,
         role: "assistant",
         content: "",
-        parts: [],
+        parts: [{ type: "thinking" }],
       });
 
       return newMessages;
@@ -205,9 +221,10 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
             setMessages((prev) =>
               prev.map((m) => {
                 if (m.id !== assistantMsgId) return m;
-                const parts = [...(m.parts || [])];
+                const clean = stripThinking(m.parts || []);
+                const parts = [...clean];
                 const last = parts[parts.length - 1];
-                if (last && last.type === "text") {
+                if (last?.type === "text") {
                   parts[parts.length - 1] = { ...last, content: last.content + event.data.content };
                 } else {
                   parts.push({ type: "text", content: event.data.content });
@@ -223,7 +240,7 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
                   ? {
                       ...m,
                       parts: [
-                        ...(m.parts || []),
+                        ...stripThinking(m.parts || []),
                         {
                           type: "trace",
                           title: event.data.hint || event.data.name,
@@ -240,7 +257,8 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
             setMessages((prev) =>
               prev.map((m) => {
                 if (m.id !== assistantMsgId) return m;
-                const parts = [...(m.parts || [])];
+                const clean = stripThinking(m.parts || []);
+                const parts = [...clean];
                 const lastIdx = parts.length - 1;
                 if (lastIdx >= 0 && parts[lastIdx].type === "trace") {
                   const status = event.data.status;
@@ -250,12 +268,20 @@ export function useChat({ agentId, apiEndpoint }: UseChatProps) {
                       : "执行成功";
                   parts[lastIdx] = { ...parts[lastIdx], content, complete: true };
                 }
-                return { ...m, parts };
+                return { ...m, parts: [...parts, { type: "thinking" }] };
               })
             );
             break;
           case "done": {
             const { session_id: newSessionId, article } = event.data;
+
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantMsgId
+                  ? { ...m, parts: stripThinking(m.parts || []) }
+                  : m
+              )
+            );
 
             console.log("[session_id 验证] 响应 session_id:", newSessionId);
             if (newSessionId) setCurrentSessionId(newSessionId as string);
