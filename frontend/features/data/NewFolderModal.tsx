@@ -24,10 +24,12 @@ export function NewFolderModal({
 }: NewFolderModalProps) {
   const [folderName, setFolderName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       setFolderName("");
+      setErrorMsg(null);
     }
   }, [open]);
 
@@ -46,7 +48,7 @@ export function NewFolderModal({
       onOpenChange(false);
     } catch (error) {
       console.error("创建文件夹失败:", error);
-      alert("创建文件夹失败，请重试");
+      setErrorMsg("创建文件夹失败，请重试");
     } finally {
       setIsSubmitting(false);
     }
@@ -69,6 +71,11 @@ export function NewFolderModal({
           autoFocus
           disabled={isSubmitting}
         />
+        {errorMsg && (
+          <div className="text-sm text-destructive bg-destructive/5 rounded-md px-3 py-2">
+            {errorMsg}
+          </div>
+        )}
         <DialogFooter className="mt-auto flex-row justify-end">
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             Cancel

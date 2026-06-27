@@ -21,6 +21,7 @@ interface RenameModalProps {
 export function RenameModal({ open, onOpenChange, record, onRename }: RenameModalProps) {
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -30,6 +31,7 @@ export function RenameModal({ open, onOpenChange, record, onRename }: RenameModa
 
     setName("");
     setIsSubmitting(false);
+    setErrorMsg(null);
   }, [open, record]);
 
   const handleClose = () => {
@@ -55,7 +57,7 @@ export function RenameModal({ open, onOpenChange, record, onRename }: RenameModa
       onOpenChange(false);
     } catch (error) {
       console.error("重命名失败:", error);
-      alert("重命名失败，请重试");
+      setErrorMsg("重命名失败，请重试");
     } finally {
       setIsSubmitting(false);
     }
@@ -78,6 +80,11 @@ export function RenameModal({ open, onOpenChange, record, onRename }: RenameModa
           autoFocus
           disabled={isSubmitting}
         />
+        {errorMsg && (
+          <div className="text-sm text-destructive bg-destructive/5 rounded-md px-3 py-2">
+            {errorMsg}
+          </div>
+        )}
         <DialogFooter className="mt-auto flex-row justify-end">
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             Cancel

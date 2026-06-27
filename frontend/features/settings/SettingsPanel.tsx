@@ -8,6 +8,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/alert-dialog";
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
@@ -91,14 +101,21 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     }
   };
 
-  const handleDelete = async (skillId: string, skillName: string) => {
-    if (!window.confirm(`确定要删除 skill「${skillName}」吗？`)) return;
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDelete = (skillId: string, skillName: string) => {
+    setDeleteConfirm({ id: skillId, name: skillName });
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!deleteConfirm) return;
     setUploadError(null);
     try {
-      await remove(skillId);
+      await remove(deleteConfirm.id);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "删除失败");
     }
+    setDeleteConfirm(null);
   };
 
   // ── Prompts ────────────────────────────────────────────────────
@@ -426,6 +443,22 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
           </div>
         </div>
       )}
+      <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除 skill「{deleteConfirm?.name ?? ""}」吗？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDeleteConfirmed}>
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

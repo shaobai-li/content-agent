@@ -2,9 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { useSessionList } from "@/entities/session/useSessionList";
 import { usePagination } from "@/shared/lib/usePagination";
 import { deleteSession } from "@/entities/session/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/alert-dialog";
 import { HistoryItem } from "./HistoryItem";
 import { HistoryFooter } from "./HistoryFooter";
 
@@ -34,29 +45,35 @@ export function HistoryPanel() {
     return () => window.removeEventListener("session-new", handler);
   }, []);
 
+  const [deleteConfirm, setDeleteConfirm] = useState<{ sessionId: string; title: string } | null>(null);
+
   const handleSelect = useCallback((sessionId: string) => {
     setActiveSessionId(sessionId);
     window.dispatchEvent(new CustomEvent("session-select", { detail: { sessionId } }));
   }, []);
 
   const handleDelete = useCallback(
-    async (sessionId: string, title: string) => {
-      if (!agentId) return;
-      if (!confirm(`确定要删除 "${title}" 吗？`)) return;
-      try {
-        await deleteSession(agentId, sessionId);
-        if (activeSessionId === sessionId) {
-          setActiveSessionId(null);
-          window.dispatchEvent(new CustomEvent("session-new"));
-        }
-        await refreshSessions();
-      } catch (e) {
-        console.error("删除失败:", e);
-        alert("删除失败，请重试");
-      }
+    (sessionId: string, title: string) => {
+      setDeleteConfirm({ sessionId, title });
     },
-    [agentId, refreshSessions, activeSessionId]
+    []
   );
+
+  const handleDeleteConfirmed = useCallback(async () => {
+    if (!deleteConfirm || !agentId) return;
+    try {
+      await deleteSession(agentId, deleteConfirm.sessionId);
+      if (activeSessionId === deleteConfirm.sessionId) {
+        setActiveSessionId(null);
+        window.dispatchEvent(new CustomEvent("session-new"));
+      }
+      await refreshSessions();
+    } catch (e) {
+      console.error("删除失败:", e);
+      toast.error("删除失败，请重试");
+    }
+    setDeleteConfirm(null);
+  }, [deleteConfirm, agentId, activeSessionId, refreshSessions]);
 
   return (
     <div className="flex h-full flex-col">
@@ -81,6 +98,22 @@ export function HistoryPanel() {
           ))
         )}
       </div>
+      <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除 "{deleteConfirm?.title ?? ""}" 吗？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDeleteConfirmed}>
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="flex flex-col p-4 border-t">
         <HistoryFooter
           canGoPrev={canGoPrev}
