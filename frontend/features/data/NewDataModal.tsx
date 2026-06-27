@@ -21,11 +21,13 @@ export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalP
   const [dataName, setDataName] = useState("");
   const [dataDescription, setDataDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       setDataName("");
       setDataDescription("");
+      setErrorMsg(null);
     }
   }, [open]);
 
@@ -43,7 +45,7 @@ export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalP
       onOpenChange(false);
     } catch (error) {
       console.error("创建知识库失败:", error);
-      alert(error instanceof Error ? error.message : "创建知识库失败，请重试");
+      setErrorMsg(error instanceof Error ? error.message : "创建知识库失败，请重试");
     } finally {
       setIsSubmitting(false);
     }
@@ -71,6 +73,11 @@ export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalP
           placeholder="description"
           className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
         />
+        {errorMsg && (
+          <div className="text-sm text-destructive bg-destructive/5 rounded-md px-3 py-2">
+            {errorMsg}
+          </div>
+        )}
         <DialogFooter className="mt-auto flex-row justify-end">
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             Cancel

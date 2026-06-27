@@ -17,6 +17,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/alert-dialog";
 import { DataTable } from "./DataTable";
 import type { DataPanelConfig } from "./type";
 
@@ -189,26 +200,29 @@ export function DataPanel({
   }, [customRenderers]);
 
   // 删除处理函数
-  const handleRemove = useCallback(async (record: any) => {
+  const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
+
+  const handleRemove = useCallback(
+    (record: any) => {
+      setDeleteConfirm(record);
+    },
+    []
+  );
+
+  const handleDeleteConfirmed = useCallback(async () => {
+    if (!deleteConfirm || !deleteDataFn) return;
+
     if (onRemove) {
-      onRemove(record);
-      return;
-    }
-
-    if (!deleteDataFn) {
-      console.warn("未配置删除函数");
-      return;
-    }
-
-    if (!confirm(`确定要删除 "${record.name || record.record_id}" 吗？`)) {
+      onRemove(deleteConfirm);
+      setDeleteConfirm(null);
       return;
     }
 
     try {
       const targetId =
-        record?.node_type === "folder"
-          ? record.id
-          : record.record_id ?? record.id;
+        deleteConfirm?.node_type === "folder"
+          ? deleteConfirm.id
+          : deleteConfirm.record_id ?? deleteConfirm.id;
 
       if (typeof targetId !== "string" || !targetId) {
         throw new Error("缺少可删除的节点标识");
@@ -221,9 +235,10 @@ export function DataPanel({
       loadData();
     } catch (error) {
       console.error("删除失败:", error);
-      alert("删除失败，请重试");
+      toast.error("删除失败，请重试");
     }
-  }, [deleteDataFn, onRemove, loadData]);
+    setDeleteConfirm(null);
+  }, [deleteConfirm, deleteDataFn, onRemove, loadData]);
 
   const handleRename = useCallback(async (record: any, name: string) => {
     if (!renameDataFn) {
@@ -444,6 +459,22 @@ export function DataPanel({
         onRename={handleRename}
         onRemove={handleRemove}
       />
+      <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除 "{deleteConfirm?.name || deleteConfirm?.record_id || ""}" 吗？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDeleteConfirmed}>
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

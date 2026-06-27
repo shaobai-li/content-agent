@@ -99,6 +99,7 @@ export function MoveToFolderDialog({
 }: MoveToFolderDialogProps) {
     const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
     const [submitting, setSubmitting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const { childrenByParent, folderMap } = useMemo(
         () => buildMovableFolders(data, record),
@@ -109,6 +110,7 @@ export function MoveToFolderDialog({
         if (!open) {
             setCurrentFolderId(ROOT_FOLDER_ID);
             setSubmitting(false);
+            setErrorMsg(null);
         }
     }, [open]);
 
@@ -177,7 +179,7 @@ export function MoveToFolderDialog({
             onOpenChange(false);
         } catch (error) {
             console.error("移动失败:", error);
-            alert(error instanceof Error ? error.message : "移动失败，请重试");
+            setErrorMsg(error instanceof Error ? error.message : "移动失败，请重试");
         } finally {
             setSubmitting(false);
         }
@@ -259,6 +261,11 @@ export function MoveToFolderDialog({
                         </div>
                     )}
                 </div>
+                {errorMsg && (
+                    <div className="px-0 py-2 text-sm text-destructive bg-destructive/5 rounded-md">
+                        {errorMsg}
+                    </div>
+                )}
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                     <Button onClick={handleMove} disabled={!canSubmit}>

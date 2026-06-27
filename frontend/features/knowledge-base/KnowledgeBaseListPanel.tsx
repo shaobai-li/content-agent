@@ -3,6 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AgentId } from "@/entities/agent/model";
 import { deleteKnowledgeBase } from "@/shared/api/records";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/alert-dialog";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { usePagination } from "@/shared/lib/usePagination";
@@ -59,26 +70,31 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
     resetPage();
   }, [normalizedSearchKeyword, resetPage]);
 
-  const handleDelete = async (targetDatabaseId: string, databaseName: string) => {
-    if (!confirm(`确定要删除 "${databaseName}" 吗？`)) {
-      return;
-    }
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDelete = (targetDatabaseId: string, databaseName: string) => {
+    setDeleteConfirm({ id: targetDatabaseId, name: databaseName });
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!deleteConfirm) return;
 
     try {
-      const response = await deleteKnowledgeBase(agentId, targetDatabaseId);
+      const response = await deleteKnowledgeBase(agentId, deleteConfirm.id);
       if (!response.success) {
         throw new Error(response.message || "删除知识库失败");
       }
 
-      if (databaseId === targetDatabaseId) {
+      if (databaseId === deleteConfirm.id) {
         clearDatabase();
       }
 
       window.dispatchEvent(new Event(KNOWLEDGE_BASES_REFRESH_EVENT));
     } catch (error) {
       console.error("删除知识库失败:", error);
-      alert(error instanceof Error ? error.message : "删除知识库失败，请重试");
+      toast.error(error instanceof Error ? error.message : "删除知识库失败，请重试");
     }
+    setDeleteConfirm(null);
   };
 
   if (loading) {
@@ -154,6 +170,22 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
           );
         })}
       </div>
+      <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除 "{deleteConfirm?.name ?? ""}" 吗？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDeleteConfirmed}>
+              删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="flex flex-col border-t p-4">
         <HistoryFooter
           canGoPrev={canGoPrev}
