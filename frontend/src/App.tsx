@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { ClientShell } from "./client-shell";
 import { LoginPage } from "@/features/auth/LoginPage";
 import AgentPage from "./pages/AgentPage";
+import { Toaster } from "@/shared/ui/sonner";
 
 function Home() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/agent/:agentId" element={<AgentPage />} />
       </Routes>
+      <Toaster />
     </ClientShell>
   );
 }
