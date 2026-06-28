@@ -1,4 +1,5 @@
 import json
+import uuid
 from typing import Optional, List
 from fastapi import APIRouter, Body, Form, File, UploadFile
 from fastapi.responses import StreamingResponse
@@ -12,6 +13,8 @@ from app.service.stream_service import (
 )
 from app.runtime.agent_registry import get_agent_config
 from app.runtime.agent_turn_context import build_agent_turn_context
+from app.core.config import DATA_DIR
+from app.core.auth import get_current_user_id
 
 # ── Agent 列表（不含 agent_id 路径参数） ─────────────────────────
 list_router = APIRouter(prefix="/api", tags=["agents"])
@@ -62,6 +65,55 @@ async def list_agents():
         pass
 
     return {"agents": result}
+
+
+@list_router.post("/agents")
+async def create_agent(payload: dict = Body(...)):
+    """创建自定义智能体，返回 agent_id。"""
+    name = (payload.get("name") or "").strip()
+    if not name:
+        return {"ok": False, "error": "智能体名称不能为空"}
+    if len(name) > 20:
+        return {"ok": False, "error": "智能体名称不能超过20个字符"}
+
+    user_id = get_current_user_id()
+
+    # 生成 agent_id: a_ + UUID 前 8 位 hex
+    agent_id = f"a_{uuid.uuid4().hex[:8]}"
+
+    # 构造 YAML 路径并写入
+    yaml_path = DATA_DIR / f"u_{user_id}" / "agent" / f"{agent_id}.yaml"
+    yaml_path.parent.mkdir(parents=True, exist_ok=True)
+
+    import yaml as _yaml
+    with open(yaml_path, "w", encoding="utf-8") as f:
+        _yaml.dump({"name": name}, f, allow_unicode=True)
+
+    logger.info("created custom agent: {} ({})", agent_id, name)
+    return {"ok": True, "agent": {"id": agent_id, "name": name}}
+
+
+@list_router.delete("/agents/{agent_id}")
+async def delete_agent(agent_id: str):
+    """删除自定义智能体，仅允许删除 a_ 开头的自定义 agent。"""
+    # 只允许删除 a_ 开头的自定义智能体
+    if not agent_id.startswith("a_"):
+        return {"ok": False, "error": "只能删除自定义智能体"}
+
+    # 不允许删除系统智能体
+    from app.core.config import AGENTS_CONFIG
+    if agent_id in AGENTS_CONFIG:
+        return {"ok": False, "error": f"智能体 '{agent_id}' 是系统智能体，不能删除"}
+
+    user_id = get_current_user_id()
+
+    yaml_path = DATA_DIR / f"u_{user_id}" / "agent" / f"{agent_id}.yaml"
+    if not yaml_path.exists():
+        return {"ok": False, "error": f"智能体 '{agent_id}' 不存在"}
+
+    yaml_path.unlink()
+    logger.info("deleted custom agent: {}", agent_id)
+    return {"ok": True}
 
 
 # ── 单个 Agent 操作（含 agent_id 路径参数） ─────────────────────
