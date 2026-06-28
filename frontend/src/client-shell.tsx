@@ -30,6 +30,15 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
+  // 监听自定义智能体创建/删除事件，刷新侧边栏
+  useEffect(() => {
+    const handler = () => {
+      setRoutes(getSidebarRoutes());
+    };
+    window.addEventListener("agent-registry-refresh", handler);
+    return () => window.removeEventListener("agent-registry-refresh", handler);
+  }, []);
+
   // agent 加载完成后，若当前处于根路由则自动导航到 admin agent
   useEffect(() => {
     if (!ready) return;

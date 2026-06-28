@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { AgentInfoCard } from "./AgentInfoCard";
+import { NewAgentDialog } from "./NewAgentDialog";
 import {
   fetchAgentsSummary,
   type AgentSummary,
 } from "@/shared/api/management";
 import { getHiddenAgentIds } from "@/entities/agent/visibility";
+import { loadAgents } from "@/entities/agent/agent.registry";
+import { getSidebarRoutes } from "@/app-shell/navigation";
 
 interface ManagementPanelProps {
   agentId: string;
@@ -21,6 +24,18 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
   const [hiddenIds, setHiddenIds] = useState<string[]>(() =>
     getHiddenAgentIds(),
   );
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const refreshAgents = () => {
+    fetchAgentsSummary()
+      .then((data) => {
+        setAgents(data);
+        setLoadingState("loaded");
+      })
+      .catch(() => {
+        setLoadingState("error");
+      });
+  };
 
   // 监听来自其他组件（如 Sidebar）的 visibility 变更
   useEffect(() => {
@@ -47,6 +62,16 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
       cancelled = true;
     };
   }, []);
+
+  const handleAgentCreated = async () => {
+    setDialogOpen(false);
+    // 刷新管理面板
+    refreshAgents();
+    // 刷新侧边栏
+    await loadAgents();
+    // dispatch 事件通知 client-shell 重建侧边栏
+    window.dispatchEvent(new CustomEvent("agent-registry-refresh"));
+  };
 
   if (loadingState === "loading") {
     return (
@@ -89,9 +114,7 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
         ))}
         <button
           type="button"
-          onClick={() => {
-              // TODO: 实现新增 agent 功能
-            }}
+          onClick={() => setDialogOpen(true)}
           className="flex min-h-36 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-transparent py-6 shadow-none outline-none transition-colors hover:border-muted-foreground/50 hover:bg-muted/30 focus-visible:border-border focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/45 text-muted-foreground">
@@ -102,6 +125,12 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
           </span>
         </button>
       </div>
+
+      <NewAgentDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onCreated={handleAgentCreated}
+      />
     </div>
   );
 }

@@ -25,3 +25,24 @@ export async function fetchAgentsSummary(): Promise<AgentSummary[]> {
   );
   return data.agents ?? [];
 }
+
+export interface CreateAgentResponse {
+  ok: boolean;
+  agent?: { id: string; name: string };
+  error?: string;
+}
+
+/** 创建自定义智能体 */
+export async function createAgent(name: string): Promise<CreateAgentResponse> {
+  return http.post<CreateAgentResponse>("/api/agents", { name });
+}
+
+export interface DeleteAgentResponse {
+  ok: boolean;
+  error?: string;
+}
+
+/** 删除自定义智能体 */
+export async function deleteAgent(agentId: string): Promise<DeleteAgentResponse> {
+  return http.delete<DeleteAgentResponse>(`/api/agents/${agentId}`);
+}
