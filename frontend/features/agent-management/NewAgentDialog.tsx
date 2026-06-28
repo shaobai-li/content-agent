@@ -84,6 +84,7 @@ export function NewAgentDialog({
             disabled={creating}
             autoFocus
             autoComplete="off"
+            maxLength={20}
           />
           {error && (
             <p className="text-sm text-destructive">{error}</p>

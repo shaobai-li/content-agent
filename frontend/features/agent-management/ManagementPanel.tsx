@@ -10,7 +10,6 @@ import {
 } from "@/shared/api/management";
 import { getHiddenAgentIds } from "@/entities/agent/visibility";
 import { loadAgents } from "@/entities/agent/agent.registry";
-import { getSidebarRoutes } from "@/app-shell/navigation";
 
 interface ManagementPanelProps {
   agentId: string;

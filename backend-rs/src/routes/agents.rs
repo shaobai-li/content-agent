@@ -54,6 +54,11 @@ async fn create_agent(
             "ok": false, "error": "智能体名称不能为空"
         }));
     }
+    if name.len() > 20 {
+        return Json(serde_json::json!({
+            "ok": false, "error": "智能体名称不能超过20个字符"
+        }));
+    }
 
     let user_id = match &ctx.user_id {
         Some(uid) => uid.clone(),
@@ -77,10 +82,10 @@ async fn create_agent(
         }));
     }
 
-    // 写入 YAML
+    // 写入 YAML（静态 JSON → YAML 序列化不会失败）
     let yaml_content = serde_yaml::to_string(&serde_json::json!({
         "name": name
-    })).unwrap_or_default();
+    })).expect("serialize static JSON to YAML cannot fail");
 
     if let Some(parent) = yaml_path.parent() {
         std::fs::create_dir_all(parent).ok();
