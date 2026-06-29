@@ -28,6 +28,7 @@ import {
 } from "@/shared/ui/alert-dialog";
 import { hideAgent, showAgent } from "@/entities/agent/visibility";
 import { deleteAgent } from "@/shared/api/management";
+import { toast } from "sonner";
 
 export interface AgentInfoCardProps {
   agentId: string;
@@ -74,7 +75,6 @@ export function AgentInfoCard({
 }: AgentInfoCardProps) {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const statusLabel = visible ? "Active" : "Hidden";
   const statusStyle = visible
@@ -95,17 +95,16 @@ export function AgentInfoCard({
 
   const handleDelete = async () => {
     setDeleting(true);
-    setDeleteError(null);
     try {
       const res = await deleteAgent(agentId);
       if (!res.ok) {
-        setDeleteError(res.error ?? "删除失败");
+        toast.error(res.error ?? "删除失败");
         return;
       }
       setDeleteConfirm(false);
       onDeleted?.();
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : "删除失败，请稍后重试");
+      toast.error(err instanceof Error ? err.message : "删除失败，请稍后重试");
     } finally {
       setDeleting(false);
     }
@@ -203,9 +202,6 @@ export function AgentInfoCard({
               确定要删除「{name}」吗？删除后智能体将从列表中移除，相关数据不会被清除。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {deleteError && (
-            <p className="text-sm text-destructive px-6">{deleteError}</p>
-          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
             <AlertDialogAction
