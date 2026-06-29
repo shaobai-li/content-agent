@@ -64,11 +64,17 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
 
   const handleAgentCreated = async () => {
     setDialogOpen(false);
-    // 刷新管理面板
+    refreshView();
+  };
+
+  const handleAgentDeleted = async () => {
+    refreshView();
+  };
+
+  /** 刷新管理面板和侧边栏 */
+  const refreshView = async () => {
     refreshAgents();
-    // 刷新侧边栏
     await loadAgents();
-    // dispatch 事件通知 client-shell 重建侧边栏
     window.dispatchEvent(new CustomEvent("agent-registry-refresh"));
   };
 
@@ -104,11 +110,13 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
             key={agent.id}
             agentId={agent.id}
             name={agent.name}
+            locked={agent.locked}
             visible={!hiddenIds.includes(agent.id)}
             model={agent.model}
             sessionCount={agent.session_count}
             lastReplyTime={agent.last_reply_time}
             lastSessionTitle={agent.last_session_title}
+            onDeleted={handleAgentDeleted}
           />
         ))}
         <button
