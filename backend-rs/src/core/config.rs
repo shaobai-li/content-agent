@@ -116,9 +116,8 @@ pub fn init_config() {
     let config_dir = root.join("config");
     CONFIG_DIR.set(config_dir.clone()).ok();
 
-    let data_dir = std::env::var("DATA_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| root.join("data"));
+    // data_dir 固定为 OMNIAGE_ROOT/data，不从环境变量读取
+    let data_dir = root.join("data");
     let data_dir = data_dir.canonicalize().unwrap_or(data_dir);
     // Windows: canonicalize() 会添加 \\?\ 前缀，去掉它以得到整洁路径
     let data_dir = crate::utils::helpers::normalize_path(data_dir);
@@ -201,7 +200,27 @@ fn merge_agent_configs(base: Option<AgentConfig>, user: AgentConfig) -> AgentCon
 pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
     let cfg = get_config();
     let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
-    cfg.data_dir.join(format!("u_{}", user_id)).join("data").join(agent_id)
+    let default_base = cfg.data_dir.join(format!("u_{}", user_id));
+
+    // 管理员 workspace 永远在 data/u_{user_id}/admin/
+    if agent_id == "admin" {
+        return default_base.join("admin");
+    }
+
+    // 读取用户配置 config.json 中的 user_data_dir
+    let config_path = default_base.join("admin").join("config.json");
+    if let Ok(content) = std::fs::read_to_string(&config_path) {
+        if let Ok(user_config) = serde_json::from_str::<std::collections::HashMap<String, String>>(&content) {
+            if let Some(user_data_dir) = user_config.get("user_data_dir") {
+                let trimmed = user_data_dir.trim();
+                if !trimmed.is_empty() {
+                    return PathBuf::from(trimmed).join(agent_id);
+                }
+            }
+        }
+    }
+
+    default_base.join(agent_id)
 }
 
 pub fn get_agent_sessions_path(agent_id: &str) -> PathBuf {
