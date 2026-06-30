@@ -13,7 +13,7 @@ from app.service.stream_service import (
 )
 from app.runtime.agent_registry import get_agent_config
 from app.runtime.agent_turn_context import build_agent_turn_context
-from app.core.config import DATA_DIR
+from app.core.config import DEFAULT_DATA_DIR
 from app.core.auth import get_current_user_id
 
 # ── Agent 列表（不含 agent_id 路径参数） ─────────────────────────
@@ -82,7 +82,7 @@ async def create_agent(payload: dict = Body(...)):
     agent_id = f"a_{uuid.uuid4().hex[:8]}"
 
     # 构造 YAML 路径并写入
-    yaml_path = DATA_DIR / f"u_{user_id}" / "agent" / f"{agent_id}.yaml"
+    yaml_path = DEFAULT_DATA_DIR / f"u_{user_id}" / "agent" / f"{agent_id}.yaml"
     yaml_path.parent.mkdir(parents=True, exist_ok=True)
 
     import yaml as _yaml
@@ -107,7 +107,7 @@ async def delete_agent(agent_id: str):
 
     user_id = get_current_user_id()
 
-    yaml_path = DATA_DIR / f"u_{user_id}" / "agent" / f"{agent_id}.yaml"
+    yaml_path = DEFAULT_DATA_DIR / f"u_{user_id}" / "agent" / f"{agent_id}.yaml"
     if not yaml_path.exists():
         return {"ok": False, "error": f"智能体 '{agent_id}' 不存在"}
 

@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 from fastapi import HTTPException, Request
 
-from app.core.config import DATA_DIR
+from app.core.config import DEFAULT_DATA_DIR
 
 _user_id_var: ContextVar[str] = ContextVar("user_id")
 _user_agents_var: ContextVar[Dict[str, Dict[str, Any]]] = ContextVar("user_agents")
@@ -23,7 +23,7 @@ def _load_user_agent_yamls(user_id: str) -> Dict[str, Dict[str, Any]]:
     """扫描 DATA_DIR/u_{user_id}/agent/*.yaml，文件名即 agent_id。"""
     import yaml
 
-    agents_dir = DATA_DIR / f"u_{user_id}" / "agent"
+    agents_dir = DEFAULT_DATA_DIR / f"u_{user_id}" / "agent"
     result: Dict[str, Dict[str, Any]] = {}
     if not agents_dir.is_dir():
         return result

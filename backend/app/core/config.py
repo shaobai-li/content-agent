@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 import yaml
@@ -10,8 +11,8 @@ OMNIAGE_ROOT = Path(os.getenv("OMNIAGE_ROOT", _PROJECT_ROOT.parent))
 ENV_PATH = OMNIAGE_ROOT / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
-# 绝对路径：从 .env 读取
-DATA_DIR = Path(os.getenv("DATA_DIR", ".")).resolve()
+# 默认数据根目录：固定为 OMNIAGE_ROOT/data，不可被外部修改
+DEFAULT_DATA_DIR = (OMNIAGE_ROOT / "data").resolve()
 
 # ── 全局 config.yaml（顶级全局配置） ──────────────────────────────
 CONFIG_PATH = OMNIAGE_ROOT / "config.yaml"
@@ -47,10 +48,48 @@ AGENTS_CONFIG: Dict[str, Dict[str, Any]] = {
     **_old_agents,
     **_agent_yamls,
 }
+def _load_user_config(user_id: str) -> dict:
+    """加载 data/u_{user_id}/admin/config.json，文件不存在时返回空 dict。"""
+    config_path = DEFAULT_DATA_DIR / f"u_{user_id}" / "admin" / "config.json"
+    if config_path.exists():
+        return json.loads(config_path.read_text(encoding="utf-8"))
+    return {}
+
+
+def _save_user_config(user_id: str, config: dict) -> None:
+    """写入 data/u_{user_id}/admin/config.json。"""
+    config_path = DEFAULT_DATA_DIR / f"u_{user_id}" / "admin" / "config.json"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps(config, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
 def get_agent_base_dir(agent_id: str) -> Path:
+    """获取指定 agent 的工作区基目录。
+
+    - admin agent 永远在 DEFAULT_DATA_DIR/u_{user_id}/admin/
+    - 其他 agent：
+      若 config.json 中设置了 user_data_dir，则返回 {user_data_dir}/{agent_id}
+      否则返回 DEFAULT_DATA_DIR/u_{user_id}/{agent_id}
+    """
     from app.core.auth import get_current_user_id
+
     user_id = get_current_user_id()
-    return (DATA_DIR / f"u_{user_id}" / "data" / agent_id).resolve()
+    default_base = DEFAULT_DATA_DIR / f"u_{user_id}"
+
+    # 管理员 workspace 永远在 data/u_{user_id}/admin/
+    if agent_id == "admin":
+        return (default_base / "admin").resolve()
+
+    # 读取用户配置中的 user_data_dir
+    user_config = _load_user_config(user_id)
+    user_data_dir = (user_config.get("user_data_dir") or "").strip()
+    if user_data_dir:
+        return (Path(user_data_dir).resolve() / agent_id).resolve()
+    else:
+        return (default_base / agent_id).resolve()
 
 
 def get_agent_workspace_dir(agent_id: str) -> Path:
