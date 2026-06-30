@@ -10,6 +10,8 @@ from app.core.config import (
     get_agent_knowledge_base_path,
     get_agent_skill_ids,
     _load_agent_yamls,
+    _load_user_config,
+    _save_user_config,
 )
 
 
@@ -62,6 +64,81 @@ def test_get_agent_base_dir(tmp_path):
          patch("app.core.auth.get_current_user_id", return_value="1"):
         result = get_agent_base_dir("ag")
     assert result == (tmp_path / "u_1" / "ag").resolve()
+
+
+def test_get_agent_base_dir_admin(tmp_path):
+    """admin agent 永远在 DEFAULT_DATA_DIR/u_{user_id}/admin/"""
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path), \
+         patch("app.core.auth.get_current_user_id", return_value="1"):
+        result = get_agent_base_dir("admin")
+    assert result == (tmp_path / "u_1" / "admin").resolve()
+
+
+def test_get_agent_base_dir_with_user_data_dir(tmp_path):
+    """config.json 中设置 user_data_dir 时，其他 agent 路径指向 user_data_dir/{agent_id}"""
+    user_data_path = tmp_path / "my_data"
+    user_data_path.mkdir()
+    # 写入 config.json
+    config_dir = tmp_path / "u_1" / "admin"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.json").write_text(
+        '{"user_data_dir": "' + str(user_data_path).replace("\\", "\\\\") + '"}',
+        encoding="utf-8",
+    )
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path), \
+         patch("app.core.auth.get_current_user_id", return_value="1"):
+        result = get_agent_base_dir("my_agent")
+    assert result == (user_data_path / "my_agent").resolve()
+
+
+# ── _load_user_config ──────────────────────────────────────────────────────
+
+def test_load_user_config_file_not_exists(tmp_path):
+    """config.json 不存在时返回空 dict。"""
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+        result = _load_user_config("nonexistent")
+    assert result == {}
+
+
+def test_load_user_config_file_exists(tmp_path):
+    """config.json 存在时正确读取内容。"""
+    config_dir = tmp_path / "u_99" / "admin"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.json").write_text(
+        '{"user_data_dir": "D:/my_data"}', encoding="utf-8",
+    )
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+        result = _load_user_config("99")
+    assert result == {"user_data_dir": "D:/my_data"}
+
+
+# ── _save_user_config ──────────────────────────────────────────────────────
+
+def test_save_user_config_writes_file(tmp_path):
+    """_save_user_config 正确写入 config.json。"""
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+        _save_user_config("1", {"user_data_dir": "D:/test"})
+    config_path = tmp_path / "u_1" / "admin" / "config.json"
+    assert config_path.exists()
+    content = config_path.read_text(encoding="utf-8")
+    assert '"user_data_dir"' in content
+    assert '"D:/test"' in content
+
+
+def test_save_user_config_overwrites(tmp_path):
+    """_save_user_config 覆盖已有文件。"""
+    config_dir = tmp_path / "u_1" / "admin"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.json").write_text(
+        '{"old": "value"}', encoding="utf-8",
+    )
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+        _save_user_config("1", {"user_data_dir": "D:/new"})
+    config_path = tmp_path / "u_1" / "admin" / "config.json"
+    content = config_path.read_text(encoding="utf-8")
+    assert '"user_data_dir"' in content
+    assert '"old"' not in content
+
 
 # ── get_agent_workspace_dir ────────────────────────────────────────────────
 
