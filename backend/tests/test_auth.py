@@ -53,9 +53,9 @@ class TestLoadUserAgentYamls:
         """正常加载用户 agent 目录下的 YAML 文件。"""
         from app.core.auth import _load_user_agent_yamls
         import app.core.auth as m
-        original = m.DATA_DIR
+        original = m.DEFAULT_DATA_DIR
         try:
-            m.DATA_DIR = tmp_path
+            m.DEFAULT_DATA_DIR = tmp_path
             agent_dir = tmp_path / "u_1" / "agent"
             agent_dir.mkdir(parents=True)
             (agent_dir / "test-agent.yaml").write_text(
@@ -65,7 +65,7 @@ class TestLoadUserAgentYamls:
             assert "test-agent" in result
             assert result["test-agent"]["name"] == "测试"
         finally:
-            m.DATA_DIR = original
+            m.DEFAULT_DATA_DIR = original
 
 
 def _mock_request(headers: dict):
