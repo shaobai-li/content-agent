@@ -14,7 +14,7 @@ interface ProviderEnv {
 
 interface EnvResponse {
   providers: ProviderEnv[];
-  data_dir: string;
+  user_data_dir: string;
 }
 
 function GeneralSettings() {
@@ -24,9 +24,9 @@ function GeneralSettings() {
   const [error, setError] = useState<string | null>(null);
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [dirty, setDirty] = useState<Record<string, string>>({});
-  const DEFAULT_DATA_DIR = "";
-  const [dataDir, setDataDir] = useState(DEFAULT_DATA_DIR);
-  const [dataDirOriginal, setDataDirOriginal] = useState(DEFAULT_DATA_DIR);
+  const DEFAULT_USER_DATA_DIR = "";
+  const [userDataDir, setUserDataDir] = useState(DEFAULT_USER_DATA_DIR);
+  const [userDataDirOriginal, setUserDataDirOriginal] = useState(DEFAULT_USER_DATA_DIR);
 
   const refresh = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -34,9 +34,9 @@ function GeneralSettings() {
     try {
       const data = await http.get<EnvResponse>("/api/settings/env");
       setProviders(data.providers);
-      if (data.data_dir) {
-        setDataDir(data.data_dir);
-        setDataDirOriginal(data.data_dir);
+      if (data.user_data_dir) {
+        setUserDataDir(data.user_data_dir);
+        setUserDataDirOriginal(data.user_data_dir);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
@@ -69,26 +69,26 @@ function GeneralSettings() {
     setError(null);
     try {
       const payload: Record<string, string> = { ...dirty };
-      if (dataDir !== dataDirOriginal) {
-        payload.DATA_DIR = dataDir;
+      if (userDataDir !== userDataDirOriginal) {
+        payload.user_data_dir = userDataDir;
       }
       await http.put("/api/settings/env", payload);
       setDirty({});
-      setDataDirOriginal(dataDir);
+      setUserDataDirOriginal(userDataDir);
       await refresh(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
       setSaving(false);
     }
-  }, [dirty, refresh, dataDir, dataDirOriginal]);
+  }, [dirty, refresh, userDataDir, userDataDirOriginal]);
 
   const toggleVisibility = useCallback((envKey: string) => {
     setVisible((prev) => ({ ...prev, [envKey]: !prev[envKey] }));
   }, []);
 
   const hasChanges =
-    Object.keys(dirty).length > 0 || dataDir !== dataDirOriginal;
+    Object.keys(dirty).length > 0 || userDataDir !== userDataDirOriginal;
 
   if (loading) {
     return (
@@ -164,17 +164,17 @@ function GeneralSettings() {
       )}
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="env-DATA_DIR" className="text-sm font-medium text-foreground">
-          DATA_DIR
+        <label htmlFor="env-user-data-dir" className="text-sm font-medium text-foreground">
+          用户数据存储目录
         </label>
         <div className="relative">
           <input
-            id="env-DATA_DIR"
+            id="env-user-data-dir"
             type="text"
             className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 pr-3 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-input focus-visible:ring-0"
-            placeholder="DATA_DIR路径"
-            value={dataDir}
-            onChange={(e) => setDataDir(e.target.value)}
+            placeholder="留空则使用默认位置"
+            value={userDataDir}
+            onChange={(e) => setUserDataDir(e.target.value)}
           />
         </div>
       </div>
