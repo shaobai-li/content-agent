@@ -183,16 +183,6 @@ fn main() {
                 seed_default_config(app);
             }
 
-            // DATA_DIR 默认在 OMNIAGE_ROOT/data 下
-            if std::env::var("DATA_DIR").is_err() {
-                let root = std::env::var("OMNIAGE_ROOT").unwrap_or_default();
-                let data_dir = std::path::PathBuf::from(&root).join("data");
-                std::env::set_var(
-                    "DATA_DIR",
-                    data_dir.to_string_lossy().to_string(),
-                );
-            }
-
             // 初始化 backend-rs（配置、agent 注册）—— OMNIAGE_ROOT 已就位
             omniage_backend_rs::initialize();
             // 在后台启动 Axum server
