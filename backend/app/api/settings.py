@@ -1,4 +1,4 @@
-"""Global settings API: env vars (API keys) and DATA_DIR management."""
+"""Global settings API: env vars (API keys) and per-user user_data_dir management."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, Body, HTTPException
-from app.core.config import ENV_PATH
+from app.core.auth import get_current_user_id
+from app.core.config import ENV_PATH, _load_user_config, _save_user_config
 from app.providers.registry import PROVIDERS
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -50,6 +51,8 @@ async def get_env_settings():
 
     Derives the provider list dynamically from the provider registry,
     so adding a new provider automatically appears here.
+
+    Returns per-user user_data_dir from config.json.
     """
     result = []
     for spec in PROVIDERS:
@@ -63,35 +66,45 @@ async def get_env_settings():
             "set": bool(value),
             "masked": _mask_key(value) if value else "",
         })
-    return {"providers": result, "data_dir": os.environ.get("DATA_DIR", "")}
+
+    user_config = _load_user_config(get_current_user_id())
+    user_data_dir = (user_config.get("user_data_dir") or "").strip()
+
+    return {"providers": result, "user_data_dir": user_data_dir}
 
 
 @router.put("/env")
 async def update_env_settings(payload: dict = Body(...)):
-    """Update env vars and DATA_DIR.
+    """Update env vars and per-user user_data_dir.
 
     - Provider API keys: key is env_key name, value is the key.
-    - DATA_DIR: key is "DATA_DIR", value is an absolute path.
+    - user_data_dir: key is "user_data_dir", value is an absolute path.
 
     Empty string removes the entry. Non-empty sets it.
     Both os.environ and .env file are updated so the change survives restart.
 
-    When DATA_DIR is provided and non-empty, the path is validated to exist
-    on disk before saving.
+    When user_data_dir is provided and non-empty, the path is validated to exist
+    on disk before saving. The value is written to data/u_{user_id}/admin/config.json.
 
     Example:
-        { "DEEPSEEK_API_KEY": "sk-xxx", "DATA_DIR": "D:/data" }
+        { "DEEPSEEK_API_KEY": "sk-xxx", "user_data_dir": "D:/my_agent_data" }
     """
-    # Validate DATA_DIR first (if present and non-empty)
-    data_dir_val = payload.get("DATA_DIR")
-    if isinstance(data_dir_val, str) and data_dir_val.strip():
-        p = Path(data_dir_val.strip())
-        if not p.is_absolute():
-            raise HTTPException(status_code=400, detail=f"请输入绝对路径: {data_dir_val}")
-        if not p.exists():
-            raise HTTPException(status_code=400, detail=f"路径不存在: {data_dir_val}")
-        if not p.is_dir():
-            raise HTTPException(status_code=400, detail=f"路径不是目录: {data_dir_val}")
+    user_id = get_current_user_id()
+
+    # Handle user_data_dir — write to per-user config.json
+    user_data_dir_val = payload.pop("user_data_dir", None)
+    if user_data_dir_val is not None:
+        if isinstance(user_data_dir_val, str) and user_data_dir_val.strip():
+            p = Path(user_data_dir_val.strip())
+            if not p.is_absolute():
+                raise HTTPException(status_code=400, detail=f"请输入绝对路径: {user_data_dir_val}")
+            if not p.exists():
+                raise HTTPException(status_code=400, detail=f"路径不存在: {user_data_dir_val}")
+            if not p.is_dir():
+                raise HTTPException(status_code=400, detail=f"路径不是目录: {user_data_dir_val}")
+            _save_user_config(user_id, {"user_data_dir": user_data_dir_val.strip()})
+        else:
+            _save_user_config(user_id, {"user_data_dir": ""})
 
     updates: dict[str, str | None] = {}
     for key, value in payload.items():
