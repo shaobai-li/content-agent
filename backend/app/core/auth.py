@@ -20,7 +20,7 @@ def get_current_user_id() -> str:
 
 
 def _load_user_agent_yamls(user_id: str) -> Dict[str, Dict[str, Any]]:
-    """扫描 DATA_DIR/u_{user_id}/agent/*.yaml，文件名即 agent_id。"""
+    """扫描 DEFAULT_DATA_DIR/u_{user_id}/agent/*.yaml，文件名即 agent_id。"""
     import yaml
 
     agents_dir = DEFAULT_DATA_DIR / f"u_{user_id}" / "agent"
