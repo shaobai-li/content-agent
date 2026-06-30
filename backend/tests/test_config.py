@@ -58,10 +58,10 @@ def test_load_agent_yamls_strips_agent_id_key():
 # ── get_agent_base_dir ─────────────────────────────────────────────────────
 
 def test_get_agent_base_dir(tmp_path):
-    with patch("app.core.config.DATA_DIR", tmp_path), \
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path), \
          patch("app.core.auth.get_current_user_id", return_value="1"):
         result = get_agent_base_dir("ag")
-    assert result == (tmp_path / "u_1" / "data" / "ag").resolve()
+    assert result == (tmp_path / "u_1" / "ag").resolve()
 
 # ── get_agent_workspace_dir ────────────────────────────────────────────────
 
