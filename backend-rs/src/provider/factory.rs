@@ -35,6 +35,20 @@ pub static PROVIDERS: Lazy<Vec<ProviderSpec>> = Lazy::new(|| {
             default_api_base: "https://api.moonshot.cn",
             default_model: "kimi-k2.5",
         },
+        ProviderSpec {
+            name: "zhipu",
+            display_name: "智谱",
+            env_key: "ZHIPU_API_KEY",
+            default_api_base: "https://open.bigmodel.cn/api/paas/v4",
+            default_model: "glm-4-plus",
+        },
+        ProviderSpec {
+            name: "minimax",
+            display_name: "MiniMax",
+            env_key: "MINIMAX_API_KEY",
+            default_api_base: "https://api.minimax.io/v1",
+            default_model: "minimax-text-01",
+        },
     ]
 });
 
@@ -62,16 +76,13 @@ pub fn create_provider(
     let spec = find_provider_spec(provider_name)
         .ok_or_else(|| format!("Unknown provider: {provider_name}"))?;
 
-    // 确定 api_key：参数 → 环境变量
+    // 确定 api_key：仅从参数读取，不再从环境变量回退
     let resolved_key = api_key
-        .filter(|k| !k.is_empty())
-        .or_else(|| std::env::var(spec.env_key).ok())
         .filter(|k| !k.is_empty())
         .ok_or_else(|| {
             format!(
                 "API key not found for provider '{provider_name}'. \
-                 Set {} environment variable or pass api_key parameter.",
-                spec.env_key
+                 Configure it in the settings page.",
             )
         })?;
 
@@ -141,7 +152,6 @@ mod tests {
         match result {
             Err(msg) => {
                 assert!(msg.contains("API key"));
-                assert!(msg.contains("DEEPSEEK_API_KEY"));
             }
             Ok(_) => panic!("expected error"),
         }
@@ -162,5 +172,7 @@ mod tests {
         assert!(names.contains(&"deepseek"));
         assert!(names.contains(&"openai"));
         assert!(names.contains(&"moonshot"));
+        assert!(names.contains(&"zhipu"));
+        assert!(names.contains(&"minimax"));
     }
 }
