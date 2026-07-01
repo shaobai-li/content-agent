@@ -192,7 +192,7 @@ function GeneralSettings() {
                       id={`env-${p.env_key}`}
                       type="password"
                       className="w-full px-3 py-[8px] pr-[65px] text-[13px] font-mono bg-transparent border-none outline-none text-foreground placeholder-muted-foreground"
-                      placeholder={p.set ? "输入新 Key 覆盖现有值" : "输入 API Key"}
+                      placeholder="输入 API Key"
                       value={val}
                       onChange={(e) => handleChange(p.env_key, e.target.value)}
                       autoComplete="new-password"
