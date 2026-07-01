@@ -17,19 +17,14 @@ interface EnvResponse {
   user_data_dir: string;
 }
 
-// 前端硬编码的供应商列表，无需后端配合即可展示
+// 前端补充的供应商（后端 registry.py 中未注册但需展示的）
 const PROVIDER_DEFS: { provider: string; display_name: string; env_key: string }[] = [
-  { provider: "deepseek", display_name: "DeepSeek", env_key: "DEEPSEEK_API_KEY" },
-  { provider: "openai", display_name: "OpenAI", env_key: "OPENAI_API_KEY" },
-  { provider: "moonshot", display_name: "Moonshot", env_key: "MOONSHOT_API_KEY" },
   { provider: "minimax", display_name: "Minimax", env_key: "MINIMAX_API_KEY" },
   { provider: "zhipu", display_name: "ZHIPU", env_key: "ZHIPUAI_API_KEY" },
 ];
 
 function GeneralSettings() {
-  const [providers, setProviders] = useState<ProviderEnv[]>(() =>
-    PROVIDER_DEFS.map((p) => ({ ...p, set: false, masked: "" })),
-  );
+  const [providers, setProviders] = useState<ProviderEnv[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<Record<string, boolean>>({});
@@ -45,14 +40,12 @@ function GeneralSettings() {
     setError(null);
     try {
       const data = await http.get<EnvResponse>("/api/settings/env");
-      // 将 API 返回的 provider 状态合并到前端硬编码列表中
+      // 后端 API 返回的供应商 + 前端补充的供应商（去重）
       const apiMap = new Map(data.providers.map((p) => [p.env_key, p]));
-      setProviders(
-        PROVIDER_DEFS.map((def) => {
-          const api = apiMap.get(def.env_key);
-          return api ?? { ...def, set: false, masked: "" };
-        }),
-      );
+      const extras = PROVIDER_DEFS
+        .filter((def) => !apiMap.has(def.env_key))
+        .map((def) => ({ ...def, set: false, masked: "" }));
+      setProviders([...data.providers, ...extras]);
       if (data.user_data_dir) {
         setUserDataDir(data.user_data_dir);
         setUserDataDirOriginal(data.user_data_dir);
