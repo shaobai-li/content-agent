@@ -218,7 +218,7 @@ function GeneralSettings() {
                       id={`key-${p.provider}`}
                       type={visible[p.provider] ? "text" : "password"}
                       className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-card px-3 py-2 pr-10 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-0"
-                      placeholder={p.set ? "输入新 Key 覆盖现有值" : "输入 API Key"}
+                      placeholder="输入 API Key"
                       value={getValue(p.provider)}
                       onChange={(e) => handleApiKeyChange(p.provider, e.target.value)}
                       autoComplete="new-password"
