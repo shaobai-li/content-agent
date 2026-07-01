@@ -116,6 +116,24 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
             ("kimi-k2.6", {"temperature": 1.0}),
         ),
     ),
+    # Zhipu (智谱 GLM): OpenAI-compatible at open.bigmodel.cn
+    ProviderSpec(
+        name="zhipu",
+        keywords=("zhipu", "glm"),
+        env_key="ZHIPU_API_KEY",
+        display_name="智谱",
+        backend="openai_compat",
+        default_api_base="https://open.bigmodel.cn/api/paas/v4",
+    ),
+    # MiniMax (海螺 AI): OpenAI-compatible at api.minimax.io
+    ProviderSpec(
+        name="minimax",
+        keywords=("minimax", "hailuo"),
+        env_key="MINIMAX_API_KEY",
+        display_name="MiniMax",
+        backend="openai_compat",
+        default_api_base="https://api.minimax.io/v1",
+    ),
 )
 
 

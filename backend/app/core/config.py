@@ -66,6 +66,16 @@ def _save_user_config(user_id: str, config: dict) -> None:
     )
 
 
+def get_provider_config(user_id: str, provider_name: str) -> dict:
+    """从 config.json 中读取指定 provider 的配置（api_key, api_base）。
+
+    返回 dict，可能为空（未配置时）。
+    """
+    user_config = _load_user_config(user_id)
+    providers = user_config.get("providers") or {}
+    return providers.get(provider_name) or {}
+
+
 def get_agent_base_dir(agent_id: str) -> Path:
     """获取指定 agent 的工作区基目录。
 
