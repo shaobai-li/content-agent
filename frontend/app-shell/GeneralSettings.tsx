@@ -160,17 +160,10 @@ function GeneralSettings() {
           return (
             <Fragment key={p.provider}>
               {/* 供应商行头 — 点击展开/折叠 */}
-              <div
-                className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+              <button
+                type="button"
+                className="flex items-center gap-3 px-5 py-4 w-full text-left cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => handleToggleProvider(p.provider)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleToggleProvider(p.provider);
-                  }
-                }}
-                tabIndex={0}
-                role="button"
                 aria-expanded={isExpanded}
               >
                 <div className="flex-1 min-w-0">
@@ -214,7 +207,7 @@ function GeneralSettings() {
                 >
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
-              </div>
+              </button>
 
               {/* 展开的配置区域 */}
               {isExpanded && (
