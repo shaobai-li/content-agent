@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, Fragment } from "react";
 import { http } from "@/shared/api/http";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 interface ProviderEnv {
   provider: string;
@@ -139,7 +139,7 @@ function GeneralSettings() {
       )}
 
       {/* 供应商列表 — 白底卡片 */}
-      <div className="bg-white border border-border rounded-lg overflow-hidden">
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         {providers.map((p) => {
           const isExpanded = expandedProvider === p.env_key;
           const isDirty = p.env_key in dirty;
@@ -151,14 +151,16 @@ function GeneralSettings() {
           return (
             <Fragment key={p.env_key}>
               {/* 供应商行头 */}
-              <div
-                className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-[#fafafa] border-b border-[#f0f0f0] last:border-b-0 transition-colors"
+              <button
+                type="button"
+                className="group flex items-center gap-3 px-5 py-4 w-full text-left cursor-pointer hover:bg-accent/50 border-b border-border last:border-b-0 transition-colors"
                 onClick={() => handleToggleProvider(p.env_key)}
+                aria-expanded={isExpanded}
               >
                 {/* 名称 */}
                 <div className="flex-1 min-w-0">
-                  <div className="text-[15px] font-semibold text-[#111827]">{p.display_name}</div>
-                  <div className="text-[13px] text-[#9ca3af] mt-0.5">
+                  <div className="text-[15px] font-semibold text-foreground">{p.display_name}</div>
+                  <div className="text-[13px] text-muted-foreground mt-0.5">
                     使用{p.display_name} API密钥连接
                   </div>
                 </div>
@@ -169,12 +171,12 @@ function GeneralSettings() {
                     className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                       isConnected
                         ? "bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.4)]"
-                        : "bg-gray-300"
+                        : "bg-muted-foreground/30"
                     }`}
                   />
                   <span
                     className={`text-xs font-medium ${
-                      isConnected ? "text-green-600" : "text-gray-400"
+                      isConnected ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
                     }`}
                   >
                     {isConnected ? "已连接" : "未连接"}
@@ -182,29 +184,21 @@ function GeneralSettings() {
                 </div>
 
                 {/* 箭头 */}
-                <svg
-                  className={`w-4 h-4 text-[#c4c4c4] shrink-0 transition-all duration-200 group-hover:text-[#9ca3af] ${
+                <ChevronDown
+                  className={`w-4 h-4 text-muted-foreground/60 shrink-0 transition-all duration-200 group-hover:text-muted-foreground ${
                     isExpanded ? "rotate-180" : ""
                   }`}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
+                />
+              </button>
 
               {/* 展开的配置区域 — save 按钮嵌在输入框内部 */}
               {isExpanded && (
-                <div className="px-5 py-4 bg-[#fafafa] border-b border-[#f0f0f0] last:border-b-0">
-                  <div className="relative border border-[#e5e7eb] rounded-md bg-white overflow-hidden">
+                <div className="px-5 py-4 bg-muted/50 border-b border-border last:border-b-0">
+                  <div className="relative border border-border rounded-md bg-background overflow-hidden">
                     <input
                       id={`env-${p.env_key}`}
                       type="password"
-                      className="w-full px-3 py-[8px] pr-[65px] text-[13px] font-mono bg-transparent border-none outline-none text-[#111827] placeholder-[#9ca3af]"
+                      className="w-full px-3 py-[8px] pr-[65px] text-[13px] font-mono bg-transparent border-none outline-none text-foreground placeholder-muted-foreground"
                       placeholder={p.set ? "输入新 Key 覆盖现有值" : "输入 API Key"}
                       value={val}
                       onChange={(e) => handleChange(p.env_key, e.target.value)}
@@ -214,7 +208,7 @@ function GeneralSettings() {
                       type="button"
                       onClick={() => handleProviderSave(p.env_key)}
                       disabled={!hasDirtyValue || isSaving}
-                      className="absolute right-0 top-0 bottom-0 flex items-center rounded-md px-3 m-0.5 text-xs font-semibold bg-[#111827] text-white hover:bg-[#1f2937] active:bg-[#374151] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="absolute right-0 top-0 bottom-0 flex items-center rounded-md px-3 m-0.5 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 active:bg-foreground/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {isSaving && <Loader2 className="size-3.5 animate-spin inline mr-1" />}
                       Save
@@ -232,11 +226,11 @@ function GeneralSettings() {
         <label htmlFor="env-user-data-dir" className="text-sm font-medium text-foreground">
           用户数据存储目录
         </label>
-        <div className="relative border border-[#e5e7eb] rounded-md bg-white overflow-hidden">
+        <div className="relative border border-border rounded-md bg-background overflow-hidden">
           <input
             id="env-user-data-dir"
             type="text"
-            className="w-full px-3 py-[8px] pr-[65px] text-[13px] bg-transparent border-none outline-none text-[#111827] placeholder-[#9ca3af]"
+            className="w-full px-3 py-[8px] pr-[65px] text-[13px] bg-transparent border-none outline-none text-foreground placeholder-muted-foreground"
             placeholder="留空则使用默认位置"
             value={userDataDir}
             onChange={(e) => setUserDataDir(e.target.value)}
@@ -245,7 +239,7 @@ function GeneralSettings() {
             type="button"
             onClick={handleSaveUserDataDir}
             disabled={savingUserDataDir || !userDataDirChanged}
-            className="absolute right-0 top-0 bottom-0 flex items-center rounded-md px-3 m-0.5 text-xs font-semibold bg-[#111827] text-white hover:bg-[#1f2937] active:bg-[#374151] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="absolute right-0 top-0 bottom-0 flex items-center rounded-md px-3 m-0.5 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90 active:bg-foreground/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {savingUserDataDir && <Loader2 className="size-3.5 animate-spin inline mr-1" />}
             Save
