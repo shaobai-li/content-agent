@@ -185,29 +185,25 @@ function GeneralSettings() {
               {/* 展开的配置区域 */}
               {isExpanded && (
                 <div className="px-5 py-4 bg-muted/30 space-y-3">
-                  {/* API Key */}
-                  <div className="relative">
+                  {/* API Key + Save 按钮嵌入 */}
+                  <div className="relative border border-input rounded-md bg-card overflow-hidden focus-within:border-ring transition-colors">
                     <input
                       id={`key-${p.provider}`}
                       type="password"
-                      className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-card px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-0"
+                      className="w-full px-3 py-[9px] pr-[70px] text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
                       placeholder="输入 API Key"
                       value={getValue(p.provider)}
                       onChange={(e) => handleApiKeyChange(p.provider, e.target.value)}
                       autoComplete="new-password"
                     />
-                  </div>
-
-                  {/* Save 按钮 */}
-                  <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={() => handleProviderSave(p.provider)}
                       disabled={!isKeyDirty || (savingKey[p.provider] ?? false)}
-                      className="rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-1.5 transition-opacity"
+                      className="absolute right-0 top-0 bottom-0 flex items-center rounded-md px-3 m-[3px] text-xs font-semibold bg-foreground text-background hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                     >
                       {(savingKey[p.provider] ?? false) && (
-                        <Loader2 className="size-3.5 animate-spin" />
+                        <Loader2 className="size-3.5 animate-spin mr-1" />
                       )}
                       Save
                     </button>
