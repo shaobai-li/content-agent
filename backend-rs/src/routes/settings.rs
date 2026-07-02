@@ -1,15 +1,12 @@
-use std::collections::HashMap;
-
-use axum::routing::{get, put};
+use axum::routing::get;
 use axum::{Json, Router};
-use serde::Deserialize;
 use serde_json::{json, Value};
 
+use crate::core::config::get_config;
 use crate::provider::factory::PROVIDERS;
 
 pub fn router() -> Router {
-    Router::new()
-        .route("/api/settings/env", get(get_env_settings).put(update_env_settings))
+    Router::new().route("/api/settings/env", get(get_env_settings).put(update_env_settings))
 }
 
 /// 掩码 API key：保留前3后4，中间用 *** 替代
@@ -22,88 +19,146 @@ fn mask_key(value: &str) -> String {
     format!("{}***{}", prefix, suffix)
 }
 
+/// 加载 per-user config.json
+fn load_user_config(user_id: &str) -> Value {
+    let cfg = get_config();
+    let config_path = cfg
+        .data_dir
+        .join(format!("u_{}", user_id))
+        .join("admin")
+        .join("config.json");
+    if config_path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&config_path) {
+            if let Ok(val) = serde_json::from_str::<Value>(&content) {
+                return val;
+            }
+        }
+    }
+    json!({})
+}
+
+/// 保存 per-user config.json
+fn save_user_config(user_id: &str, config: &Value) {
+    let cfg = get_config();
+    let config_path = cfg
+        .data_dir
+        .join(format!("u_{}", user_id))
+        .join("admin")
+        .join("config.json");
+    if let Some(parent) = config_path.parent() {
+        std::fs::create_dir_all(parent).ok();
+    }
+    std::fs::write(&config_path, serde_json::to_string_pretty(config).unwrap_or_default()).ok();
+}
+
 /// GET /api/settings/env
 async fn get_env_settings() -> Json<Value> {
-    let mut settings = Vec::<Value>::new();
+    let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
+    let user_config = load_user_config(&user_id);
+    let providers_from_config = user_config
+        .get("providers")
+        .and_then(|v| v.as_object())
+        .cloned()
+        .unwrap_or_default();
+    let user_data_dir = user_config
+        .get("user_data_dir")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
 
+    let mut settings = Vec::<Value>::new();
     for spec in PROVIDERS.iter() {
-        let value = std::env::var(spec.env_key).ok();
-        let masked = value.as_deref().map(mask_key).unwrap_or_default();
-        let is_set = value.is_some();
+        let cfg = providers_from_config
+            .get(spec.name)
+            .and_then(|v| v.as_object())
+            .cloned()
+            .unwrap_or_default();
+        let api_key = cfg
+            .get("api_key")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let api_base = cfg
+            .get("api_base")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let is_set = !api_key.is_empty();
+        let masked = if is_set {
+            mask_key(&api_key)
+        } else {
+            String::new()
+        };
+        let effective_api_base = if api_base.is_empty() {
+            spec.default_api_base.to_string()
+        } else {
+            api_base
+        };
+
         settings.push(json!({
             "provider": spec.name,
             "display_name": spec.display_name,
-            "env_key": spec.env_key,
             "set": is_set,
-            "masked": if is_set { masked } else { String::new() },
+            "masked": masked,
+            "api_base": effective_api_base,
         }));
     }
 
-    Json(json!({"providers": settings}))
-}
-
-#[derive(Deserialize)]
-struct UpdateEnvBody {
-    #[serde(flatten)]
-    updates: HashMap<String, String>,
+    Json(json!({
+        "providers": settings,
+        "user_data_dir": user_data_dir,
+    }))
 }
 
 /// PUT /api/settings/env
-async fn update_env_settings(Json(body): Json<UpdateEnvBody>) -> Json<Value> {
-    // 更新内存中的环境变量
-    for (key, value) in &body.updates {
-        if value.is_empty() {
-            std::env::remove_var(key);
+async fn update_env_settings(Json(body): Json<Value>) -> Json<Value> {
+    let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
+    let mut existing = load_user_config(&user_id);
+
+    // Handle user_data_dir
+    if let Some(user_data_dir_val) = body.get("user_data_dir") {
+        if let Some(v) = user_data_dir_val.as_str() {
+            existing["user_data_dir"] = json!(v.to_string());
         } else {
-            std::env::set_var(key, value);
+            existing["user_data_dir"] = json!("");
         }
     }
 
-    // 持久化到 .env 文件
-    save_env_file(&body.updates);
+    // Handle providers — merge with existing
+    if let Some(providers_val) = body.get("providers").and_then(|v| v.as_object()) {
+        let mut merged = existing
+            .get("providers")
+            .and_then(|v| v.as_object())
+            .map(|m| m.clone())
+            .unwrap_or_default();
 
+        for (name, cfg) in providers_val {
+            if let Some(cfg_obj) = cfg.as_object() {
+                let mut entry = merged
+                    .get(name)
+                    .and_then(|v| v.as_object())
+                    .cloned()
+                    .unwrap_or_default();
+
+                if let Some(ak) = cfg_obj.get("api_key").and_then(|v| v.as_str()) {
+                    entry.insert("api_key".to_string(), json!(ak));
+                }
+                if let Some(ab) = cfg_obj.get("api_base").and_then(|v| v.as_str()) {
+                    entry.insert("api_base".to_string(), json!(ab));
+                }
+
+                // 如果有 api_key 则保留，否则移除
+                if entry.get("api_key").and_then(|v| v.as_str()).unwrap_or("").is_empty() {
+                    merged.remove(name);
+                } else {
+                    merged.insert(name.clone(), json!(entry));
+                }
+            }
+        }
+
+        existing["providers"] = json!(merged);
+    }
+
+    save_user_config(&user_id, &existing);
     Json(json!({"ok": true}))
-}
-
-fn env_file_path() -> std::path::PathBuf {
-    std::path::PathBuf::from(
-        std::env::var("ENV_PATH").unwrap_or_else(|_| ".env".to_string()),
-    )
-}
-
-fn load_env_file() -> HashMap<String, String> {
-    let path = env_file_path();
-    if !path.exists() {
-        return HashMap::new();
-    }
-    let content = std::fs::read_to_string(path).unwrap_or_default();
-    content
-        .lines()
-        .filter(|l| l.contains('=') && !l.starts_with('#'))
-        .map(|l| {
-            let mut parts = l.splitn(2, '=');
-            let k = parts.next().unwrap().trim().to_string();
-            let v = parts.next().unwrap_or("").trim().to_string();
-            (k, v)
-        })
-        .collect()
-}
-
-/// 持久化环境变量更新到 .env 文件
-fn save_env_file(updates: &HashMap<String, String>) {
-    let mut current = load_env_file();
-    for (k, v) in updates {
-        if v.is_empty() {
-            current.remove(k);
-        } else {
-            current.insert(k.clone(), v.clone());
-        }
-    }
-    let content: String = current
-        .iter()
-        .map(|(k, v)| format!("{}={}", k, v))
-        .collect::<Vec<_>>()
-        .join("\n")
-        + "\n";
-    std::fs::write(env_file_path(), content).ok();
 }

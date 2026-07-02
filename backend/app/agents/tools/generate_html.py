@@ -74,8 +74,14 @@ class GenerateHTMLTool(Tool):
         return False
 
     async def execute(self, prompt: str, style: str = "modern") -> str:
+        from app.core.auth import get_current_user_id
+        from app.core.config import get_provider_config
+
+        cfg = get_provider_config(get_current_user_id(), self._provider_name)
         provider = create_provider(
             provider_name=self._provider_name,
+            api_key=cfg.get("api_key"),
+            api_base=cfg.get("api_base"),
             model=self._model,
         )
         style_instruction = {

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 from app.providers.openai_compat_provider import OpenAICompatProvider
 
 
@@ -33,7 +31,7 @@ def create_provider(
     if spec is None:
         raise ValueError(f"Unknown provider: {provider_name!r}")
 
-    effective_api_key = api_key or os.getenv(spec.env_key) if spec.env_key else api_key
+    effective_api_key = api_key  # 仅从参数读取，不再从 .env 回退
     effective_api_base = api_base or spec.default_api_base or None
     default_model = model or _default_model_for(provider_name)
 
@@ -51,5 +49,7 @@ def _default_model_for(provider_name: str) -> str:
         "deepseek": "deepseek-chat",
         "openai": "gpt-4o",
         "moonshot": "kimi-k2.5",
+        "zhipu": "glm-4-plus",
+        "minimax": "minimax-text-01",
     }
     return defaults.get(provider_name, f"{provider_name}-chat")

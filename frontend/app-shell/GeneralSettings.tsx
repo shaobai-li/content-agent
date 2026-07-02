@@ -4,26 +4,27 @@ import { useCallback, useEffect, useState } from "react";
 import { http } from "@/shared/api/http";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
-interface ProviderEnv {
+interface ProviderInfo {
   provider: string;
   display_name: string;
-  env_key: string;
   set: boolean;
   masked: string;
+  api_base: string;
 }
 
 interface EnvResponse {
-  providers: ProviderEnv[];
+  providers: ProviderInfo[];
   user_data_dir: string;
 }
 
 function GeneralSettings() {
-  const [providers, setProviders] = useState<ProviderEnv[]>([]);
+  const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [visible, setVisible] = useState<Record<string, boolean>>({});
-  const [dirty, setDirty] = useState<Record<string, string>>({});
+  const [dirty, setDirty] = useState<Record<string, string>>({});       // api_key by provider name
+  const [dirtyBase, setDirtyBase] = useState<Record<string, string>>({}); // api_base by provider name
   const DEFAULT_USER_DATA_DIR = "";
   const [userDataDir, setUserDataDir] = useState(DEFAULT_USER_DATA_DIR);
   const [userDataDirOriginal, setUserDataDirOriginal] = useState(DEFAULT_USER_DATA_DIR);
@@ -50,30 +51,55 @@ function GeneralSettings() {
   }, [refresh]);
 
   const getValue = useCallback(
-    (envKey: string) => {
-      if (envKey in dirty) return dirty[envKey];
+    (providerName: string) => {
+      if (providerName in dirty) return dirty[providerName];
       return "";
     },
     [dirty],
   );
 
-  const handleChange = useCallback(
-    (envKey: string, value: string) => {
-      setDirty((prev) => ({ ...prev, [envKey]: value }));
+  const getBaseValue = useCallback(
+    (providerName: string) => {
+      if (providerName in dirtyBase) return dirtyBase[providerName];
+      const p = providers.find((p) => p.provider === providerName);
+      return p?.api_base || "";
     },
-    [],
+    [dirtyBase, providers],
   );
+
+  const handleApiKeyChange = useCallback((providerName: string, value: string) => {
+    setDirty((prev) => ({ ...prev, [providerName]: value }));
+  }, []);
+
+  const handleApiBaseChange = useCallback((providerName: string, value: string) => {
+    setDirtyBase((prev) => ({ ...prev, [providerName]: value }));
+  }, []);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     setError(null);
     try {
-      const payload: Record<string, string> = { ...dirty };
+      const payload: Record<string, unknown> = {};
+
+      // Build providers payload
+      const providersPayload: Record<string, { api_key: string; api_base: string }> = {};
+      for (const p of providers) {
+        const apiKey = p.provider in dirty ? dirty[p.provider] : "";
+        const apiBase = p.provider in dirtyBase ? dirtyBase[p.provider] : p.api_base;
+        if (p.provider in dirty || p.provider in dirtyBase) {
+          providersPayload[p.provider] = { api_key: apiKey, api_base: apiBase };
+        }
+      }
+      if (Object.keys(providersPayload).length > 0) {
+        payload.providers = providersPayload;
+      }
+
       if (userDataDir !== userDataDirOriginal) {
         payload.user_data_dir = userDataDir;
       }
       await http.put("/api/settings/env", payload);
       setDirty({});
+      setDirtyBase({});
       setUserDataDirOriginal(userDataDir);
       await refresh(false);
     } catch (err) {
@@ -81,14 +107,14 @@ function GeneralSettings() {
     } finally {
       setSaving(false);
     }
-  }, [dirty, refresh, userDataDir, userDataDirOriginal]);
+  }, [dirty, dirtyBase, providers, refresh, userDataDir, userDataDirOriginal]);
 
-  const toggleVisibility = useCallback((envKey: string) => {
-    setVisible((prev) => ({ ...prev, [envKey]: !prev[envKey] }));
+  const toggleVisibility = useCallback((providerName: string) => {
+    setVisible((prev) => ({ ...prev, [providerName]: !prev[providerName] }));
   }, []);
 
   const hasChanges =
-    Object.keys(dirty).length > 0 || userDataDir !== userDataDirOriginal;
+    Object.keys(dirty).length > 0 || Object.keys(dirtyBase).length > 0 || userDataDir !== userDataDirOriginal;
 
   if (loading) {
     return (
@@ -103,18 +129,19 @@ function GeneralSettings() {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {providers.map((p) => {
-        const isDirty = p.env_key in dirty;
-        const val = getValue(p.env_key);
-        const showClear = isDirty && val === "";
+        const apiKey = getValue(p.provider);
+        const apiBase = getBaseValue(p.provider);
+        const isKeyDirty = p.provider in dirty;
+        const isBaseDirty = p.provider in dirtyBase;
 
         return (
-          <div key={p.env_key} className="flex flex-col gap-1.5">
+          <div key={p.provider} className="flex flex-col gap-1.5">
             <label
-              htmlFor={`env-${p.env_key}`}
+              htmlFor={`key-${p.provider}`}
               className="text-sm font-medium text-foreground"
             >
               {p.display_name} API Key
-              {p.set && !isDirty && (
+              {p.set && !isKeyDirty && (
                 <span className="ml-2 text-xs text-muted-foreground font-normal">
                   {p.masked}
                 </span>
@@ -122,19 +149,19 @@ function GeneralSettings() {
             </label>
             <div className="relative">
               <input
-                id={`env-${p.env_key}`}
-                type={visible[p.env_key] ? "text" : "password"}
+                id={`key-${p.provider}`}
+                type={visible[p.provider] ? "text" : "password"}
                 className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 pr-16 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-input focus-visible:ring-0"
                 placeholder={p.set ? "输入新 Key 覆盖现有值" : "输入 API Key"}
-                value={val}
-                onChange={(e) => handleChange(p.env_key, e.target.value)}
+                value={apiKey}
+                onChange={(e) => handleApiKeyChange(p.provider, e.target.value)}
                 autoComplete="new-password"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5">
-                {isDirty && val !== "" && (
+                {isKeyDirty && apiKey !== "" && (
                   <button
                     type="button"
-                    onClick={() => handleChange(p.env_key, "")}
+                    onClick={() => handleApiKeyChange(p.provider, "")}
                     className="rounded p-1 text-muted-foreground hover:text-foreground"
                     title="清空"
                   >
@@ -143,11 +170,11 @@ function GeneralSettings() {
                 )}
                 <button
                   type="button"
-                  onClick={() => toggleVisibility(p.env_key)}
+                  onClick={() => toggleVisibility(p.provider)}
                   className="rounded p-1 text-muted-foreground hover:text-foreground"
-                  title={visible[p.env_key] ? "隐藏" : "显示"}
+                  title={visible[p.provider] ? "隐藏" : "显示"}
                 >
-                  {visible[p.env_key] ? (
+                  {visible[p.provider] ? (
                     <EyeOff className="size-4" />
                   ) : (
                     <Eye className="size-4" />
@@ -155,6 +182,21 @@ function GeneralSettings() {
                 </button>
               </div>
             </div>
+            {/* API Base URL */}
+            <label
+              htmlFor={`base-${p.provider}`}
+              className="text-xs font-medium text-muted-foreground"
+            >
+              API Base URL
+            </label>
+            <input
+              id={`base-${p.provider}`}
+              type="text"
+              className={`selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 pr-3 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 ${isBaseDirty ? "border-amber-500" : ""}`}
+              placeholder="留空则使用默认地址"
+              value={apiBase}
+              onChange={(e) => handleApiBaseChange(p.provider, e.target.value)}
+            />
           </div>
         );
       })}
