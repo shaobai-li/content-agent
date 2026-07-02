@@ -382,6 +382,8 @@ fn content_paths(src: &Path, parsed: Option<&Value>) -> Value {
 
 const PDF_MIN_TOTAL_CHARS: usize = 50;
 const PDF_MIN_CHARS_PER_PAGE: f64 = 20.0;
+const PDF_SCANNED_IMAGE_MIN_BYTES: usize = 5000;
+const PDF_SCANNED_RATIO_THRESHOLD: f64 = 0.3;
 
 /// 尝试解析文档，返回 `{"markdown_path": "..."}` 或 None。
 async fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value>, String> {
@@ -418,19 +420,19 @@ async fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value
     }
 }
 
-/// 本地抽取 PDF；文本不足时 fallback 到 MinerU OCR。
+/// 本地抽取 PDF；文本不足或页面以扫描图片为主时 fallback 到 MinerU OCR。
 async fn extract_pdf_with_fallback(src: &Path) -> Result<(String, Value), String> {
     let text = extract_pdf_text(src)?;
-    let page_count = pdf_page_count(src).unwrap_or(0);
+    let (page_count, scanned_ratio) = pdf_page_stats(src);
 
-    if !is_pdf_text_insufficient(&text, page_count) {
+    if !is_pdf_text_insufficient(&text, page_count, scanned_ratio) {
         return Ok((text, json!({})));
     }
 
-    let fallback_reason = format_pdf_insufficient_reason(&text, page_count);
+    let fallback_reason = format_pdf_insufficient_reason(&text, page_count, scanned_ratio);
     let config = MinerUConfig::from_env().map_err(|e| {
         format!(
-            "PDF 文本不足（{}），需要 MinerU OCR，但 {}",
+            "PDF 需要 OCR（{}），但 {}",
             fallback_reason, e
         )
     })?;
@@ -448,7 +450,7 @@ async fn extract_pdf_with_fallback(src: &Path) -> Result<(String, Value), String
     ))
 }
 
-fn is_pdf_text_insufficient(text: &str, page_count: u32) -> bool {
+fn is_pdf_text_insufficient(text: &str, page_count: u32, scanned_ratio: f64) -> bool {
     let trimmed = text.trim();
     let len = trimmed.chars().count();
 
@@ -458,31 +460,113 @@ fn is_pdf_text_insufficient(text: &str, page_count: u32) -> bool {
     if len < PDF_MIN_TOTAL_CHARS {
         return true;
     }
-    if page_count > 0 {
-        let chars_per_page = len as f64 / page_count as f64;
-        if chars_per_page < PDF_MIN_CHARS_PER_PAGE {
-            return true;
-        }
+    if page_count > 0 && (len as f64 / page_count as f64) < PDF_MIN_CHARS_PER_PAGE {
+        return true;
+    }
+    if scanned_ratio > PDF_SCANNED_RATIO_THRESHOLD {
+        return true;
     }
     false
 }
 
-fn format_pdf_insufficient_reason(text: &str, page_count: u32) -> String {
+fn format_pdf_insufficient_reason(text: &str, page_count: u32, scanned_ratio: f64) -> String {
+    if scanned_ratio > PDF_SCANNED_RATIO_THRESHOLD {
+        let scanned_pages = (scanned_ratio * page_count as f64).round() as u32;
+        return format!(
+            "scanned_image_pages: {}/{} ({:.1}%)",
+            scanned_pages,
+            page_count,
+            scanned_ratio * 100.0
+        );
+    }
     let len = text.trim().chars().count();
     if page_count > 0 {
-        let chars_per_page = len as f64 / page_count as f64;
         format!(
             "insufficient_text: {} chars / {} pages ({:.1} chars/page)",
-            len, page_count, chars_per_page
+            len,
+            page_count,
+            len as f64 / page_count as f64
         )
     } else {
         format!("insufficient_text: {} chars", len)
     }
 }
 
-fn pdf_page_count(path: &Path) -> Result<u32, String> {
-    let doc = lopdf::Document::load(path).map_err(|e| format!("读取 PDF 页数失败: {}", e))?;
-    Ok(doc.get_pages().len() as u32)
+/// 加载 PDF，返回 (总页数, 扫描页比例)。
+/// 扫描页：包含至少一个压缩后 > PDF_SCANNED_IMAGE_MIN_BYTES 字节的 Image XObject。
+fn pdf_page_stats(path: &Path) -> (u32, f64) {
+    let doc = match lopdf::Document::load(path) {
+        Ok(d) => d,
+        Err(_) => return (0, 0.0),
+    };
+    let pages = doc.get_pages();
+    let total = pages.len();
+    if total == 0 {
+        return (0, 0.0);
+    }
+    let scanned = pages
+        .values()
+        .filter(|&&page_id| page_has_large_image(&doc, page_id))
+        .count();
+    (total as u32, scanned as f64 / total as f64)
+}
+
+/// 判断某页是否包含大尺寸 Image XObject（扫描件特征）。
+fn page_has_large_image(doc: &lopdf::Document, page_id: lopdf::ObjectId) -> bool {
+    let page_dict = match doc.get_object(page_id) {
+        Ok(lopdf::Object::Dictionary(d)) => d,
+        _ => return false,
+    };
+
+    let resources_dict = match page_dict.get(b"Resources") {
+        Ok(obj) => match resolve_dict(doc, obj) {
+            Some(d) => d,
+            None => return false,
+        },
+        Err(_) => return false,
+    };
+
+    let xobj_dict = match resources_dict.get(b"XObject") {
+        Ok(obj) => match resolve_dict(doc, obj) {
+            Some(d) => d,
+            None => return false,
+        },
+        Err(_) => return false,
+    };
+
+    for (_, val) in xobj_dict.iter() {
+        let ref_id = match val {
+            lopdf::Object::Reference(r) => *r,
+            _ => continue,
+        };
+        let stream = match doc.get_object(ref_id) {
+            Ok(lopdf::Object::Stream(s)) => s,
+            _ => continue,
+        };
+        let subtype = match stream.dict.get(b"Subtype") {
+            Ok(lopdf::Object::Name(n)) => n,
+            _ => continue,
+        };
+        if subtype == b"Image" && stream.content.len() > PDF_SCANNED_IMAGE_MIN_BYTES {
+            return true;
+        }
+    }
+    false
+}
+
+/// 将 Object 解引用为 Dictionary（支持直接 Dictionary 或 Reference）。
+fn resolve_dict<'a>(
+    doc: &'a lopdf::Document,
+    obj: &'a lopdf::Object,
+) -> Option<&'a lopdf::Dictionary> {
+    match obj {
+        lopdf::Object::Dictionary(d) => Some(d),
+        lopdf::Object::Reference(r) => match doc.get_object(*r) {
+            Ok(lopdf::Object::Dictionary(d)) => Some(d),
+            _ => None,
+        },
+        _ => None,
+    }
 }
 
 /// 提取 PDF 文本内容。
