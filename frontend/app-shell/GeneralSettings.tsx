@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, Fragment } from "react";
 import { http } from "@/shared/api/http";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface ProviderInfo {
   provider: string;
@@ -21,7 +21,6 @@ function GeneralSettings() {
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [dirty, setDirty] = useState<Record<string, string>>({});       // api_key by provider name
   const [dirtyBase, setDirtyBase] = useState<Record<string, string>>({}); // api_base by provider name
   const [savingKey, setSavingKey] = useState<Record<string, boolean>>({});
@@ -122,10 +121,6 @@ function GeneralSettings() {
     }
   }, [userDataDir, refresh]);
 
-  const toggleVisibility = useCallback((providerName: string) => {
-    setVisible((prev) => ({ ...prev, [providerName]: !prev[providerName] }));
-  }, []);
-
   const handleToggleProvider = useCallback((providerName: string) => {
     setExpandedProvider((prev) => (prev === providerName ? null : providerName));
   }, []);
@@ -216,25 +211,13 @@ function GeneralSettings() {
                   <div className="relative">
                     <input
                       id={`key-${p.provider}`}
-                      type={visible[p.provider] ? "text" : "password"}
-                      className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-card px-3 py-2 pr-10 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-0"
+                      type="password"
+                      className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-card px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-0"
                       placeholder="输入 API Key"
                       value={getValue(p.provider)}
                       onChange={(e) => handleApiKeyChange(p.provider, e.target.value)}
                       autoComplete="new-password"
                     />
-                    <button
-                      type="button"
-                      onClick={() => toggleVisibility(p.provider)}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground transition-colors"
-                      tabIndex={-1}
-                    >
-                      {visible[p.provider] ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
                   </div>
 
                   {/* API Base URL */}
