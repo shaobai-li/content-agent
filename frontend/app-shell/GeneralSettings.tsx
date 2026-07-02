@@ -79,26 +79,19 @@ function GeneralSettings() {
     setSaving(true);
     setError(null);
     try {
-      const payload: Record<string, unknown> = { ...dirty };
+      const payload: Record<string, unknown> = {};
 
       // Build providers payload
       const providersPayload: Record<string, { api_key: string; api_base: string }> = {};
       for (const p of providers) {
         const apiKey = p.provider in dirty ? dirty[p.provider] : "";
         const apiBase = p.provider in dirtyBase ? dirtyBase[p.provider] : p.api_base;
-        if (apiKey || (p.provider in dirtyBase)) {
+        if (p.provider in dirty || p.provider in dirtyBase) {
           providersPayload[p.provider] = { api_key: apiKey, api_base: apiBase };
         }
       }
       if (Object.keys(providersPayload).length > 0) {
         payload.providers = providersPayload;
-      }
-
-      // Ensure no raw env-key strings leak into payload
-      for (const key of Object.keys(payload)) {
-        if (key !== "providers" && key !== "user_data_dir") {
-          delete payload[key];
-        }
       }
 
       if (userDataDir !== userDataDirOriginal) {
