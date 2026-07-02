@@ -102,6 +102,8 @@ function GeneralSettings() {
       setDirtyBase({});
       setUserDataDirOriginal(userDataDir);
       await refresh(false);
+      // 通知 ChatPage 等组件 provider 配置已变更，重新拉取模型列表
+      window.dispatchEvent(new CustomEvent("provider-config-changed"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
@@ -182,21 +184,7 @@ function GeneralSettings() {
                 </button>
               </div>
             </div>
-            {/* API Base URL */}
-            <label
-              htmlFor={`base-${p.provider}`}
-              className="text-xs font-medium text-muted-foreground"
-            >
-              API Base URL
-            </label>
-            <input
-              id={`base-${p.provider}`}
-              type="text"
-              className={`selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 pr-3 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 ${isBaseDirty ? "border-amber-500" : ""}`}
-              placeholder="留空则使用默认地址"
-              value={apiBase}
-              onChange={(e) => handleApiBaseChange(p.provider, e.target.value)}
-            />
+            {/* API Base URL — 固定使用 registry.py 默认值，不暴露给用户修改 */}
           </div>
         );
       })}
