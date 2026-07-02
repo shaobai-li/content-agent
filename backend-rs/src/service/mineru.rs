@@ -311,3 +311,110 @@ fn ensure_api_ok(payload: &Value, http_status: u16, action: &str) -> Result<(), 
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use zip::write::FileOptions;
+
+    #[test]
+    fn test_extract_full_md_from_zip_empty_archive() {
+        let empty = vec![];
+        let result = extract_full_md_from_zip(&empty);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("解压 MinerU ZIP 失败"));
+    }
+
+    #[test]
+    fn test_extract_full_md_from_zip_no_full_md() {
+        let buf = std::io::Cursor::new(Vec::new());
+        let mut zip = zip::ZipWriter::new(buf);
+        zip.start_file("some_dir/other.md", FileOptions::<()>::default()).unwrap();
+        zip.write_all(b"hello").unwrap();
+        let cursor = zip.finish().unwrap();
+        let bytes: Vec<u8> = cursor.into_inner();
+
+        let result = extract_full_md_from_zip(&bytes);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("未找到 full.md"));
+    }
+
+    #[test]
+    fn test_extract_full_md_from_zip_root_full_md() {
+        let buf = std::io::Cursor::new(Vec::new());
+        let mut zip = zip::ZipWriter::new(buf);
+        zip.start_file("full.md", FileOptions::<()>::default()).unwrap();
+        zip.write_all(b"# Root content").unwrap();
+        let cursor = zip.finish().unwrap();
+        let bytes: Vec<u8> = cursor.into_inner();
+
+        let result = extract_full_md_from_zip(&bytes);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "# Root content");
+    }
+
+    #[test]
+    fn test_extract_full_md_from_zip_nested_takes_shallowest() {
+        let buf = std::io::Cursor::new(Vec::new());
+        let mut zip = zip::ZipWriter::new(buf);
+        zip.start_file("auto/2024/01/01/full.md", FileOptions::<()>::default()).unwrap();
+        zip.write_all(b"deep").unwrap();
+        zip.start_file("auto/2024/full.md", FileOptions::<()>::default()).unwrap();
+        zip.write_all(b"shallow").unwrap();
+        let cursor = zip.finish().unwrap();
+        let bytes: Vec<u8> = cursor.into_inner();
+
+        let result = extract_full_md_from_zip(&bytes);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "shallow");
+    }
+
+    #[test]
+    fn test_extract_full_md_from_zip_multiple_same_depth() {
+        let buf = std::io::Cursor::new(Vec::new());
+        let mut zip = zip::ZipWriter::new(buf);
+        zip.start_file("auto/2024/full.md", FileOptions::<()>::default()).unwrap();
+        zip.write_all(b"first").unwrap();
+        zip.start_file("auto/2025/full.md", FileOptions::<()>::default()).unwrap();
+        zip.write_all(b"second").unwrap();
+        let cursor = zip.finish().unwrap();
+        let bytes: Vec<u8> = cursor.into_inner();
+
+        let result = extract_full_md_from_zip(&bytes);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "second");  // 同 depth 时取最后一个
+    }
+
+    #[test]
+    fn test_ensure_api_ok_code_not_zero() {
+        let payload = json!({"code": 1, "msg": "invalid token"});
+        let result = ensure_api_ok(&payload, 200, "test_action");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("code=1"));
+    }
+
+    #[test]
+    fn test_ensure_api_ok_http_error() {
+        let payload = json!({"code": 0, "msg": "not found"});
+        let result = ensure_api_ok(&payload, 404, "test_action");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("HTTP 404"));
+    }
+
+    #[test]
+    fn test_ensure_api_ok_ok() {
+        let payload = json!({"code": 0, "msg": "success"});
+        let result = ensure_api_ok(&payload, 200, "test_action");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_ensure_api_ok_code_defaults_to_minus_one() {
+        let payload = json!({});
+        let result = ensure_api_ok(&payload, 200, "test_action");
+        // code 缺失时默认为 -1，不等于 0，所以返回错误
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("code=-1"));
+    }
+}

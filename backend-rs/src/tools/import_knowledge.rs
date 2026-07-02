@@ -944,3 +944,70 @@ impl Tool for ImportKnowledgeTool {
             .map_err(|e| format!("Error: 序列化结果失败: {}", e))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── is_pdf_text_insufficient ──────────────────────────────────
+
+    #[test]
+    fn test_is_pdf_text_insufficient_empty() {
+        assert!(is_pdf_text_insufficient("", 1));
+        assert!(is_pdf_text_insufficient("   ", 1));
+    }
+
+    #[test]
+    fn test_is_pdf_text_insufficient_below_total_threshold() {
+        // 48 chars < 50
+        assert!(is_pdf_text_insufficient(&"a".repeat(48), 1));
+    }
+
+    #[test]
+    fn test_is_pdf_text_insufficient_meets_total_but_low_per_page() {
+        // 60 chars / 5 pages = 12 chars/page < 20
+        assert!(is_pdf_text_insufficient(&"a".repeat(60), 5));
+    }
+
+    #[test]
+    fn test_is_pdf_text_insufficient_sufficient() {
+        assert!(!is_pdf_text_insufficient(&"a".repeat(200), 1));
+    }
+
+    #[test]
+    fn test_is_pdf_text_insufficient_no_page_count_skips_per_page_check() {
+        // page_count=0, only total threshold applies
+        assert!(is_pdf_text_insufficient(&"a".repeat(10), 0));  // 10 < 50
+        assert!(!is_pdf_text_insufficient(&"a".repeat(100), 0)); // 100 >= 50
+    }
+
+    #[test]
+    fn test_is_pdf_text_insufficient_large_pdf_still_fails_per_page() {
+        // 500 chars / 100 pages = 5 chars/page < 20
+        assert!(is_pdf_text_insufficient(&"a".repeat(500), 100));
+    }
+
+    // ── format_pdf_insufficient_reason ─────────────────────────---
+
+    #[test]
+    fn test_format_pdf_insufficient_reason_with_pages() {
+        let reason = format_pdf_insufficient_reason("hello world", 3);
+        assert!(reason.contains("insufficient_text"));
+        assert!(reason.contains("11 chars"));
+        assert!(reason.contains("3 pages"));
+    }
+
+    #[test]
+    fn test_format_pdf_insufficient_reason_no_pages() {
+        let reason = format_pdf_insufficient_reason("hello", 0);
+        assert!(reason.contains("insufficient_text"));
+        assert!(reason.contains("5 chars"));
+        assert!(!reason.contains("pages"));
+    }
+
+    #[test]
+    fn test_format_pdf_insufficient_reason_trims_whitespace() {
+        let reason = format_pdf_insufficient_reason("  hello  ", 1);
+        assert!(reason.contains("5 chars"));  // "hello" = 5 chars after trim
+    }
+}
