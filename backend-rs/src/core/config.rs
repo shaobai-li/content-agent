@@ -241,6 +241,35 @@ pub fn get_agent_workspace_dir(agent_id: &str) -> PathBuf {
     ws
 }
 
+/// 从 config.json 中读取指定 provider 的配置（api_key, api_base）。
+/// 返回 HashMap，可能为空（未配置时）。
+pub fn get_provider_config(user_id: &str, provider_name: &str) -> HashMap<String, String> {
+    let cfg = get_config();
+    let config_path = cfg
+        .data_dir
+        .join(format!("u_{}", user_id))
+        .join("admin")
+        .join("config.json");
+
+    if let Ok(content) = std::fs::read_to_string(&config_path) {
+        if let Ok(root) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(providers) = root.get("providers").and_then(|v| v.as_object()) {
+                if let Some(provider_cfg) = providers.get(provider_name).and_then(|v| v.as_object()) {
+                    let mut result = HashMap::new();
+                    if let Some(ak) = provider_cfg.get("api_key").and_then(|v| v.as_str()) {
+                        result.insert("api_key".to_string(), ak.to_string());
+                    }
+                    if let Some(ab) = provider_cfg.get("api_base").and_then(|v| v.as_str()) {
+                        result.insert("api_base".to_string(), ab.to_string());
+                    }
+                    return result;
+                }
+            }
+        }
+    }
+    HashMap::new()
+}
+
 pub fn get_agent_local_data_dir(agent_id: &str) -> PathBuf {
     // Python 端等义：<base>/knowledge_base/
     let local_data = get_agent_base_dir(agent_id).join("knowledge_base");
