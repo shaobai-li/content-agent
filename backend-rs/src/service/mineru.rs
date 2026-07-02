@@ -83,7 +83,7 @@ pub async fn parse_pdf(path: &Path, config: &MinerUConfig) -> Result<String, Str
 
     let (batch_id, upload_url) = request_upload_url(&client, config, file_name).await?;
     upload_file(&client, path, &upload_url).await?;
-    let zip_url = poll_batch_result(&client, config, &batch_id, file_name).await?;
+    let zip_url = poll_batch_result(&client, config, &batch_id).await?;
     download_and_extract_md(&client, &zip_url).await
 }
 
@@ -165,7 +165,6 @@ async fn poll_batch_result(
     client: &Client,
     config: &MinerUConfig,
     batch_id: &str,
-    file_name: &str,
 ) -> Result<String, String> {
     let url = format!("{}/api/v4/extract-results/batch/{}", config.base_url, batch_id);
     let deadline =
@@ -201,15 +200,9 @@ async fn poll_batch_result(
             .and_then(|v| v.as_array())
             .ok_or_else(|| "MinerU 响应缺少 extract_result".to_string())?;
 
+        // 当前每次只发送一个文件，直接取第一个结果即可
         let item = results
-            .iter()
-            .find(|r| {
-                r.get("file_name")
-                    .and_then(|v| v.as_str())
-                    .map(|n| n == file_name)
-                    .unwrap_or(false)
-            })
-            .or_else(|| results.first())
+            .first()
             .ok_or_else(|| "MinerU 响应中无任务结果".to_string())?;
 
         let state = item
