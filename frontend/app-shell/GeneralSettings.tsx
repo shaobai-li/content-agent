@@ -22,7 +22,6 @@ function GeneralSettings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState<Record<string, string>>({});       // api_key by provider name
-  const [dirtyBase, setDirtyBase] = useState<Record<string, string>>({}); // api_base by provider name
   const [savingKey, setSavingKey] = useState<Record<string, boolean>>({});
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
   const DEFAULT_USER_DATA_DIR = "";
@@ -59,21 +58,8 @@ function GeneralSettings() {
     [dirty],
   );
 
-  const getBaseValue = useCallback(
-    (providerName: string) => {
-      if (providerName in dirtyBase) return dirtyBase[providerName];
-      const p = providers.find((p) => p.provider === providerName);
-      return p?.api_base || "";
-    },
-    [dirtyBase, providers],
-  );
-
   const handleApiKeyChange = useCallback((providerName: string, value: string) => {
     setDirty((prev) => ({ ...prev, [providerName]: value }));
-  }, []);
-
-  const handleApiBaseChange = useCallback((providerName: string, value: string) => {
-    setDirtyBase((prev) => ({ ...prev, [providerName]: value }));
   }, []);
 
   const handleProviderSave = useCallback(
@@ -82,17 +68,11 @@ function GeneralSettings() {
       setError(null);
       try {
         const apiKey = providerName in dirty ? dirty[providerName] : "";
-        const apiBase = providerName in dirtyBase ? dirtyBase[providerName] : "";
         const payload: Record<string, unknown> = {
-          providers: { [providerName]: { api_key: apiKey, api_base: apiBase } },
+          providers: { [providerName]: { api_key: apiKey } },
         };
         await http.put("/api/settings/env", payload);
         setDirty((prev) => {
-          const next = { ...prev };
-          delete next[providerName];
-          return next;
-        });
-        setDirtyBase((prev) => {
           const next = { ...prev };
           delete next[providerName];
           return next;
@@ -104,7 +84,7 @@ function GeneralSettings() {
         setSavingKey((prev) => ({ ...prev, [providerName]: false }));
       }
     },
-    [dirty, dirtyBase, refresh],
+    [dirty, refresh],
   );
 
   const handleSaveUserDataDir = useCallback(async () => {
@@ -148,8 +128,6 @@ function GeneralSettings() {
         {providers.map((p) => {
           const isExpanded = expandedProvider === p.provider;
           const isKeyDirty = p.provider in dirty;
-          const isBaseDirty = p.provider in dirtyBase;
-          const hasAnyDirty = isKeyDirty || isBaseDirty;
           const isConnected = p.set && !isKeyDirty;
 
           return (
@@ -220,26 +198,12 @@ function GeneralSettings() {
                     />
                   </div>
 
-                  {/* API Base URL */}
-                  <div className="relative">
-                    <input
-                      id={`base-${p.provider}`}
-                      type="text"
-                      className={`selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-card px-3 py-2 pr-3 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-0 ${
-                        isBaseDirty ? "border-amber-500" : ""
-                      }`}
-                      placeholder="API Base URL（留空使用默认地址）"
-                      value={getBaseValue(p.provider)}
-                      onChange={(e) => handleApiBaseChange(p.provider, e.target.value)}
-                    />
-                  </div>
-
                   {/* Save 按钮 */}
                   <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={() => handleProviderSave(p.provider)}
-                      disabled={!hasAnyDirty || (savingKey[p.provider] ?? false)}
+                      disabled={!isKeyDirty || (savingKey[p.provider] ?? false)}
                       className="rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-1.5 transition-opacity"
                     >
                       {(savingKey[p.provider] ?? false) && (
