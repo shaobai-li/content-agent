@@ -136,10 +136,16 @@ async fn get_models() -> Json<Value> {
             .and_then(|v| v.as_str())
             .map(|s| !s.is_empty())
             .unwrap_or(false);
+        // 与 Python `spec.display_name or spec.name.title()` 语义一致
+        let provider_label: &str = if !spec.display_name.is_empty() {
+            spec.display_name
+        } else {
+            spec.name
+        };
         for m in spec.models {
             models.push(json!({
                 "provider": spec.name,
-                "provider_label": spec.display_name,
+                "provider_label": provider_label,
                 "model": m.name,
                 "label": m.display_name,
                 "configured": has_key,
