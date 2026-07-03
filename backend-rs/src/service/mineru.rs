@@ -253,7 +253,7 @@ fn extract_full_md_from_zip(bytes: &[u8]) -> Result<String, String> {
             .read_to_string(&mut content)
             .map_err(|e| format!("读取 full.md 失败: {}", e))?;
         let depth = name.matches('/').count();
-        if best.as_ref().map_or(true, |(d, _)| depth <= *d) {
+        if best.as_ref().map_or(true, |(d, _)| depth < *d) {
             best = Some((depth, content));
         }
     }
