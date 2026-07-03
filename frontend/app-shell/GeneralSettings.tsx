@@ -9,7 +9,6 @@ interface ProviderInfo {
   display_name: string;
   set: boolean;
   masked: string;
-  api_base: string;
 }
 
 interface EnvResponse {
