@@ -6,7 +6,9 @@ use crate::core::config::get_config;
 use crate::provider::factory::PROVIDERS;
 
 pub fn router() -> Router {
-    Router::new().route("/api/settings/env", get(get_env_settings).put(update_env_settings))
+    Router::new()
+        .route("/api/settings/env", get(get_env_settings).put(update_env_settings))
+        .route("/api/settings/models", get(get_models))
 }
 
 /// 掩码 API key：保留前3后4，中间用 *** 替代
@@ -108,6 +110,44 @@ async fn get_env_settings() -> Json<Value> {
         "providers": settings,
         "user_data_dir": user_data_dir,
     }))
+}
+
+/// GET /api/settings/models
+///
+/// 返回所有注册了模型的 provider 的模型列表，含 configured 状态。
+/// 逻辑与 Python `settings.py:get_models()` 一致。
+async fn get_models() -> Json<Value> {
+    let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
+    let user_config = load_user_config(&user_id);
+    let providers_cfg = user_config
+        .get("providers")
+        .and_then(|v| v.as_object())
+        .cloned()
+        .unwrap_or_default();
+
+    let mut models: Vec<Value> = Vec::new();
+    for spec in PROVIDERS.iter() {
+        if spec.models.is_empty() {
+            continue;
+        }
+        let has_key = providers_cfg
+            .get(spec.name)
+            .and_then(|v| v.get("api_key"))
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false);
+        for m in spec.models {
+            models.push(json!({
+                "provider": spec.name,
+                "provider_label": spec.display_name,
+                "model": m.name,
+                "label": m.display_name,
+                "configured": has_key,
+            }));
+        }
+    }
+
+    Json(json!({ "models": models }))
 }
 
 /// PUT /api/settings/env

@@ -8,7 +8,7 @@ import { DashboardHero } from "./DashboardHero";
 import { ChatInput, type FileItem, type ModelOption } from "./ChatInput";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { ScrollArea } from "@/shared/ui/scroll-area";
-import { API_BASE_URL, getUserId } from "@/shared/api/config";
+import { getApiBaseUrl, getUserId } from "@/shared/api/config";
 import { uploadAgentAttachmentCache } from "@/shared/api/attachments";
 import { Upload } from "lucide-react";
 import {
@@ -177,7 +177,7 @@ function useFileDragAndDrop(
 
 export function ChatPage({ agentId }: ChatPageProps) {
   // 根据 agentId 自动构建 API 端点
-  const apiEndpoint = `${API_BASE_URL}/api/agents/${agentId}/chat`;
+  const apiEndpoint = `${getApiBaseUrl()}/api/agents/${agentId}/chat`;
 
   const { isCollapsed } = useDocumentCollapse();
   
