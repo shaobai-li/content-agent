@@ -21,7 +21,7 @@ function GeneralSettings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState<Record<string, string>>({});       // api_key by provider name
-  const [savingKey, setSavingKey] = useState<Record<string, boolean>>({});
+  const [savingProvider, setSavingProvider] = useState<string | null>(null);
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
   const DEFAULT_USER_DATA_DIR = "";
   const [userDataDir, setUserDataDir] = useState(DEFAULT_USER_DATA_DIR);
@@ -64,7 +64,7 @@ function GeneralSettings() {
 
   const handleProviderSave = useCallback(
     async (providerName: string) => {
-      setSavingKey((prev) => ({ ...prev, [providerName]: true }));
+      setSavingProvider(providerName);
       setError(null);
       try {
         const apiKey = providerName in dirty ? dirty[providerName] : "";
@@ -81,7 +81,7 @@ function GeneralSettings() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "保存失败");
       } finally {
-        setSavingKey((prev) => ({ ...prev, [providerName]: false }));
+        setSavingProvider(null);
       }
     },
     [dirty, refresh],
@@ -199,10 +199,10 @@ function GeneralSettings() {
                     <button
                       type="button"
                       onClick={() => handleProviderSave(p.provider)}
-                      disabled={!isKeyDirty || (savingKey[p.provider] ?? false)}
+                      disabled={!isKeyDirty || savingProvider === p.provider}
                       className="absolute right-0 top-0 bottom-0 flex items-center rounded-md px-3 m-[3px] text-xs font-semibold bg-foreground text-background hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                     >
-                      {(savingKey[p.provider] ?? false) && (
+                      {savingProvider === p.provider && (
                         <Loader2 className="size-3.5 animate-spin mr-1" />
                       )}
                       Save
