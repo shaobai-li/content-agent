@@ -8,10 +8,11 @@ use reqwest::Client;
 use serde_json::{json, Value};
 use zip::ZipArchive;
 
-const BASE_URL: &str = "https://mineru.net";
+const DEFAULT_BASE_URL: &str = "https://mineru.net";
 
 pub struct MinerUConfig {
     pub token: String,
+    pub base_url: String,
     pub model_version: String,
     pub poll_interval_ms: u64,
     pub poll_timeout_secs: u64,
@@ -26,6 +27,8 @@ impl MinerUConfig {
         }
         Ok(Self {
             token,
+            base_url: std::env::var("MINERU_BASE_URL")
+                .unwrap_or_else(|_| DEFAULT_BASE_URL.to_string()),
             model_version: std::env::var("MINERU_MODEL_VERSION")
                 .unwrap_or_else(|_| "vlm".to_string()),
             poll_interval_ms: std::env::var("MINERU_POLL_INTERVAL_MS")
@@ -36,6 +39,32 @@ impl MinerUConfig {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(300),
+        })
+    }
+
+    /// 从 config.json 的 providers.mineru 读取配置。
+    /// 字段：api_key（必填）, api_base（可选，默认 https://mineru.net）。
+    pub fn from_config() -> Result<Self, String> {
+        let user_id = crate::core::auth::get_current_user_id()
+            .ok_or_else(|| "无法获取当前用户上下文".to_string())?;
+        let cfg = crate::core::config::get_provider_config(&user_id, "mineru");
+        let token = cfg
+            .get("api_key")
+            .ok_or_else(|| "config.json 中未配置 providers.mineru.api_key".to_string())?;
+        if token.trim().is_empty() {
+            return Err("providers.mineru.api_key 为空".to_string());
+        }
+        let base_url = cfg
+            .get("api_base")
+            .filter(|s| !s.trim().is_empty())
+            .cloned()
+            .unwrap_or_else(|| DEFAULT_BASE_URL.to_string());
+        Ok(Self {
+            token: token.clone(),
+            base_url,
+            model_version: String::from("vlm"),
+            poll_interval_ms: 3000,
+            poll_timeout_secs: 300,
         })
     }
 }
@@ -63,7 +92,7 @@ async fn request_upload_url(
     config: &MinerUConfig,
     file_name: &str,
 ) -> Result<(String, String), String> {
-    let url = format!("{}/api/v4/file-urls/batch", BASE_URL);
+    let url = format!("{}/api/v4/file-urls/batch", config.base_url);
     let body = json!({
         "files": [{"name": file_name, "is_ocr": true}],
         "model_version": config.model_version,
@@ -139,7 +168,7 @@ async fn poll_batch_result(
     batch_id: &str,
     file_name: &str,
 ) -> Result<String, String> {
-    let url = format!("{}/api/v4/extract-results/batch/{}", BASE_URL, batch_id);
+    let url = format!("{}/api/v4/extract-results/batch/{}", config.base_url, batch_id);
     let deadline =
         Instant::now() + Duration::from_secs(config.poll_timeout_secs.max(1));
 

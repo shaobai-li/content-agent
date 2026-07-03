@@ -29,10 +29,17 @@ def _get_provider(provider_name: str | None = None, model: str | None = None):
         model: Model name, e.g. "deepseek-chat", "gpt-4o", "kimi-k2.5".
                Uses provider default when None.
     """
+    from app.core.auth import get_current_user_id
+    from app.core.config import get_provider_config
     from app.providers.factory import create_provider
 
+    provider_name = provider_name or "deepseek"
+    cfg = get_provider_config(get_current_user_id(), provider_name)
+
     return create_provider(
-        provider_name=provider_name or "deepseek",
+        provider_name=provider_name,
+        api_key=cfg.get("api_key"),
+        api_base=cfg.get("api_base"),
         model=model,
     )
 

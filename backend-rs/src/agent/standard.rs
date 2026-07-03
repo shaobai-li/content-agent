@@ -10,7 +10,7 @@ use crate::agent::context::ContextBuilder;
 use crate::agent::hook::AgentHook;
 use crate::agent::runner::{AgentRunner, AgentRunSpec};
 use crate::agent::turn_context::AgentTurnContext;
-use crate::core::config::get_agent_workspace_dir;
+use crate::core::config::{get_agent_workspace_dir, get_provider_config};
 use crate::provider::base::ToolCallRequest;
 use crate::provider::factory;
 use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
@@ -108,14 +108,26 @@ impl BaseAgent for StandardAgent {
         let registry =
             create_tool_registry(&workspace.display().to_string(), &self.agent_id, Some(provider_name), Some(model));
 
-        // 使用 Provider Factory 动态创建（P05）
-        let provider = match factory::create_provider(provider_name, None, None, Some(model.to_string())) {
+        // 从 config.json 读取 provider 配置，不再从环境变量获取
+        let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
+        let provider_cfg = get_provider_config(&user_id, provider_name);
+        let api_key = provider_cfg.get("api_key").cloned();
+        let api_base = provider_cfg.get("api_base").cloned();
+
+        // 使用 Provider Factory 动态创建
+        let provider = match factory::create_provider(
+            provider_name,
+            api_key,
+            api_base,
+            Some(model.to_string()),
+        ) {
             Ok(p) => Arc::new(p) as Arc<dyn crate::provider::base::LLMProvider>,
             Err(e) => {
                 tracing::warn!("创建 provider {provider_name} 失败: {e}，降级到 deepseek");
-                let api_key = std::env::var("DEEPSEEK_API_KEY").ok();
+                let fallback_cfg = get_provider_config(&user_id, "deepseek");
+                let fallback_key = fallback_cfg.get("api_key").cloned();
                 Arc::new(OpenAICompatProvider::new(
-                    api_key,
+                    fallback_key,
                     None,
                     Some("deepseek-chat".to_string()),
                     None,

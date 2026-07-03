@@ -12,6 +12,7 @@ from app.core.config import (
     _load_agent_yamls,
     _load_user_config,
     _save_user_config,
+    get_provider_config,
 )
 
 
@@ -138,6 +139,57 @@ def test_save_user_config_overwrites(tmp_path):
     content = config_path.read_text(encoding="utf-8")
     assert '"user_data_dir"' in content
     assert '"old"' not in content
+
+
+# ── get_provider_config ───────────────────────────────────────────────────
+
+def test_get_provider_config_no_providers(tmp_path):
+    """config.json 中无 providers 字段时返回空 dict。"""
+    config_dir = tmp_path / "u_1" / "admin"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.json").write_text(
+        '{"user_data_dir": "D:/data"}', encoding="utf-8",
+    )
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+        result = get_provider_config("1", "deepseek")
+    assert result == {}
+
+
+def test_get_provider_config_missing_provider(tmp_path):
+    """请求的 provider 不存在时返回空 dict。"""
+    config_dir = tmp_path / "u_1" / "admin"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.json").write_text(
+        '{"providers": {"deepseek": {"api_key": "sk-xxx"}}}', encoding="utf-8",
+    )
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+        result = get_provider_config("1", "unknown")
+    assert result == {}
+
+
+def test_get_provider_config_returns_config(tmp_path):
+    """正常返回 provider 的 api_key 和 api_base。"""
+    config_dir = tmp_path / "u_1" / "admin"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.json").write_text(
+        '{"providers": {"deepseek": {"api_key": "sk-xxx", "api_base": "https://custom.com/v1"}}}',
+        encoding="utf-8",
+    )
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+        result = get_provider_config("1", "deepseek")
+    assert result == {"api_key": "sk-xxx", "api_base": "https://custom.com/v1"}
+
+
+def test_get_provider_config_partial_config(tmp_path):
+    """config.json 中只有 api_key 没有 api_base 时，只返回 api_key。"""
+    config_dir = tmp_path / "u_1" / "admin"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.json").write_text(
+        '{"providers": {"openai": {"api_key": "sk-ooo"}}}', encoding="utf-8",
+    )
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+        result = get_provider_config("1", "openai")
+    assert result == {"api_key": "sk-ooo"}
 
 
 # ── get_agent_workspace_dir ────────────────────────────────────────────────

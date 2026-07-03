@@ -432,7 +432,7 @@ async fn extract_pdf_with_fallback(src: &Path) -> Result<(String, Value), String
     }
 
     let fallback_reason = format_pdf_insufficient_reason(&text, page_count, scanned_ratio);
-    let config = MinerUConfig::from_env().map_err(|e| {
+    let config = MinerUConfig::from_config().map_err(|e| {
         format!(
             "PDF 需要 OCR（{}），但 {}",
             fallback_reason, e
