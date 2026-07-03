@@ -209,24 +209,19 @@ export function ChatPage({ agentId }: ChatPageProps) {
   const [mentions, setMentions] = useState<MentionItem[]>([]);
   // 后端下发的完整模型列表
   const [allModelOptions, setAllModelOptions] = useState<ModelOption[]>([]);
-  // 当前选择的 LLM 供应商和模型
-  const [modelOption, setModelOption] = useState<ModelOption | undefined>(undefined);
+  // 当前选择的 LLM 供应商和模型（"加载中..." 占位避免 "未配置" 闪烁）
+  const [modelOption, setModelOption] = useState<ModelOption>({
+    provider: "", provider_label: "", model: "", label: "加载中...", configured: false,
+  });
 
   // 根据 API Key 配置过滤可用的模型选项
   const availableModelOptions = useMemo(() => {
     return allModelOptions.filter((opt) => opt.configured);
   }, [allModelOptions]);
 
-  // 首次加载时自动选中第一个可用模型
+  // 模型列表加载后自动选中第一个可用模型；当前模型不可用时切换到第一个
   useEffect(() => {
-    if (!modelOption && availableModelOptions.length > 0) {
-      setModelOption(availableModelOptions[0]);
-    }
-  }, [availableModelOptions, modelOption]);
-
-  // 当可用选项变化时，若当前选择不再可用则切到第一个可用
-  useEffect(() => {
-    if (!modelOption || availableModelOptions.length === 0) return;
+    if (availableModelOptions.length === 0) return;
     const stillAvailable = availableModelOptions.some(
       (o) => o.provider === modelOption.provider && o.model === modelOption.model,
     );
