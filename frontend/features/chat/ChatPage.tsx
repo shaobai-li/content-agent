@@ -233,13 +233,12 @@ function useAutoScroll(
       userScrolledUpRef.current = false;
       anchorMsgIdRef.current = lastUserMsg.id;
 
-      requestAnimationFrame(() => {
-        const el = vp.querySelector(`[data-message-id="${lastUserMsg.id}"]`) as HTMLElement | null;
-        if (!el) return;
-        const targetY = Math.max(0, el.offsetTop - vp.clientHeight * SCROLL_RATIO);
-        anchorScrollPosRef.current = targetY;
-        vp.scrollTo({ top: targetY, behavior: "smooth" });
-      });
+      // 直接在 effect 中计算和滚动（无需 rAF：useEffect 执行时 DOM 已 commit）
+      const el = vp.querySelector(`[data-message-id="${lastUserMsg.id}"]`) as HTMLElement | null;
+      if (!el) return;
+      const targetY = Math.max(0, el.offsetTop - vp.clientHeight * SCROLL_RATIO);
+      anchorScrollPosRef.current = targetY;
+      vp.scrollTo({ top: targetY, behavior: "smooth" });
       return;
     }
 
