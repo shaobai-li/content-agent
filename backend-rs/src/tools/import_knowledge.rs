@@ -422,8 +422,10 @@ async fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value
 
 /// 本地抽取 PDF；文本不足或页面以扫描图片为主时 fallback 到 MinerU OCR。
 async fn extract_pdf_with_fallback(src: &Path) -> Result<(String, Value), String> {
-    let text = extract_pdf_text(src)?;
+    // 先做轻量的结构分析（lopdf 只解析页面树/图片对象，不提取文字）
     let (page_count, scanned_ratio) = pdf_page_stats(src);
+    // 再提取文本（pdf-extract 需要逐页解析，较重）
+    let text = extract_pdf_text(src)?;
 
     if !is_pdf_text_insufficient(&text, page_count, scanned_ratio) {
         return Ok((text, json!({})));
