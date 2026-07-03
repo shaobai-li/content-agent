@@ -179,45 +179,20 @@ function useFileDragAndDrop(
 /**
  * 智能滚动定位 hook
  *
- * 行为策略（修复方案）：
- * 1. 用户发送 → 定位最新 user 消息到视口 35% 位置，记录该消息 ID 为"锚点"
- * 2. AI 流式回复中 → 若用户未滚动到"锚点之上"，跟随底部
- * 3. 回复完成 → 不动（保持当前位置，不跳回底部）
- * 4. 用户手动滚动到锚点之上 → 暂停自动跟随
- * 5. 加载历史会话 → 滚动到底部（无锚点时）
+ * 行为策略（方案 B）：
+ * 1. 用户发送 → 定位最新 user 消息到视口最上方，旧消息完全滚出可视区域
+ * 2. AI 流式回复中 → 不自动滚动，用户消息保持在顶部
+ * 3. 回复完成 → 保持当前位置不动
+ * 4. 加载历史会话 → 滚动到底部（无锚点时）
  */
 function useAutoScroll(
   messages: Message[],
   isSending: boolean,
   viewportRef: React.RefObject<HTMLDivElement | null>,
 ) {
-  const userScrolledUpRef = useRef(false);
   const prevIsSendingRef = useRef(false);
   const anchorMsgIdRef = useRef<string | null>(null);
-  const anchorScrollPosRef = useRef(0);
-  const SCROLL_RATIO = 0.35;
 
-  // 监听用户手动滚动
-  useEffect(() => {
-    const vp = viewportRef.current;
-    if (!vp) return;
-
-    const handleScroll = () => {
-      if (anchorMsgIdRef.current) {
-        // 有锚点时：只有用户主动滚动到锚点位置之上才算"上翻"
-        userScrolledUpRef.current = vp.scrollTop < anchorScrollPosRef.current - 50;
-      } else {
-        // 无锚点时：还原为底部检测（会话加载等场景）
-        const atBottom = vp.scrollHeight - vp.scrollTop - vp.clientHeight < 100;
-        userScrolledUpRef.current = !atBottom;
-      }
-    };
-
-    vp.addEventListener("scroll", handleScroll, { passive: true });
-    return () => vp.removeEventListener("scroll", handleScroll);
-  }, [viewportRef]);
-
-  // 消息/发送状态变化时触发滚动
   useEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
@@ -226,36 +201,28 @@ function useAutoScroll(
     prevIsSendingRef.current = isSending;
 
     if (sendingStarted) {
-      // 用户刚发送：定位到最后一条 user 消息到视口偏上
+      // 用户刚发送：定位最新 user 消息到视口最上方，旧消息完全滚出可视区域
       const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
       if (!lastUserMsg) return;
 
-      userScrolledUpRef.current = false;
       anchorMsgIdRef.current = lastUserMsg.id;
 
-      // 直接在 effect 中计算和滚动（无需 rAF：useEffect 执行时 DOM 已 commit）
+      // Viewport 已有 position: relative，offsetTop 以 Viewport 为参考系
+      // pb-[50vh] 确保底部有足够滚动空间不会被浏览器 clamp
       const el = vp.querySelector(`[data-message-id="${lastUserMsg.id}"]`) as HTMLElement | null;
       if (!el) return;
-      const targetY = Math.max(0, el.offsetTop - vp.clientHeight * SCROLL_RATIO);
-      anchorScrollPosRef.current = targetY;
-      vp.scrollTo({ top: targetY, behavior: "smooth" });
-      return;
-    }
-
-    if (isSending && !userScrolledUpRef.current) {
-      // AI 回复中且用户未上翻：跟随底部
-      vp.scrollTo({ top: vp.scrollHeight, behavior: "instant" as ScrollBehavior });
+      vp.scrollTo({ top: el.offsetTop, behavior: "instant" as ScrollBehavior });
       return;
     }
 
     if (!isSending) {
       if (!anchorMsgIdRef.current && messages.length > 0) {
-        // 无锚点 & 有消息：会话加载场景 → 滚动到底部
+        // 无锚点 & 有消息：会话加载等场景 → 滚动到底部
         vp.scrollTo({ top: vp.scrollHeight, behavior: "instant" as ScrollBehavior });
       }
-      // 有锚点时（刚回复完）：不滚动，用户停留在当前位置
       anchorMsgIdRef.current = null;
     }
+    // isSending 且非 sendingStarted（流式回复中）→ 不滚动，用户消息保持在顶部
   }, [messages, isSending, viewportRef]);
 }
 
@@ -496,7 +463,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
             <DashboardHero />
           ) : (
             <ScrollArea ref={scrollAreaRef} className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
-              <div className="w-full min-w-0 max-w-full p-4">
+              <div className="w-full min-w-0 max-w-full p-4 pb-[50vh]">
                 <ChatMessage messages={messages} />
               </div>
             </ScrollArea>

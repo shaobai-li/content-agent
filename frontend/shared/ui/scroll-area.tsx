@@ -16,7 +16,7 @@ const ScrollArea = React.forwardRef<HTMLDivElement, React.ComponentProps<typeof 
         <ScrollAreaPrimitive.Viewport
           ref={ref}
           data-slot="scroll-area-viewport"
-          className="min-h-0 min-w-0 focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+          className="relative min-h-0 min-w-0 focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
         >
           {children}
         </ScrollAreaPrimitive.Viewport>
