@@ -2,6 +2,12 @@ use once_cell::sync::Lazy;
 
 use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
 
+/// 单个模型元信息，对应 Python `registry.py` 的 ModelSpec
+pub struct ModelSpec {
+    pub name: &'static str,         // e.g. "deepseek-chat"
+    pub display_name: &'static str,  // e.g. "DeepSeek Chat"
+}
+
 /// 内置 provider 规格定义
 pub struct ProviderSpec {
     pub name: &'static str,
@@ -9,6 +15,7 @@ pub struct ProviderSpec {
     pub env_key: &'static str,
     pub default_api_base: &'static str,
     pub default_model: &'static str,
+    pub models: &'static [ModelSpec],
 }
 
 /// 内置 provider 列表，对应 Python `app/providers/registry.py` 的 PROVIDERS
@@ -20,34 +27,50 @@ pub static PROVIDERS: Lazy<Vec<ProviderSpec>> = Lazy::new(|| {
             env_key: "DEEPSEEK_API_KEY",
             default_api_base: "https://api.deepseek.com",
             default_model: "deepseek-chat",
+            models: &[
+                ModelSpec { name: "deepseek-chat", display_name: "DeepSeek Chat" },
+                ModelSpec { name: "deepseek-reasoner", display_name: "DeepSeek Reasoner" },
+            ],
         },
         ProviderSpec {
             name: "openai",
             display_name: "OpenAI",
             env_key: "OPENAI_API_KEY",
-            default_api_base: "https://api.openai.com",
+            default_api_base: "https://api.openai.com/v1",
             default_model: "gpt-4o",
+            models: &[
+                ModelSpec { name: "gpt-4o", display_name: "GPT-4o" },
+            ],
         },
         ProviderSpec {
             name: "moonshot",
             display_name: "Moonshot",
             env_key: "MOONSHOT_API_KEY",
-            default_api_base: "https://api.moonshot.cn",
+            default_api_base: "https://api.moonshot.cn/v1",
             default_model: "kimi-k2.5",
+            models: &[
+                ModelSpec { name: "kimi-k2.5", display_name: "Kimi K2.5" },
+            ],
         },
         ProviderSpec {
             name: "zhipu",
-            display_name: "智谱",
+            display_name: "GLM",
             env_key: "ZHIPU_API_KEY",
             default_api_base: "https://open.bigmodel.cn/api/paas/v4",
             default_model: "glm-4-plus",
+            models: &[
+                ModelSpec { name: "GLM-Z1-Air", display_name: "GLM-Z1-Air" },
+            ],
         },
         ProviderSpec {
             name: "minimax",
             display_name: "MiniMax",
             env_key: "MINIMAX_API_KEY",
-            default_api_base: "https://api.minimax.io/v1",
-            default_model: "minimax-text-01",
+            default_api_base: "https://api.minimaxi.com/v1",
+            default_model: "MiniMax-M2.5",
+            models: &[
+                ModelSpec { name: "MiniMax-M2.5", display_name: "MiniMax M2.5" },
+            ],
         },
     ]
 });
