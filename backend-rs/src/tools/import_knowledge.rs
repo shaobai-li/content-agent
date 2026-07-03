@@ -11,6 +11,7 @@ use serde_json::{json, Value};
 use super::base::Tool;
 use crate::core::config::get_agent_local_data_dir;
 use crate::service::knowledge_base::list_knowledge_bases;
+use crate::service::mineru::{self, MinerUConfig};
 
 // ═══════════════════════════════════════════════════════════════════════
 // Parameters schema
@@ -379,18 +380,27 @@ fn content_paths(src: &Path, parsed: Option<&Value>) -> Value {
 // Parsers: PDF / DOCX / PPTX → markdown
 // ═══════════════════════════════════════════════════════════════════════
 
+const PDF_MIN_TOTAL_CHARS: usize = 50;
+const PDF_MIN_CHARS_PER_PAGE: f64 = 20.0;
+
 /// 尝试解析文档，返回 `{"markdown_path": "..."}` 或 None。
-fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value>, String> {
+async fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value>, String> {
     std::fs::create_dir_all(output_dir)
         .map_err(|e| format!("创建目录失败: {}", e))?;
     let md_path = output_dir.join("parsed.md");
 
     match src.extension().and_then(|e| e.to_str()).unwrap_or("") {
         "pdf" => {
-            let text = extract_pdf_text(src)?;
+            let (text, meta) = extract_pdf_with_fallback(src).await?;
             std::fs::write(&md_path, &text)
                 .map_err(|e| format!("写入 parsed.md 失败: {}", e))?;
-            Ok(Some(json!({"markdown_path": md_path.to_string_lossy()})))
+            let mut parsed = json!({"markdown_path": md_path.to_string_lossy(), "parser": "pdf_extract"});
+            if let Some(obj) = meta.as_object() {
+                for (k, v) in obj {
+                    parsed[k] = v.clone();
+                }
+            }
+            Ok(Some(parsed))
         }
         "docx" => {
             let text = extract_docx_text(src)?;
@@ -406,6 +416,73 @@ fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value>, Str
         }
         _ => Ok(None), // md / txt 等无需解析
     }
+}
+
+/// 本地抽取 PDF；文本不足时 fallback 到 MinerU OCR。
+async fn extract_pdf_with_fallback(src: &Path) -> Result<(String, Value), String> {
+    let text = extract_pdf_text(src)?;
+    let page_count = pdf_page_count(src).unwrap_or(0);
+
+    if !is_pdf_text_insufficient(&text, page_count) {
+        return Ok((text, json!({})));
+    }
+
+    let fallback_reason = format_pdf_insufficient_reason(&text, page_count);
+    let config = MinerUConfig::from_config().map_err(|e| {
+        format!(
+            "PDF 文本不足（{}），需要 MinerU OCR，但 {}",
+            fallback_reason, e
+        )
+    })?;
+
+    let md = mineru::parse_pdf(src, &config)
+        .await
+        .map_err(|e| format!("MinerU OCR 失败: {}", e))?;
+
+    Ok((
+        md,
+        json!({
+            "parser": "mineru_vlm_ocr",
+            "fallback_reason": fallback_reason,
+        }),
+    ))
+}
+
+fn is_pdf_text_insufficient(text: &str, page_count: u32) -> bool {
+    let trimmed = text.trim();
+    let len = trimmed.chars().count();
+
+    if trimmed.is_empty() {
+        return true;
+    }
+    if len < PDF_MIN_TOTAL_CHARS {
+        return true;
+    }
+    if page_count > 0 {
+        let chars_per_page = len as f64 / page_count as f64;
+        if chars_per_page < PDF_MIN_CHARS_PER_PAGE {
+            return true;
+        }
+    }
+    false
+}
+
+fn format_pdf_insufficient_reason(text: &str, page_count: u32) -> String {
+    let len = text.trim().chars().count();
+    if page_count > 0 {
+        let chars_per_page = len as f64 / page_count as f64;
+        format!(
+            "insufficient_text: {} chars / {} pages ({:.1} chars/page)",
+            len, page_count, chars_per_page
+        )
+    } else {
+        format!("insufficient_text: {} chars", len)
+    }
+}
+
+fn pdf_page_count(path: &Path) -> Result<u32, String> {
+    let doc = lopdf::Document::load(path).map_err(|e| format!("读取 PDF 页数失败: {}", e))?;
+    Ok(doc.get_pages().len() as u32)
 }
 
 /// 提取 PDF 文本内容。
@@ -553,7 +630,7 @@ fn extract_pptx_text(path: &Path) -> Result<String, String> {
 
 /// 执行解析 → 写 record → 写 metadata 的核心流程。
 /// 成功返回 (record_path, parsed)，失败返回 (error_message, metadata_for_failure)。
-fn try_critical_import(
+async fn try_critical_import(
     src: &Path,
     m_dir: &Path,
     kb: &Path,
@@ -561,7 +638,7 @@ fn try_critical_import(
     sha256_hex: &str,
     metadata: Value,
 ) -> Result<(PathBuf, Option<Value>), (String, Value)> {
-    let parsed = match extract_parsed_md(src, m_dir) {
+    let parsed = match extract_parsed_md(src, m_dir).await {
         Ok(p) => p,
         Err(e) => return Err((e, metadata)),
     };
@@ -595,7 +672,7 @@ fn try_critical_import(
 // Single file import
 // ═══════════════════════════════════════════════════════════════════════
 
-fn import_single_file(src_path: &Path, kb_root: &Path) -> Value {
+async fn import_single_file(src_path: &Path, kb_root: &Path) -> Value {
     let src = match src_path.canonicalize() {
         Ok(p) => p,
         Err(e) => {
@@ -675,7 +752,7 @@ fn import_single_file(src_path: &Path, kb_root: &Path) -> Value {
     }
 
     // ── 单点 try/except 等价逻辑 ──────────────────────────────────
-    match try_critical_import(&src, &m_dir, &kb, &m_id, &sha256_hex, metadata) {
+    match try_critical_import(&src, &m_dir, &kb, &m_id, &sha256_hex, metadata).await {
         Ok((record_path, parsed)) => {
             // 成功：构建返回值
             let mut result = json!({
@@ -787,7 +864,7 @@ impl Tool for ImportKnowledgeTool {
             } else {
                 Path::new(&self.workspace).join(file_path_str)
             };
-            let result = import_single_file(&src, &kb_root);
+            let result = import_single_file(&src, &kb_root).await;
             results.push(result);
         }
 
@@ -865,5 +942,72 @@ impl Tool for ImportKnowledgeTool {
 
         serde_json::to_string_pretty(&output)
             .map_err(|e| format!("Error: 序列化结果失败: {}", e))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── is_pdf_text_insufficient ──────────────────────────────────
+
+    #[test]
+    fn test_is_pdf_text_insufficient_empty() {
+        assert!(is_pdf_text_insufficient("", 1));
+        assert!(is_pdf_text_insufficient("   ", 1));
+    }
+
+    #[test]
+    fn test_is_pdf_text_insufficient_below_total_threshold() {
+        // 48 chars < 50
+        assert!(is_pdf_text_insufficient(&"a".repeat(48), 1));
+    }
+
+    #[test]
+    fn test_is_pdf_text_insufficient_meets_total_but_low_per_page() {
+        // 60 chars / 5 pages = 12 chars/page < 20
+        assert!(is_pdf_text_insufficient(&"a".repeat(60), 5));
+    }
+
+    #[test]
+    fn test_is_pdf_text_insufficient_sufficient() {
+        assert!(!is_pdf_text_insufficient(&"a".repeat(200), 1));
+    }
+
+    #[test]
+    fn test_is_pdf_text_insufficient_no_page_count_skips_per_page_check() {
+        // page_count=0, only total threshold applies
+        assert!(is_pdf_text_insufficient(&"a".repeat(10), 0));  // 10 < 50
+        assert!(!is_pdf_text_insufficient(&"a".repeat(100), 0)); // 100 >= 50
+    }
+
+    #[test]
+    fn test_is_pdf_text_insufficient_large_pdf_still_fails_per_page() {
+        // 500 chars / 100 pages = 5 chars/page < 20
+        assert!(is_pdf_text_insufficient(&"a".repeat(500), 100));
+    }
+
+    // ── format_pdf_insufficient_reason ─────────────────────────---
+
+    #[test]
+    fn test_format_pdf_insufficient_reason_with_pages() {
+        let reason = format_pdf_insufficient_reason("hello world", 3);
+        assert!(reason.contains("insufficient_text"));
+        assert!(reason.contains("11 chars"));
+        assert!(reason.contains("3 pages"));
+    }
+
+    #[test]
+    fn test_format_pdf_insufficient_reason_no_pages() {
+        let reason = format_pdf_insufficient_reason("hello", 0);
+        assert!(reason.contains("insufficient_text"));
+        assert!(reason.contains("5 chars"));
+        assert!(!reason.contains("pages"));
+    }
+
+    #[test]
+    fn test_format_pdf_insufficient_reason_trims_whitespace() {
+        let reason = format_pdf_insufficient_reason("  hello  ", 1);
+        assert!(reason.contains("5 chars"));  // "hello" = 5 chars after trim
     }
 }
