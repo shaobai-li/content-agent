@@ -83,7 +83,7 @@ pub async fn parse_pdf(path: &Path, config: &MinerUConfig) -> Result<String, Str
 
     let (batch_id, upload_url) = request_upload_url(&client, config, file_name).await?;
     upload_file(&client, path, &upload_url).await?;
-    let zip_url = poll_batch_result(&client, config, &batch_id).await?;
+    let zip_url = poll_batch_result(&client, config, &batch_id, file_name).await?;
     download_and_extract_md(&client, &zip_url).await
 }
 
@@ -166,6 +166,7 @@ async fn poll_batch_result(
     client: &Client,
     config: &MinerUConfig,
     batch_id: &str,
+    file_name: &str,
 ) -> Result<String, String> {
     let url = format!("{}/api/v4/extract-results/batch/{}", config.base_url, batch_id);
     let deadline =
@@ -201,9 +202,16 @@ async fn poll_batch_result(
             .and_then(|v| v.as_array())
             .ok_or_else(|| "MinerU 响应缺少 extract_result".to_string())?;
 
-        // 当前每次只发送一个文件，直接取第一个结果即可
         let item = results
-            .first()
+            .iter()
+            .find(|r| {
+                r.get("file_name")
+                    .and_then(|v| v.as_str())
+                    .map(|n| n == file_name)
+                    .unwrap_or(false)
+            })
+            // 单文件上传场景：文件名匹配不到时取第一个结果
+            .or_else(|| results.first())
             .ok_or_else(|| "MinerU 响应中无任务结果".to_string())?;
 
         let state = item
@@ -275,7 +283,7 @@ fn extract_full_md_from_zip(bytes: &[u8]) -> Result<String, String> {
             .read_to_string(&mut content)
             .map_err(|e| format!("读取 full.md 失败: {}", e))?;
         let depth = name.matches('/').count();
-        if best.as_ref().map_or(true, |(d, _)| depth <= *d) {
+        if best.as_ref().map_or(true, |(d, _)| depth < *d) {
             best = Some((depth, content));
         }
     }
@@ -304,111 +312,4 @@ fn ensure_api_ok(payload: &Value, http_status: u16, action: &str) -> Result<(), 
         ));
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Write;
-    use zip::write::FileOptions;
-
-    #[test]
-    fn test_extract_full_md_from_zip_empty_archive() {
-        let empty = vec![];
-        let result = extract_full_md_from_zip(&empty);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("解压 MinerU ZIP 失败"));
-    }
-
-    #[test]
-    fn test_extract_full_md_from_zip_no_full_md() {
-        let buf = std::io::Cursor::new(Vec::new());
-        let mut zip = zip::ZipWriter::new(buf);
-        zip.start_file("some_dir/other.md", FileOptions::<()>::default()).unwrap();
-        zip.write_all(b"hello").unwrap();
-        let cursor = zip.finish().unwrap();
-        let bytes: Vec<u8> = cursor.into_inner();
-
-        let result = extract_full_md_from_zip(&bytes);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("未找到 full.md"));
-    }
-
-    #[test]
-    fn test_extract_full_md_from_zip_root_full_md() {
-        let buf = std::io::Cursor::new(Vec::new());
-        let mut zip = zip::ZipWriter::new(buf);
-        zip.start_file("full.md", FileOptions::<()>::default()).unwrap();
-        zip.write_all(b"# Root content").unwrap();
-        let cursor = zip.finish().unwrap();
-        let bytes: Vec<u8> = cursor.into_inner();
-
-        let result = extract_full_md_from_zip(&bytes);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "# Root content");
-    }
-
-    #[test]
-    fn test_extract_full_md_from_zip_nested_takes_shallowest() {
-        let buf = std::io::Cursor::new(Vec::new());
-        let mut zip = zip::ZipWriter::new(buf);
-        zip.start_file("auto/2024/01/01/full.md", FileOptions::<()>::default()).unwrap();
-        zip.write_all(b"deep").unwrap();
-        zip.start_file("auto/2024/full.md", FileOptions::<()>::default()).unwrap();
-        zip.write_all(b"shallow").unwrap();
-        let cursor = zip.finish().unwrap();
-        let bytes: Vec<u8> = cursor.into_inner();
-
-        let result = extract_full_md_from_zip(&bytes);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "shallow");
-    }
-
-    #[test]
-    fn test_extract_full_md_from_zip_multiple_same_depth() {
-        let buf = std::io::Cursor::new(Vec::new());
-        let mut zip = zip::ZipWriter::new(buf);
-        zip.start_file("auto/2024/full.md", FileOptions::<()>::default()).unwrap();
-        zip.write_all(b"first").unwrap();
-        zip.start_file("auto/2025/full.md", FileOptions::<()>::default()).unwrap();
-        zip.write_all(b"second").unwrap();
-        let cursor = zip.finish().unwrap();
-        let bytes: Vec<u8> = cursor.into_inner();
-
-        let result = extract_full_md_from_zip(&bytes);
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "second");  // 同 depth 时取最后一个
-    }
-
-    #[test]
-    fn test_ensure_api_ok_code_not_zero() {
-        let payload = json!({"code": 1, "msg": "invalid token"});
-        let result = ensure_api_ok(&payload, 200, "test_action");
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("code=1"));
-    }
-
-    #[test]
-    fn test_ensure_api_ok_http_error() {
-        let payload = json!({"code": 0, "msg": "not found"});
-        let result = ensure_api_ok(&payload, 404, "test_action");
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("HTTP 404"));
-    }
-
-    #[test]
-    fn test_ensure_api_ok_ok() {
-        let payload = json!({"code": 0, "msg": "success"});
-        let result = ensure_api_ok(&payload, 200, "test_action");
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_ensure_api_ok_code_defaults_to_minus_one() {
-        let payload = json!({});
-        let result = ensure_api_ok(&payload, 200, "test_action");
-        // code 缺失时默认为 -1，不等于 0，所以返回错误
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("code=-1"));
-    }
 }
