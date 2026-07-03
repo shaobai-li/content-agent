@@ -54,15 +54,11 @@ export interface ChatInputHandle {
 
 export type ModelOption = {
   provider: string;
+  provider_label: string;
   model: string;
   label: string;
+  configured: boolean;
 };
-
-export const MODEL_OPTIONS: ModelOption[] = [
-  { provider: "deepseek", model: "deepseek-chat",   label: "DeepSeek Chat" },
-  { provider: "openai",   model: "gpt-4o",          label: "GPT-4o" },
-  { provider: "moonshot", model: "kimi-k2.5",       label: "Kimi K2.5" },
-];
 
 export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function ChatInput({
   value,
@@ -75,9 +71,9 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
   onFileRemove,
   isSending,
   agentId,
-  modelOption = MODEL_OPTIONS[0],
+  modelOption,
   onModelChange,
-  modelOptions = MODEL_OPTIONS,
+  modelOptions = [],
 }, ref) {
   const editorRef = useRef<LexicalEditorHandle>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -229,7 +225,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
               className="text-xs gap-1 px-2 font-normal text-muted-foreground hover:text-foreground ml-auto"
               disabled={noModelAvailable}
             >
-              {noModelAvailable ? "未配置" : modelOption.label}
+              {noModelAvailable ? "未配置" : modelOption?.label ?? "未配置"}
               <ChevronDown className="size-3" />
             </Button>
           </DropdownMenuTrigger>
@@ -238,7 +234,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
               <DropdownMenuItem
                 key={`${opt.provider}:${opt.model}`}
                 onSelect={() => onModelChange?.(opt)}
-                className={modelOption.provider === opt.provider && modelOption.model === opt.model ? "bg-accent" : ""}
+                className={modelOption?.provider === opt.provider && modelOption?.model === opt.model ? "bg-accent" : ""}
               >
                 {opt.label}
               </DropdownMenuItem>

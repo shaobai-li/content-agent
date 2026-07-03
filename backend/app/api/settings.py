@@ -92,3 +92,30 @@ async def update_env_settings(payload: dict = Body(...)):
 
     _save_user_config(user_id, existing)
     return {"ok": True}
+
+
+@router.get("/models")
+async def get_models():
+    """Return all available models grouped by provider, with configured status.
+
+    Reads model metadata from the provider registry (ProviderSpec.models)
+    and merges with per-user config.json to mark which providers have API keys.
+    """
+    user_config = _load_user_config(get_current_user_id())
+    providers_cfg = user_config.get("providers") or {}
+
+    result: list[dict] = []
+    for spec in PROVIDERS:
+        if not spec.models:
+            continue
+        has_key = bool((providers_cfg.get(spec.name) or {}).get("api_key"))
+        for m in spec.models:
+            result.append({
+                "provider": spec.name,
+                "provider_label": spec.display_name or spec.name.title(),
+                "model": m.name,
+                "label": m.display_name,
+                "configured": has_key,
+            })
+
+    return {"models": result}

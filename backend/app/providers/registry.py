@@ -19,6 +19,14 @@ from pydantic.alias_generators import to_snake
 
 
 @dataclass(frozen=True)
+class ModelSpec:
+    """One model under a provider. Lightweight — extend as needed."""
+
+    name: str  # e.g. "deepseek-chat"
+    display_name: str  # e.g. "DeepSeek Chat"
+
+
+@dataclass(frozen=True)
 class ProviderSpec:
     """One LLM provider's metadata. See PROVIDERS below for real examples.
 
@@ -71,6 +79,9 @@ class ProviderSpec:
     # "reasoning_split" — {"reasoning_split": true/false}  (MiniMax)
     thinking_style: str = ""
 
+    # registered models for this provider; empty = provider not exposed in model picker
+    models: tuple[ModelSpec, ...] = ()
+
     @property
     def label(self) -> str:
         return self.display_name or self.name.title()
@@ -90,6 +101,10 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         backend="openai_compat",
         default_api_base="https://api.deepseek.com",
         thinking_style="thinking_type",
+        models=(
+            ModelSpec("deepseek-chat", "DeepSeek Chat"),
+            ModelSpec("deepseek-reasoner", "DeepSeek Reasoner"),
+        ),
     ),
     # OpenAI: standard OpenAI API
     ProviderSpec(
@@ -100,6 +115,7 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         backend="openai_compat",
         default_api_base="https://api.openai.com/v1",
         supports_max_completion_tokens=True,
+        models=(ModelSpec("gpt-4o", "GPT-4o"),),
     ),
     # Moonshot (Kimi): OpenAI-compatible at api.moonshot.cn
     ProviderSpec(
@@ -115,24 +131,27 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
             ("kimi-k2.5", {"temperature": 1.0}),
             ("kimi-k2.6", {"temperature": 1.0}),
         ),
+        models=(ModelSpec("kimi-k2.5", "Kimi K2.5"),),
     ),
     # Zhipu (智谱 GLM): OpenAI-compatible at open.bigmodel.cn
     ProviderSpec(
         name="zhipu",
         keywords=("zhipu", "glm"),
         env_key="ZHIPU_API_KEY",
-        display_name="智谱",
+        display_name="GLM",
         backend="openai_compat",
         default_api_base="https://open.bigmodel.cn/api/paas/v4",
+        models=(ModelSpec("GLM-Z1-Air", "GLM-Z1-Air"),),
     ),
-    # MiniMax (海螺 AI): OpenAI-compatible at api.minimax.io
+    # MiniMax (海螺 AI): OpenAI-compatible at api.minimaxi.com
     ProviderSpec(
         name="minimax",
         keywords=("minimax", "hailuo"),
         env_key="MINIMAX_API_KEY",
         display_name="MiniMax",
         backend="openai_compat",
-        default_api_base="https://api.minimax.io/v1",
+        default_api_base="https://api.minimaxi.com/v1",
+        models=(ModelSpec("MiniMax-M2.5", "MiniMax M2.5"),),
     ),
 )
 

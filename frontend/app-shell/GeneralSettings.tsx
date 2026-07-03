@@ -94,6 +94,8 @@ function GeneralSettings() {
       await http.put("/api/settings/env", { user_data_dir: userDataDir });
       setUserDataDirOriginal(userDataDir);
       await refresh(false);
+      // 通知 ChatPage 等组件 provider 配置已变更，重新拉取模型列表
+      window.dispatchEvent(new CustomEvent("provider-config-changed"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
