@@ -184,7 +184,6 @@ function GeneralSettings() {
                 </button>
               </div>
             </div>
-            {/* API Base URL — 固定使用 registry.py 默认值，不暴露给用户修改 */}
           </div>
         );
       })}
