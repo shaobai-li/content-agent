@@ -49,7 +49,7 @@ def _default_model_for(provider_name: str) -> str:
         "deepseek": "deepseek-chat",
         "openai": "gpt-4o",
         "moonshot": "kimi-k2.5",
-        "zhipu": "glm-4-plus",
-        "minimax": "minimax-text-01",
+        "zhipu": "GLM-Z1-Air",
+        "minimax": "MiniMax-M2.5",
     }
     return defaults.get(provider_name, f"{provider_name}-chat")

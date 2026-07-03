@@ -5,7 +5,7 @@ import { useChat } from "@/features/chat/useChat";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { DashboardHero } from "./DashboardHero";
-import { ChatInput, type FileItem, type ModelOption, MODEL_OPTIONS } from "./ChatInput";
+import { ChatInput, type FileItem, type ModelOption } from "./ChatInput";
 import { FileTypeIconMap } from "@/shared/ui/icons";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { API_BASE_URL, getUserId } from "@/shared/api/config";
@@ -207,17 +207,19 @@ export function ChatPage({ agentId }: ChatPageProps) {
   const [pendingFiles, setPendingFiles] = useState<FileItem[]>([]);
   // 管理提及标签（如知识库）
   const [mentions, setMentions] = useState<MentionItem[]>([]);
-  // 已配置 API Key 的 provider 集合
-  const [configuredProviders, setConfiguredProviders] = useState<Set<string>>(new Set());
-  // 当前选择的 LLM 供应商和模型
-  const [modelOption, setModelOption] = useState<ModelOption>(MODEL_OPTIONS[0]);
+  // 后端下发的完整模型列表
+  const [allModelOptions, setAllModelOptions] = useState<ModelOption[]>([]);
+  // 当前选择的 LLM 供应商和模型（"加载中..." 占位避免 "未配置" 闪烁）
+  const [modelOption, setModelOption] = useState<ModelOption>({
+    provider: "", provider_label: "", model: "", label: "加载中...", configured: false,
+  });
 
   // 根据 API Key 配置过滤可用的模型选项
   const availableModelOptions = useMemo(() => {
-    return MODEL_OPTIONS.filter((opt) => configuredProviders.has(opt.provider));
-  }, [configuredProviders]);
+    return allModelOptions.filter((opt) => opt.configured);
+  }, [allModelOptions]);
 
-  // 当可用选项变化时，若当前选择不再可用则切到第一个可用
+  // 模型列表加载后自动选中第一个可用模型；当前模型不可用时切换到第一个
   useEffect(() => {
     if (availableModelOptions.length === 0) return;
     const stillAvailable = availableModelOptions.some(
@@ -226,23 +228,25 @@ export function ChatPage({ agentId }: ChatPageProps) {
     if (!stillAvailable) {
       setModelOption(availableModelOptions[0]);
     }
-  }, [availableModelOptions, modelOption.provider, modelOption.model]);
+  }, [availableModelOptions, modelOption]);
 
-  // 获取已配置 API Key 的 provider 列表
-  useEffect(() => {
+  const fetchModels = useCallback(() => {
     http
-      .get<{ providers: { provider: string; set: boolean }[] }>("/api/settings/env")
+      .get<{ models: ModelOption[] }>("/api/settings/models")
       .then((data) => {
-        const configured = new Set(
-          data.providers.filter((p) => p.set).map((p) => p.provider),
-        );
-        setConfiguredProviders(configured);
+        setAllModelOptions(data.models ?? []);
       })
       .catch(() => {
-        // 请求失败，不显示任何模型
-        setConfiguredProviders(new Set());
+        setAllModelOptions([]);
       });
   }, []);
+
+  // 首次挂载拉取 + 监听 provider 配置变更事件
+  useEffect(() => {
+    fetchModels();
+    window.addEventListener("provider-config-changed", fetchModels);
+    return () => window.removeEventListener("provider-config-changed", fetchModels);
+  }, [fetchModels]);
 
   // 根据文件名获取文件类型
   const getFileType = (fileName: string): keyof typeof FileTypeIconMap => {
@@ -380,8 +384,8 @@ export function ChatPage({ agentId }: ChatPageProps) {
       text: input.trim() || undefined,
       mentions: mentions.length > 0 ? mentions : undefined,
       attachmentPaths: attachmentPaths.length > 0 ? attachmentPaths : undefined,
-      provider: modelOption.provider,
-      model: modelOption.model,
+      provider: modelOption?.provider,
+      model: modelOption?.model,
     };
 
     setInput("");
