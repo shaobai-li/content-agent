@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useChat } from "@/features/chat/useChat";
+import type { Message } from "@/entities/message/model";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { DashboardHero } from "./DashboardHero";
@@ -175,6 +176,90 @@ function useFileDragAndDrop(
   };
 }
 
+/**
+ * 智能滚动定位 hook
+ *
+ * 行为策略（修复方案）：
+ * 1. 用户发送 → 定位最新 user 消息到视口 35% 位置，记录该消息 ID 为"锚点"
+ * 2. AI 流式回复中 → 若用户未滚动到"锚点之上"，跟随底部
+ * 3. 回复完成 → 不动（保持当前位置，不跳回底部）
+ * 4. 用户手动滚动到锚点之上 → 暂停自动跟随
+ * 5. 加载历史会话 → 滚动到底部（无锚点时）
+ */
+function useAutoScroll(
+  messages: Message[],
+  isSending: boolean,
+  viewportRef: React.RefObject<HTMLDivElement | null>,
+) {
+  const userScrolledUpRef = useRef(false);
+  const prevIsSendingRef = useRef(false);
+  const anchorMsgIdRef = useRef<string | null>(null);
+  const anchorScrollPosRef = useRef(0);
+  const SCROLL_RATIO = 0.35;
+
+  // 监听用户手动滚动
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+
+    const handleScroll = () => {
+      if (anchorMsgIdRef.current) {
+        // 有锚点时：只有用户主动滚动到锚点位置之上才算"上翻"
+        userScrolledUpRef.current = vp.scrollTop < anchorScrollPosRef.current - 50;
+      } else {
+        // 无锚点时：还原为底部检测（会话加载等场景）
+        const atBottom = vp.scrollHeight - vp.scrollTop - vp.clientHeight < 100;
+        userScrolledUpRef.current = !atBottom;
+      }
+    };
+
+    vp.addEventListener("scroll", handleScroll, { passive: true });
+    return () => vp.removeEventListener("scroll", handleScroll);
+  }, [viewportRef]);
+
+  // 消息/发送状态变化时触发滚动
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+
+    const sendingStarted = !prevIsSendingRef.current && isSending;
+    prevIsSendingRef.current = isSending;
+
+    if (sendingStarted) {
+      // 用户刚发送：定位到最后一条 user 消息到视口偏上
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+      if (!lastUserMsg) return;
+
+      userScrolledUpRef.current = false;
+      anchorMsgIdRef.current = lastUserMsg.id;
+
+      requestAnimationFrame(() => {
+        const el = vp.querySelector(`[data-message-id="${lastUserMsg.id}"]`) as HTMLElement | null;
+        if (!el) return;
+        const targetY = Math.max(0, el.offsetTop - vp.clientHeight * SCROLL_RATIO);
+        anchorScrollPosRef.current = targetY;
+        vp.scrollTo({ top: targetY, behavior: "smooth" });
+      });
+      return;
+    }
+
+    if (isSending && !userScrolledUpRef.current) {
+      // AI 回复中且用户未上翻：跟随底部
+      vp.scrollTo({ top: vp.scrollHeight, behavior: "instant" as ScrollBehavior });
+      return;
+    }
+
+    if (!isSending) {
+      if (!anchorMsgIdRef.current && messages.length > 0) {
+        // 无锚点 & 有消息：会话加载场景 → 滚动到底部
+        vp.scrollTo({ top: vp.scrollHeight, behavior: "instant" as ScrollBehavior });
+      }
+      // 有锚点时（刚回复完）：不滚动，用户停留在当前位置
+      anchorMsgIdRef.current = null;
+    }
+  }, [messages, isSending, viewportRef]);
+}
+
 export function ChatPage({ agentId }: ChatPageProps) {
   // 根据 agentId 自动构建 API 端点
   const apiEndpoint = `${API_BASE_URL}/api/agents/${agentId}/chat`;
@@ -307,6 +392,9 @@ export function ChatPage({ agentId }: ChatPageProps) {
   // 文件拖拽
   const [pendingMention, setPendingMention] = useState<MentionItem | null>(null);
   const chatInputRef = useRef<{ insertMention: (mention: MentionItem) => void }>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useAutoScroll(messages, isSending, scrollAreaRef);
 
   // Tauri 拖拽：通过文件路径直接复制到缓存
   const handleTauriFilesDropped = useCallback(async (paths: string[]) => {
@@ -408,7 +496,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
           {messages.length === 0 && isCollapsed ? (
             <DashboardHero />
           ) : (
-            <ScrollArea className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
+            <ScrollArea ref={scrollAreaRef} className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
               <div className="w-full min-w-0 max-w-full p-4">
                 <ChatMessage messages={messages} />
               </div>
