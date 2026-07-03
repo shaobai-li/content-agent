@@ -59,6 +59,7 @@ function GeneralSettings() {
   );
 
   const handleApiKeyChange = useCallback((providerName: string, value: string) => {
+    setError(null);
     setDirty((prev) => ({ ...prev, [providerName]: value }));
   }, []);
 
