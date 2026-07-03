@@ -181,6 +181,7 @@ async fn poll_batch_result(
                     .map(|n| n == file_name)
                     .unwrap_or(false)
             })
+            // 单文件上传场景：文件名匹配不到时取第一个结果
             .or_else(|| results.first())
             .ok_or_else(|| "MinerU 响应中无任务结果".to_string())?;
 
