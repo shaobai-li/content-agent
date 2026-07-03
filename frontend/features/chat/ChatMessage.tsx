@@ -149,6 +149,7 @@ export function ChatMessage({ messages }: ChatMessageProps) {
         return (
           <div
             key={msg.id}
+            data-message-id={msg.id}
             className={`min-w-0 max-w-[90%] rounded-lg p-3 text-sm break-all ${
               msg.role === "user"
                 ? "bg-slate-100 text-slate-800 self-end"

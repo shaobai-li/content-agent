@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useChat } from "@/features/chat/useChat";
+import type { Message } from "@/entities/message/model";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessage } from "./ChatMessage";
 import { DashboardHero } from "./DashboardHero";
@@ -175,6 +176,56 @@ function useFileDragAndDrop(
   };
 }
 
+/**
+ * 智能滚动定位 hook
+ *
+ * 行为策略（方案 B）：
+ * 1. 用户发送 → 定位最新 user 消息到视口最上方，旧消息完全滚出可视区域
+ * 2. AI 流式回复中 → 不自动滚动，用户消息保持在顶部
+ * 3. 回复完成 → 保持当前位置不动
+ * 4. 加载历史会话 → 滚动到底部（无锚点时）
+ */
+function useAutoScroll(
+  messages: Message[],
+  isSending: boolean,
+  viewportRef: React.RefObject<HTMLDivElement | null>,
+) {
+  const prevIsSendingRef = useRef(false);
+  const anchorMsgIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+
+    const sendingStarted = !prevIsSendingRef.current && isSending;
+    prevIsSendingRef.current = isSending;
+
+    if (sendingStarted) {
+      // 用户刚发送：定位最新 user 消息到视口最上方，旧消息完全滚出可视区域
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+      if (!lastUserMsg) return;
+
+      anchorMsgIdRef.current = lastUserMsg.id;
+
+      // Viewport 已有 position: relative，offsetTop 以 Viewport 为参考系
+      // pb-[50vh] 确保底部有足够滚动空间不会被浏览器 clamp
+      const el = vp.querySelector(`[data-message-id="${lastUserMsg.id}"]`) as HTMLElement | null;
+      if (!el) return;
+      vp.scrollTo({ top: el.offsetTop, behavior: "instant" as ScrollBehavior });
+      return;
+    }
+
+    if (!isSending) {
+      if (!anchorMsgIdRef.current && messages.length > 0) {
+        // 无锚点 & 有消息：会话加载等场景 → 滚动到底部
+        vp.scrollTo({ top: vp.scrollHeight, behavior: "instant" as ScrollBehavior });
+      }
+      anchorMsgIdRef.current = null;
+    }
+    // isSending 且非 sendingStarted（流式回复中）→ 不滚动，用户消息保持在顶部
+  }, [messages, isSending, viewportRef]);
+}
+
 export function ChatPage({ agentId }: ChatPageProps) {
   // 根据 agentId 自动构建 API 端点
   const apiEndpoint = `${getApiBaseUrl()}/api/agents/${agentId}/chat`;
@@ -307,6 +358,9 @@ export function ChatPage({ agentId }: ChatPageProps) {
   // 文件拖拽
   const [pendingMention, setPendingMention] = useState<MentionItem | null>(null);
   const chatInputRef = useRef<{ insertMention: (mention: MentionItem) => void }>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useAutoScroll(messages, isSending, scrollAreaRef);
 
   // Tauri 拖拽：通过文件路径直接复制到缓存
   const handleTauriFilesDropped = useCallback(async (paths: string[]) => {
@@ -408,8 +462,8 @@ export function ChatPage({ agentId }: ChatPageProps) {
           {messages.length === 0 && isCollapsed ? (
             <DashboardHero />
           ) : (
-            <ScrollArea className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
-              <div className="w-full min-w-0 max-w-full p-4">
+            <ScrollArea ref={scrollAreaRef} className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
+              <div className="w-full min-w-0 max-w-full p-4 pb-[50vh]">
                 <ChatMessage messages={messages} />
               </div>
             </ScrollArea>
