@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, Fragment } from "react";
 import { http } from "@/shared/api/http";
+import { Button } from "@/shared/ui/button";
 import { Loader2 } from "lucide-react";
 
 interface ProviderInfo {
@@ -119,6 +120,15 @@ function GeneralSettings() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 隐藏浏览器原生密码字段切换按钮（眼睛图标） */}
+      <style>{`
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear,
+        input[type="password"]::-webkit-credentials-auto-fill-button {
+          display: none !important;
+        }
+      `}</style>
+
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {providers.length === 0 && !loading && (
@@ -198,17 +208,19 @@ function GeneralSettings() {
                       onChange={(e) => handleApiKeyChange(p.provider, e.target.value)}
                       autoComplete="new-password"
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="default"
+                      size="sm"
                       onClick={() => handleProviderSave(p.provider)}
                       disabled={!isKeyDirty || savingProvider === p.provider}
-                      className="absolute right-0 top-0 bottom-0 flex items-center rounded-md px-3 m-[3px] text-xs font-semibold bg-foreground text-background hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                      className="absolute right-0 top-0 bottom-0 m-[3px] text-xs font-semibold"
                     >
                       {savingProvider === p.provider && (
-                        <Loader2 className="size-3.5 animate-spin mr-1" />
+                        <Loader2 className="size-3.5 animate-spin" />
                       )}
                       Save
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -222,24 +234,26 @@ function GeneralSettings() {
         <label htmlFor="env-user-data-dir" className="text-sm font-medium text-foreground">
           用户数据存储目录
         </label>
-        <div className="relative">
+        <div className="relative border border-input rounded-md bg-card overflow-hidden focus-within:border-ring transition-colors">
           <input
             id="env-user-data-dir"
             type="text"
-            className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-card px-3 py-2 pr-20 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-0"
+            className="w-full px-3 py-[9px] pr-[70px] text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
             placeholder="留空则使用默认位置"
             value={userDataDir}
             onChange={(e) => setUserDataDir(e.target.value)}
           />
-          <button
+          <Button
             type="button"
+            variant="default"
+            size="sm"
             onClick={handleSaveUserDataDir}
             disabled={savingUserDataDir || !userDataDirChanged}
-            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md bg-foreground px-2.5 py-1 text-xs font-semibold text-background hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-1 transition-opacity"
+            className="absolute right-0 top-0 bottom-0 m-[3px] text-xs font-semibold"
           >
-            {savingUserDataDir && <Loader2 className="size-3 animate-spin" />}
+            {savingUserDataDir && <Loader2 className="size-3.5 animate-spin" />}
             Save
-          </button>
+          </Button>
         </div>
       </div>
     </div>
