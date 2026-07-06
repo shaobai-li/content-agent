@@ -175,14 +175,15 @@ function GeneralSettings() {
               >
                 {/* 点击区域：未连接时整行点击展开，已连接时不可点击 */}
                 <div
-                  role="button"
-                  tabIndex={isConnected ? -1 : 0}
+                  role={isConnected ? undefined : "button"}
+                  tabIndex={isConnected ? undefined : 0}
                   onClick={isConnected ? undefined : () => handleToggleProvider(p.provider)}
                   onKeyDown={
                     isConnected
                       ? undefined
                       : (e) => { if (e.key === "Enter" || e.key === " ") handleToggleProvider(p.provider); }
                   }
+                  aria-disabled={isConnected || undefined}
                   className="flex-1 min-w-0"
                 >
                   <div className="text-sm font-semibold text-foreground">{p.display_name}</div>
