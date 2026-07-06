@@ -255,6 +255,11 @@ impl RunCommandTool {
         for (k, v) in env {
             cmd.env(k, v);
         }
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
 
         let output = tokio::time::timeout(Duration::from_secs(timeout_secs), cmd.output())
             .await

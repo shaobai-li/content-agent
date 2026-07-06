@@ -5,6 +5,7 @@ import asyncio
 import os
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -322,6 +323,7 @@ class RunCommandTool(Tool):
                 stderr=asyncio.subprocess.PIPE,
                 cwd=cwd,
                 env=env,
+                creationflags=subprocess.CREATE_NO_WINDOW,
             )
         bash = shutil.which("bash") or "/bin/bash"
         return await asyncio.create_subprocess_exec(
