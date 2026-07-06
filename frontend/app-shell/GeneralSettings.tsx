@@ -250,7 +250,7 @@ function GeneralSettings() {
                     <input
                       id={`key-${p.provider}`}
                       type="password"
-                      className="w-full px-3 py-[9px] pr-[70px] text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+                      className="w-full px-3 py-2.5 pr-[70px] text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
                       placeholder="输入 API Key"
                       value={getValue(p.provider)}
                       onChange={(e) => handleApiKeyChange(p.provider, e.target.value)}
@@ -262,7 +262,7 @@ function GeneralSettings() {
                       size="sm"
                       onClick={() => handleProviderSave(p.provider)}
                       disabled={!isKeyDirty || savingProvider === p.provider}
-                      className="absolute right-0 top-0 bottom-0 m-[3px] text-xs font-semibold"
+                      className="absolute right-0 top-0 bottom-0 m-0.5 text-xs font-semibold"
                     >
                       {savingProvider === p.provider && (
                         <Loader2 className="size-3.5 animate-spin" />
@@ -286,7 +286,7 @@ function GeneralSettings() {
           <input
             id="env-user-data-dir"
             type="text"
-            className="w-full px-3 py-[9px] pr-[70px] text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+            className="w-full px-3 py-2.5 pr-[70px] text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
             placeholder="留空则使用默认位置"
             value={userDataDir}
             onChange={(e) => setUserDataDir(e.target.value)}
@@ -297,7 +297,7 @@ function GeneralSettings() {
             size="sm"
             onClick={handleSaveUserDataDir}
             disabled={savingUserDataDir || !userDataDirChanged}
-            className="absolute right-0 top-0 bottom-0 m-[3px] text-xs font-semibold"
+            className="absolute right-0 top-0 bottom-0 m-0.5 text-xs font-semibold"
           >
             {savingUserDataDir && <Loader2 className="size-3.5 animate-spin" />}
             Save
