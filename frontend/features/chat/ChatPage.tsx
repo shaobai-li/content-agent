@@ -258,7 +258,7 @@ function useAutoScroll(
     // isSending 且非 sendingStarted（流式回复中）→ 不滚动，用户消息保持在顶部
   }, [messages, isSending, viewportRef, expandPadding]);
 
-  // 滚动监听：用户滚动 → 折叠底部空白到 10vh 最小值
+  // 滚动监听：用户滚动 → 折叠底部空白到 5vh 最小值
   useEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
@@ -266,7 +266,7 @@ function useAutoScroll(
     const handleScroll = () => {
       if (isAwaitingCollapseRef.current) {
         isAwaitingCollapseRef.current = false;
-        collapsePadding(vp); // 50vh → 10vh 平滑过渡
+        collapsePadding(vp); // 50vh → 5vh 平滑过渡
       }
     };
 
