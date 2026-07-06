@@ -115,6 +115,11 @@ function GeneralSettings() {
       };
       await http.put("/api/settings/env", payload);
       await refresh(false);
+      setDirty((prev) => {
+        const next = { ...prev };
+        delete next[providerName];
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "清除失败");
     } finally {
