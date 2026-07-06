@@ -177,13 +177,16 @@ function useFileDragAndDrop(
 }
 
 /**
- * 智能滚动定位 hook
+ * 智能滚动定位 + 底部空白"弹性折叠" hook
  *
- * 行为策略（方案 B）：
- * 1. 用户发送 → 定位最新 user 消息到视口最上方，旧消息完全滚出可视区域
- * 2. AI 流式回复中 → 不自动滚动，用户消息保持在顶部
- * 3. 回复完成 → 保持当前位置不动
- * 4. 加载历史会话 → 滚动到底部（无锚点时）
+ * 滚动策略：
+ * 1. 用户发送 → 展开 50vh 空白作为滚动余量，定位 lastUser 消息到视口最上方
+ * 2. AI 流式回复中 → 不自动滚动
+ * 3. 回复完成 → 保持当前位置和 50vh 空白，进入"待折叠"状态
+ * 4. 用户滚动页面 → 空白从 50vh 平滑收缩到 5vh 最小值，之后不再展开
+ * 5. 加载历史会话 → 滚动到底部（无锚点时）
+ *
+ * padding 通过 viewport 子元素的内联 style 直接控制，绕开 React state 异步更新延迟。
  */
 function useAutoScroll(
   messages: Message[],
@@ -192,23 +195,49 @@ function useAutoScroll(
 ) {
   const prevIsSendingRef = useRef(false);
   const anchorMsgIdRef = useRef<string | null>(null);
+  const isAwaitingCollapseRef = useRef(false);
 
+  // 获取 padding 容器（viewport 的首个子元素）
+  const getPaddingEl = useCallback((vp: HTMLElement): HTMLElement | null => {
+    return vp.querySelector('[data-padding-root]') as HTMLElement | null;
+  }, []);
+
+  // 展开 padding（无 transition → 瞬间生效）
+  const expandPadding = useCallback((vp: HTMLElement) => {
+    const el = getPaddingEl(vp);
+    if (!el) return;
+    el.style.transition = 'none';
+    el.style.paddingBottom = '50vh';
+  }, [getPaddingEl]);
+
+  // 折叠 padding（带 transition → 平滑收缩）
+  const collapsePadding = useCallback((vp: HTMLElement) => {
+    const el = getPaddingEl(vp);
+    if (!el) return;
+    el.style.transition = 'padding-bottom 0.4s ease-out';
+    el.style.paddingBottom = '5vh';
+  }, [getPaddingEl]);
+
+  // 滚动定位逻辑
   useEffect(() => {
     const vp = viewportRef.current;
     if (!vp) return;
 
-    const sendingStarted = !prevIsSendingRef.current && isSending;
+    const prevIsSending = prevIsSendingRef.current;
+    const sendingStarted = !prevIsSending && isSending;
     prevIsSendingRef.current = isSending;
 
     if (sendingStarted) {
-      // 用户刚发送：定位最新 user 消息到视口最上方，旧消息完全滚出可视区域
+      // 立即展开 padding（内联 style 同步生效）
+      expandPadding(vp);
+      isAwaitingCollapseRef.current = false;
+
       const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
       if (!lastUserMsg) return;
 
       anchorMsgIdRef.current = lastUserMsg.id;
 
-      // Viewport 已有 position: relative，offsetTop 以 Viewport 为参考系
-      // pb-[50vh] 确保底部有足够滚动空间不会被浏览器 clamp
+      // 此时 DOM 中 padding 已为 50vh，scroll 有足够余量
       const el = vp.querySelector(`[data-message-id="${lastUserMsg.id}"]`) as HTMLElement | null;
       if (!el) return;
       vp.scrollTo({ top: el.offsetTop, behavior: "instant" as ScrollBehavior });
@@ -216,14 +245,34 @@ function useAutoScroll(
     }
 
     if (!isSending) {
-      if (!anchorMsgIdRef.current && messages.length > 0) {
-        // 无锚点 & 有消息：会话加载等场景 → 滚动到底部
+      const sendingJustFinished = prevIsSending && anchorMsgIdRef.current !== null;
+      if (sendingJustFinished) {
+        // 回复完成：进入"待折叠"状态，等待用户滚动触发 padding 收缩
+        isAwaitingCollapseRef.current = true;
+      } else if (!anchorMsgIdRef.current && messages.length > 0) {
+        // 无锚点 & 有消息：会话加载等场景 → 立即滚动到底部
         vp.scrollTo({ top: vp.scrollHeight, behavior: "instant" as ScrollBehavior });
       }
       anchorMsgIdRef.current = null;
     }
     // isSending 且非 sendingStarted（流式回复中）→ 不滚动，用户消息保持在顶部
-  }, [messages, isSending, viewportRef]);
+  }, [messages, isSending, viewportRef, expandPadding]);
+
+  // 滚动监听：用户滚动 → 折叠底部空白到 5vh 最小值
+  useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+
+    const handleScroll = () => {
+      if (isAwaitingCollapseRef.current) {
+        isAwaitingCollapseRef.current = false;
+        collapsePadding(vp); // 50vh → 5vh 平滑过渡
+      }
+    };
+
+    vp.addEventListener('scroll', handleScroll, { passive: true });
+    return () => vp.removeEventListener('scroll', handleScroll);
+  }, [viewportRef, collapsePadding]);
 }
 
 export function ChatPage({ agentId }: ChatPageProps) {
@@ -463,7 +512,7 @@ export function ChatPage({ agentId }: ChatPageProps) {
             <DashboardHero />
           ) : (
             <ScrollArea ref={scrollAreaRef} className="min-h-0 min-w-0 flex-1 border bg-neutral-50">
-              <div className="w-full min-w-0 max-w-full p-4 pb-[50vh]">
+              <div data-padding-root className="w-full min-w-0 max-w-full p-4">
                 <ChatMessage messages={messages} />
               </div>
             </ScrollArea>
