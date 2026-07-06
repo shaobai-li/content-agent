@@ -172,3 +172,10 @@
   color: var(--muted-foreground) !important;
   font-size: 10px !important;
 }
+
+/* 隐藏浏览器原生密码字段切换按钮（眼睛图标） */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}

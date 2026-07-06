@@ -143,15 +143,6 @@ function GeneralSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 隐藏浏览器原生密码字段切换按钮（眼睛图标） */}
-      <style>{`
-        input[type="password"]::-ms-reveal,
-        input[type="password"]::-ms-clear,
-        input[type="password"]::-webkit-credentials-auto-fill-button {
-          display: none !important;
-        }
-      `}</style>
-
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {providers.length === 0 && !loading && (
