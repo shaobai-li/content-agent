@@ -396,7 +396,7 @@ async fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value
             let (text, meta) = extract_pdf_with_fallback(src).await?;
             std::fs::write(&md_path, &text)
                 .map_err(|e| format!("写入 parsed.md 失败: {}", e))?;
-            let mut parsed = json!({"markdown_path": md_path.to_string_lossy(), "parser": "pdf_extract"});
+            let mut parsed = json!({"markdown_path": md_path.to_string_lossy(), "parser": "pymupdf"});
             if let Some(obj) = meta.as_object() {
                 for (k, v) in obj {
                     parsed[k] = v.clone();
@@ -422,7 +422,7 @@ async fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value
 
 /// 本地抽取 PDF；文本不足或页面以扫描图片为主时 fallback 到 MinerU OCR。
 async fn extract_pdf_with_fallback(src: &Path) -> Result<(String, Value), String> {
-    let text = extract_pdf_text(src)?;
+    let text = extract_pdf_text(src).await?;
     let (page_count, scanned_ratio) = pdf_page_stats(src);
 
     if !is_pdf_text_insufficient(&text, page_count, scanned_ratio) {
@@ -569,10 +569,67 @@ fn resolve_dict<'a>(
     }
 }
 
-/// 提取 PDF 文本内容。
-fn extract_pdf_text(path: &Path) -> Result<String, String> {
-    pdf_extract::extract_text(path)
-        .map_err(|e| format!("PDF 解析失败: {}", e))
+/// 内嵌的 PyMuPDF 抽取脚本：按页读取文本，以 JSON 形式输出到 stdout。
+/// 相比 pdf-extract crate，PyMuPDF 对 CID 字体（含中文 PDF 常见的
+/// Identity-V 等非 Identity-H 编码）兼容性更好，不会 panic。
+const PDF_EXTRACT_SCRIPT: &str = r#"
+import sys
+import json
+
+import fitz
+
+path = sys.argv[1]
+parts = []
+with fitz.open(path) as doc:
+    for page in doc:
+        parts.append(page.get_text("text"))
+sys.stdout.write(json.dumps({"text": "\n\n".join(parts)}))
+"#;
+
+/// 解析打包/开发环境下的 python 可执行文件路径，找不到则回退到系统 PATH 中的 "python"。
+fn resolve_python_exe() -> PathBuf {
+    if let Ok(root) = std::env::var("OMNIAGE_ROOT") {
+        let candidates = [
+            Path::new(&root).join("resources").join("python").join("python.exe"),
+            Path::new(&root)
+                .join("src-tauri")
+                .join("resources")
+                .join("python")
+                .join("python.exe"),
+        ];
+        for candidate in candidates {
+            if candidate.exists() {
+                return candidate;
+            }
+        }
+    }
+    PathBuf::from("python")
+}
+
+/// 提取 PDF 文本内容（调用打包 Python + PyMuPDF）。
+async fn extract_pdf_text(path: &Path) -> Result<String, String> {
+    let python = resolve_python_exe();
+    let output = tokio::process::Command::new(&python)
+        .arg("-c")
+        .arg(PDF_EXTRACT_SCRIPT)
+        .arg(path)
+        .output()
+        .await
+        .map_err(|e| format!("调用 Python（{}）解析 PDF 失败: {}", python.display(), e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("PDF 解析失败: {}", stderr.trim()));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let parsed: Value = serde_json::from_str(stdout.trim())
+        .map_err(|e| format!("解析 PDF 提取脚本输出失败: {} (stdout: {})", e, stdout))?;
+    parsed
+        .get("text")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .ok_or_else(|| "PDF 提取脚本输出缺少 text 字段".to_string())
 }
 
 /// 提取 DOCX 文本内容（解压 → 解析 word/document.xml 中的 <w:t> 元素）。
