@@ -236,3 +236,48 @@ async fn update_env_settings(Json(body): Json<Value>) -> Json<Value> {
     save_user_config(&user_id, &existing);
     Json(json!({"ok": true}))
 }
+
+// ── Tests ────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_provider_entry_not_configured() {
+        let entry = build_provider_entry("test_provider", "Test Provider", "https://default.com", &Value::Null);
+        assert_eq!(entry["provider"], "test_provider");
+        assert_eq!(entry["display_name"], "Test Provider");
+        assert_eq!(entry["set"], false);
+        assert_eq!(entry["masked"], "");
+        assert_eq!(entry["api_base"], "https://default.com");
+    }
+
+    #[test]
+    fn test_build_provider_entry_with_api_key() {
+        let cfg = json!({ "api_key": "sk-abc12345xyz" });
+        let entry = build_provider_entry("mineru", "MinerU", "https://mineru.net", &cfg);
+        assert_eq!(entry["provider"], "mineru");
+        assert_eq!(entry["display_name"], "MinerU");
+        assert_eq!(entry["set"], true);
+        // 前3后4 + ***
+        assert_eq!(entry["masked"], "sk-***5xyz");
+        // 未设 api_base → 使用默认值
+        assert_eq!(entry["api_base"], "https://mineru.net");
+    }
+
+    #[test]
+    fn test_build_provider_entry_with_custom_api_base() {
+        let cfg = json!({ "api_key": "sk-abc12345xyz", "api_base": "https://custom.example.com" });
+        let entry = build_provider_entry("mineru", "MinerU", "https://mineru.net", &cfg);
+        assert_eq!(entry["api_base"], "https://custom.example.com");
+    }
+
+    #[test]
+    fn test_build_provider_entry_short_key() {
+        let cfg = json!({ "api_key": "short" });
+        let entry = build_provider_entry("p", "P", "https://p.com", &cfg);
+        assert_eq!(entry["set"], true);
+        assert_eq!(entry["masked"], "***");
+    }
+}
