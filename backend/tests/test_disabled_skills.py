@@ -134,30 +134,24 @@ def agent_id():
 
 class TestPromptsAPI:
     def test_list_prompts(self, client, agent_id, tmp_path):
-        prompts_dir = tmp_path / "prompts"
-        prompts_dir.mkdir(parents=True, exist_ok=True)
-
         with patch("app.api.agent_config.get_agent_base_dir", return_value=tmp_path):
             resp = client.get(f"/api/agents/{agent_id}/prompts")
             assert resp.status_code == 200
             data = resp.json()
             assert "files" in data
-            for fname in ["AGENTS.md", "SOUL.md", "USER.md", "system_prompt.md"]:
+            for fname in ["SYSTEM.md", "SOUL.md", "USER.md", "IDENTITY.md"]:
                 assert fname in data["files"]
 
     def test_save_prompt(self, client, agent_id, tmp_path):
-        prompts_dir = tmp_path / "prompts"
-        prompts_dir.mkdir(parents=True, exist_ok=True)
-
         with patch("app.api.agent_config.get_agent_base_dir", return_value=tmp_path):
             resp = client.put(
-                f"/api/agents/{agent_id}/prompts/AGENTS.md",
-                json={"content": "hello world"},
+                f"/api/agents/{agent_id}/prompts/SYSTEM.md",
+                json={"content": "---\nname: test\n---\n\nhello world"},
             )
             assert resp.status_code == 200
             assert resp.json()["ok"] is True
-            # Verify file was written
-            assert (prompts_dir / "AGENTS.md").read_text(encoding="utf-8") == "hello world"
+            # Verify file was written to agent root dir
+            assert (tmp_path / "SYSTEM.md").read_text(encoding="utf-8") == "---\nname: test\n---\n\nhello world"
 
     def test_save_prompt_invalid_filename(self, client, agent_id, tmp_path):
         with patch("app.api.agent_config.get_agent_base_dir", return_value=tmp_path):
@@ -169,7 +163,7 @@ class TestPromptsAPI:
 
     def test_save_prompt_missing_content(self, client, agent_id):
         resp = client.put(
-            f"/api/agents/{agent_id}/prompts/AGENTS.md",
+            f"/api/agents/{agent_id}/prompts/SYSTEM.md",
             json={},
         )
         assert resp.status_code == 400  # Custom validation for missing content
