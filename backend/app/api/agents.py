@@ -13,7 +13,7 @@ from app.service.stream_service import (
 )
 from app.runtime.agent_registry import get_agent_config
 from app.runtime.agent_turn_context import build_agent_turn_context
-from app.core.config import DEFAULT_DATA_DIR
+from app.core.config import DEFAULT_DATA_DIR, get_agent_base_dir
 from app.core.auth import get_current_user_id
 
 # ── Agent 列表（不含 agent_id 路径参数） ─────────────────────────
@@ -81,13 +81,11 @@ async def create_agent(payload: dict = Body(...)):
     # 生成 agent_id: a_ + UUID 前 8 位 hex
     agent_id = f"a_{uuid.uuid4().hex[:8]}"
 
-    # 构造 YAML 路径并写入
-    yaml_path = DEFAULT_DATA_DIR / f"u_{user_id}" / "agent" / f"{agent_id}.yaml"
-    yaml_path.parent.mkdir(parents=True, exist_ok=True)
-
-    import yaml as _yaml
-    with open(yaml_path, "w", encoding="utf-8") as f:
-        _yaml.dump({"name": name}, f, allow_unicode=True)
+    # 构造 SYSTEM.md 并写入
+    system_content = f"---\nname: {name}\n---\n"
+    system_path = get_agent_base_dir(agent_id) / "SYSTEM.md"
+    system_path.parent.mkdir(parents=True, exist_ok=True)
+    system_path.write_text(system_content, encoding="utf-8")
 
     logger.info("created custom agent: {} ({})", agent_id, name)
     return {"ok": True, "agent": {"id": agent_id, "name": name}}
@@ -105,13 +103,11 @@ async def delete_agent(agent_id: str):
     if agent_id in AGENTS_CONFIG:
         return {"ok": False, "error": f"智能体 '{agent_id}' 是系统智能体，不能删除"}
 
-    user_id = get_current_user_id()
-
-    yaml_path = DEFAULT_DATA_DIR / f"u_{user_id}" / "agent" / f"{agent_id}.yaml"
-    if not yaml_path.exists():
+    system_path = get_agent_base_dir(agent_id) / "SYSTEM.md"
+    if not system_path.exists():
         return {"ok": False, "error": f"智能体 '{agent_id}' 不存在"}
 
-    yaml_path.unlink()
+    system_path.unlink()
     logger.info("deleted custom agent: {}", agent_id)
     return {"ok": True}
 

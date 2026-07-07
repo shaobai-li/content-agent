@@ -32,7 +32,7 @@ _setup_loguru(_log_level)
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
-# 导入各个 agent 模块（自定义 agent，导入即注册）
+# 导入各个 agent 模块（import 即注册）
 import app.agents.standard
 import app.agents.write_agent
 
@@ -49,11 +49,11 @@ from app.service.knowledge_base_registry_service import list_knowledge_bases
 from app.service.records_service import ensure_kb_initialized
 
 
-def _register_agents_from_yaml_config():
-    """自动注册 config/agents/*.yaml 中尚未注册的 agent。
+def _register_agents_from_system_config():
+    """自动注册 config/agents/*/SYSTEM.md 中尚未注册的 agent。
 
     已通过 import 注册的（如 std、w）会被跳过；
-    纯 YAML 定义的 StandardAgent 在此自动创建并注册。
+    纯 frontmatter 定义的 StandardAgent 在此自动创建并注册。
     """
     for agent_id, cfg in AGENTS_CONFIG.items():
         if agent_id in AGENT_CONFIG_REGISTRY:
@@ -78,7 +78,7 @@ def _register_agents_from_yaml_config():
         logger.info("auto-register {} → StandardAgent", agent_id)
 
 
-_register_agents_from_yaml_config()
+_register_agents_from_system_config()
 
 logger.info("app started, agents={}", list(AGENTS_CONFIG.keys()))
 

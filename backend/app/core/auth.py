@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 from fastapi import HTTPException, Request
 
-from app.core.config import DEFAULT_DATA_DIR
+from app.core.config import DEFAULT_DATA_DIR, parse_system_md_frontmatter
 
 _user_id_var: ContextVar[str] = ContextVar("user_id")
 _user_agents_var: ContextVar[Dict[str, Dict[str, Any]]] = ContextVar("user_agents")
@@ -19,22 +19,24 @@ def get_current_user_id() -> str:
     return _user_id_var.get()
 
 
-def _load_user_agent_yamls(user_id: str) -> Dict[str, Dict[str, Any]]:
-    """扫描 DEFAULT_DATA_DIR/u_{user_id}/agent/*.yaml，文件名即 agent_id。"""
-    import yaml
-
-    agents_dir = DEFAULT_DATA_DIR / f"u_{user_id}" / "agent"
+def _load_user_agent_configs(user_id: str) -> Dict[str, Dict[str, Any]]:
+    """扫描 DEFAULT_DATA_DIR/u_{user_id}/*/SYSTEM.md，目录名即 agent_id。"""
+    user_dir = DEFAULT_DATA_DIR / f"u_{user_id}"
     result: Dict[str, Dict[str, Any]] = {}
-    if not agents_dir.is_dir():
+    if not user_dir.is_dir():
         return result
-    for yaml_path in sorted(agents_dir.glob("*.yaml")):
-        agent_id = yaml_path.stem
-        with open(yaml_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-        if not isinstance(data, dict):
+    for entry in sorted(user_dir.iterdir()):
+        if not entry.is_dir():
             continue
-        data.pop("agent_id", None)
-        result[agent_id] = data
+        system_md = entry / "SYSTEM.md"
+        if not system_md.is_file():
+            continue
+        agent_id = entry.name
+        meta = parse_system_md_frontmatter(system_md)
+        if not isinstance(meta, dict):
+            continue
+        meta.pop("agent_id", None)
+        result[agent_id] = meta
     return result
 
 
@@ -50,5 +52,5 @@ async def require_user_id(request: Request) -> None:
     _user_id_var.set(user_id)
 
     # 加载该用户的自定义 agent（系统 agent 已在 config.py 模块级加载）
-    user_agents = _load_user_agent_yamls(user_id)
+    user_agents = _load_user_agent_configs(user_id)
     _user_agents_var.set(user_agents)

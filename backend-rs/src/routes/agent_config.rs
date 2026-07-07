@@ -11,7 +11,7 @@ use crate::core::config::get_agent_base_dir;
 use crate::service::disabled_skills::DisabledSkills;
 use crate::service::skill_loader::{discover_skills_for_agent, parse_skill_md};
 
-const ALLOWED_PROMPT_FILES: &[&str] = &["AGENTS.md", "SOUL.md", "USER.md", "system_prompt.md"];
+const ALLOWED_PROMPT_FILES: &[&str] = &["SYSTEM.md", "SOUL.md", "USER.md", "IDENTITY.md"];
 
 pub fn router() -> Router {
     Router::new()
@@ -26,7 +26,7 @@ pub fn router() -> Router {
 }
 
 fn agent_prompts_dir(agent_id: &str) -> PathBuf {
-    get_agent_base_dir(agent_id).join(".agent").join("prompts")
+    get_agent_base_dir(agent_id)
 }
 
 fn agent_skills_dir(agent_id: &str) -> PathBuf {
