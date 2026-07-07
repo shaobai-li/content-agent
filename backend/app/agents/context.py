@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from app.core.config import get_agent_base_dir, get_agent_local_data_dir
+from app.core.config import OMNIAGE_ROOT, get_agent_base_dir, get_agent_local_data_dir
 from app.utils.skill_loader import discover_skills_xml_for_agent
 
 
@@ -18,12 +18,11 @@ class ContextBuilder:
       2. build_messages()       — system + history + reference articles + user message
     """
 
-    BOOTSTRAP_FILES = ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md"]
+    BOOTSTRAP_FILES = ["SOUL.md", "USER.md", "IDENTITY.md"]
 
     def __init__(self, workspace: Path, agent_id: str | None = None):
         self.workspace = workspace
         self.agent_id = agent_id
-        self._prompts_dir = Path(__file__).resolve().parent / "standard" / "prompts"
 
     # ------------------------------------------------------------------
     # System prompt
@@ -34,8 +33,8 @@ class ContextBuilder:
 
         Composition (top-to-bottom):
           1. Skills XML catalog (``<skills>…</skills>``)
-          2. Bootstrap files — ``AGENTS.md`` / ``SOUL.md`` / ``USER.md`` / ``IDENTITY.md``
-          3. Base prompt — user override ``system_prompt.md`` or built-in ``system.md``
+          2. Bootstrap files — ``SOUL.md`` / ``USER.md`` / ``IDENTITY.md``
+          3. Base prompt — ``SYSTEM.md`` body (built-in or user override)
           4. Current local datetime
           5. Tool guard — workspace / skills / KB environment variables
         """
@@ -62,43 +61,44 @@ class ContextBuilder:
         print(f"\n{'='*80}\n【System Prompt】\n{'='*80}\n{prompt}\n{'='*80}\n", flush=True)
         return prompt
 
+    @staticmethod
+    def _extract_system_md_body(path: Path) -> str:
+        """提取 SYSTEM.md 中 frontmatter 之后的 Markdown body。"""
+        content = path.read_text(encoding="utf-8")
+        if content.startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                return parts[2].strip()
+        return content.strip()
+
     def _resolve_base_prompt(self) -> str:
         """Return the base system prompt.
 
         Priority:
-          1. Agent data dir ``prompts/system_prompt.md`` (user override)
-          2. Built-in ``standard/prompts/system.md``
+          1. Agent data dir ``SYSTEM.md`` body (user override)
+          2. Built-in ``config/agents/{agent_id}/SYSTEM.md`` body
         """
         if self.agent_id:
-            user_path = get_agent_base_dir(self.agent_id) / ".agent" / "prompts" / "system_prompt.md"
+            user_path = get_agent_base_dir(self.agent_id) / "SYSTEM.md"
             if user_path.is_file():
-                text = user_path.read_text(encoding="utf-8").strip()
-                if text:
-                    return text
-        path = self._prompts_dir / "system.md"
-        return path.read_text(encoding="utf-8").strip()
+                body = self._extract_system_md_body(user_path)
+                if body:
+                    return body
 
-    def _agent_prompts_dir(self) -> Path | None:
-        """Agent 级 prompts 目录（base_dir/prompts/），无 agent_id 或 agent 不存在时返回 None。"""
-        if not self.agent_id:
-            return None
-        from app.core.config import get_agent_base_dir, AGENTS_CONFIG
-        if self.agent_id not in AGENTS_CONFIG:
-            return None
-        try:
-            d = get_agent_base_dir(self.agent_id) / ".agent" / "prompts"
-            return d if d.is_dir() else None
-        except (ValueError, KeyError):
-            return None
+        if self.agent_id:
+            builtin_path = OMNIAGE_ROOT / "config" / "agents" / self.agent_id / "SYSTEM.md"
+            if builtin_path.is_file():
+                body = self._extract_system_md_body(builtin_path)
+                if body:
+                    return body
+
+        return ""
 
     def _load_bootstrap_files(self) -> str:
-        """Load bootstrap files from prompts/ (AGENTS.md, SOUL.md, USER.md, IDENTITY.md)."""
-        prompts_dir = self._agent_prompts_dir()
-        if not prompts_dir:
-            return ""
+        """Load bootstrap files from agent root dir (SOUL.md, USER.md, IDENTITY.md)."""
         parts = []
         for filename in self.BOOTSTRAP_FILES:
-            file_path = prompts_dir / filename
+            file_path = self.workspace / filename
             if file_path.exists():
                 content = file_path.read_text(encoding="utf-8").strip()
                 if content:

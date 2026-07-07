@@ -53,23 +53,33 @@ def test_context_builder_init_with_agent(tmp_path):
 # ── _resolve_base_prompt / resolve_base_prompt ─────────────────────────────
 
 def test_resolve_base_prompt_builtin(tmp_path):
-    cb = ContextBuilder(tmp_path)
-    with patch.object(Path, "read_text", return_value="built-in system prompt"):
+    """从 config/agents/{agent_id}/SYSTEM.md 读取 built-in base prompt。"""
+    # 创建内置 SYSTEM.md
+    builtin_dir = tmp_path / "config" / "agents" / "ag"
+    builtin_dir.mkdir(parents=True)
+    (builtin_dir / "SYSTEM.md").write_text(
+        "---\nname: ag\n---\n\nbuilt-in system prompt"
+    )
+    cb = ContextBuilder(tmp_path, agent_id="ag")
+    with patch("app.agents.context.OMNIAGE_ROOT", tmp_path):
         assert cb._resolve_base_prompt() == "built-in system prompt"
 
 
 def test_resolve_base_prompt_user_override(tmp_path):
+    """从 {agent_base}/SYSTEM.md 读取 user override。"""
+    # 创建用户覆盖 SYSTEM.md
+    (tmp_path / "SYSTEM.md").write_text(
+        "---\nname: ag\n---\n\nuser override prompt"
+    )
     cb = ContextBuilder(tmp_path, agent_id="ag")
-    user_prompt = tmp_path / "prompts" / "system_prompt.md"
-    user_prompt.parent.mkdir(parents=True, exist_ok=True)
-    user_prompt.write_text("user override prompt")
-    with patch("app.agents.context.get_agent_base_dir", return_value=tmp_path):
+    with patch("app.agents.context.get_agent_base_dir", return_value=tmp_path), \
+         patch("app.agents.context.OMNIAGE_ROOT", tmp_path):  # 避免走到 builtin
         assert cb._resolve_base_prompt() == "user override prompt"
 
 
 def test_resolve_base_prompt_public_alias(tmp_path):
     cb = ContextBuilder(tmp_path)
-    with patch.object(Path, "read_text", return_value="base"):
+    with patch.object(Path, "read_text", return_value="---\n---\n\nbase"):
         assert cb.resolve_base_prompt() == cb._resolve_base_prompt()
 
 
@@ -95,17 +105,13 @@ def test_build_system_prompt_with_skills_xml(tmp_path):
 
 
 def test_build_system_prompt_with_bootstrap(tmp_path):
-    """Bootstrap files are read from prompts/ (not workspace/)."""
+    """Bootstrap files are read from workspace root (SOUL.md, USER.md, IDENTITY.md)."""
     cb = ContextBuilder(tmp_path, agent_id="ag")
-    prompts_dir = tmp_path / "prompts"
-    prompts_dir.mkdir(parents=True, exist_ok=True)
-    (prompts_dir / "AGENTS.md").write_text("bootstrap content")
-    with patch("app.core.config.get_agent_base_dir", return_value=tmp_path), \
-         patch("app.core.config.AGENTS_CONFIG", {"ag": {"base_dir": "."}}), \
-         patch.object(cb, "_resolve_base_prompt", return_value="base"), \
+    (tmp_path / "SOUL.md").write_text("bootstrap content")
+    with patch.object(cb, "_resolve_base_prompt", return_value="base"), \
          _kb_empty():
         prompt = cb.build_system_prompt()
-        assert "AGENTS.md" in prompt
+        assert "SOUL.md" in prompt
         assert "bootstrap content" in prompt
 
 
