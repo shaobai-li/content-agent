@@ -5,6 +5,12 @@ use serde_json::{json, Value};
 use crate::core::config::get_config;
 use crate::provider::factory::PROVIDERS;
 
+/// 非 LLM 的服务提供商，同样需要在 settings 页面配置 API key。
+/// 格式： (provider_name, display_name, default_api_base)
+const SERVICE_PROVIDERS: &[(&str, &str, &str)] = &[
+    ("mineru", "MinerU", "https://mineru.net"),
+];
+
 pub fn router() -> Router {
     Router::new()
         .route("/api/settings/env", get(get_env_settings).put(update_env_settings))
@@ -100,6 +106,44 @@ async fn get_env_settings() -> Json<Value> {
         settings.push(json!({
             "provider": spec.name,
             "display_name": spec.display_name,
+            "set": is_set,
+            "masked": masked,
+            "api_base": effective_api_base,
+        }));
+    }
+
+    // ── 追加非 LLM 服务提供商 ──────────────────────────────────────────
+    for (name, display_name, default_base) in SERVICE_PROVIDERS {
+        let cfg = providers_from_config
+            .get(*name)
+            .and_then(|v| v.as_object())
+            .cloned()
+            .unwrap_or_default();
+        let api_key = cfg
+            .get("api_key")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let api_base = cfg
+            .get("api_base")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let is_set = !api_key.is_empty();
+        let masked = if is_set {
+            mask_key(&api_key)
+        } else {
+            String::new()
+        };
+        let effective_api_base = if api_base.is_empty() {
+            default_base.to_string()
+        } else {
+            api_base
+        };
+
+        settings.push(json!({
+            "provider": name,
+            "display_name": display_name,
             "set": is_set,
             "masked": masked,
             "api_base": effective_api_base,

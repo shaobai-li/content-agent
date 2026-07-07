@@ -144,7 +144,6 @@ async fn upload_file(client: &Client, path: &Path, upload_url: &str) -> Result<(
 
     let resp = client
         .put(upload_url)
-        .header("Content-Type", "application/pdf")
         .body(bytes)
         .send()
         .await
