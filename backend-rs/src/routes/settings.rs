@@ -27,6 +27,44 @@ fn mask_key(value: &str) -> String {
     format!("{}***{}", prefix, suffix)
 }
 
+/// 为一个 provider 构建 settings 条目（name / display_name / api_key / api_base / 掩码）。
+fn build_provider_entry(
+    name: &str,
+    display_name: &str,
+    default_base: &str,
+    cfg: &Value,
+) -> Value {
+    let api_key = cfg
+        .get("api_key")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let api_base = cfg
+        .get("api_base")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let is_set = !api_key.is_empty();
+    let masked = if is_set {
+        mask_key(&api_key)
+    } else {
+        String::new()
+    };
+    let effective_api_base = if api_base.is_empty() {
+        default_base.to_string()
+    } else {
+        api_base
+    };
+
+    json!({
+        "provider": name,
+        "display_name": display_name,
+        "set": is_set,
+        "masked": masked,
+        "api_base": effective_api_base,
+    })
+}
+
 /// 加载 per-user config.json
 fn load_user_config(user_id: &str) -> Value {
     let cfg = get_config();
@@ -76,78 +114,24 @@ async fn get_env_settings() -> Json<Value> {
 
     let mut settings = Vec::<Value>::new();
     for spec in PROVIDERS.iter() {
-        let cfg = providers_from_config
-            .get(spec.name)
-            .and_then(|v| v.as_object())
-            .cloned()
-            .unwrap_or_default();
-        let api_key = cfg
-            .get("api_key")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        let api_base = cfg
-            .get("api_base")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        let is_set = !api_key.is_empty();
-        let masked = if is_set {
-            mask_key(&api_key)
-        } else {
-            String::new()
-        };
-        let effective_api_base = if api_base.is_empty() {
-            spec.default_api_base.to_string()
-        } else {
-            api_base
-        };
-
-        settings.push(json!({
-            "provider": spec.name,
-            "display_name": spec.display_name,
-            "set": is_set,
-            "masked": masked,
-            "api_base": effective_api_base,
-        }));
+        let cfg = providers_from_config.get(spec.name).cloned().unwrap_or_default();
+        settings.push(build_provider_entry(
+            spec.name,
+            spec.display_name,
+            spec.default_api_base,
+            &cfg,
+        ));
     }
 
     // ── 追加非 LLM 服务提供商 ──────────────────────────────────────────
     for (name, display_name, default_base) in SERVICE_PROVIDERS {
-        let cfg = providers_from_config
-            .get(*name)
-            .and_then(|v| v.as_object())
-            .cloned()
-            .unwrap_or_default();
-        let api_key = cfg
-            .get("api_key")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        let api_base = cfg
-            .get("api_base")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        let is_set = !api_key.is_empty();
-        let masked = if is_set {
-            mask_key(&api_key)
-        } else {
-            String::new()
-        };
-        let effective_api_base = if api_base.is_empty() {
-            default_base.to_string()
-        } else {
-            api_base
-        };
-
-        settings.push(json!({
-            "provider": name,
-            "display_name": display_name,
-            "set": is_set,
-            "masked": masked,
-            "api_base": effective_api_base,
-        }));
+        let cfg = providers_from_config.get(*name).cloned().unwrap_or_default();
+        settings.push(build_provider_entry(
+            name,
+            display_name,
+            default_base,
+            &cfg,
+        ));
     }
 
     Json(json!({
