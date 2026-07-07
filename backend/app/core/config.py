@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 import yaml
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from dotenv import load_dotenv
 
@@ -20,29 +20,47 @@ with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     config = yaml.safe_load(f) or {}
 
 
-# ── 加载 per‑agent YAML（config/agents/<agent_id>.yaml） ─────────
-def _load_agent_yamls() -> Dict[str, Dict[str, Any]]:
-    """扫描 config/agents/*.yaml，文件名（不含扩展名）即为 agent_id。"""
+# ── 加载 per‑agent 配置（config/agents/<agent_id>/SYSTEM.md） ──
+def parse_system_md_frontmatter(system_md_path: Path) -> Optional[Dict[str, Any]]:
+    """解析 SYSTEM.md 的 YAML frontmatter。"""
+    content = system_md_path.read_text(encoding="utf-8")
+    if not content.startswith("---"):
+        return None
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return None
+    meta = yaml.safe_load(parts[1])
+    if not isinstance(meta, dict):
+        return None
+    return meta
+
+
+def _load_agent_configs() -> Dict[str, Dict[str, Any]]:
+    """扫描 config/agents/*/SYSTEM.md，目录名即为 agent_id。"""
     agents_dir = OMNIAGE_ROOT / "config" / "agents"
     result: Dict[str, Dict[str, Any]] = {}
     if not agents_dir.is_dir():
         return result
-    for yaml_path in sorted(agents_dir.glob("*.yaml")):
-        agent_id = yaml_path.stem  # e.g. "std", "w"
-        with open(yaml_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-        if not isinstance(data, dict):
+    for entry in sorted(agents_dir.iterdir()):
+        if not entry.is_dir():
             continue
-        data.pop("agent_id", None)   # 以文件名为准
-        result[agent_id] = data
+        system_md = entry / "SYSTEM.md"
+        if not system_md.is_file():
+            continue
+        agent_id = entry.name
+        meta = parse_system_md_frontmatter(system_md)
+        if not isinstance(meta, dict):
+            continue
+        meta.pop("agent_id", None)   # 以文件名为准
+        result[agent_id] = meta
     return result
 
 
-# ── 合并：config/agents/*.yaml 优先，config.yaml agents 作为降级 ──
-_agent_yamls = _load_agent_yamls()
+# ── 合并：config/agents/*/SYSTEM.md 优先，config.yaml agents 作为降级 ──
+_agent_yamls = _load_agent_configs()
 _old_agents = config.get("agents", {}) or {}
 
-# 仅包含系统 agent（config/agents/*.yaml + config.yaml agents 字段）
+# 仅包含系统 agent（config/agents/*/SYSTEM.md + config.yaml agents 字段）
 # 用户自定义 agent 在 auth.require_user_id() 中按需加载
 AGENTS_CONFIG: Dict[str, Dict[str, Any]] = {
     **_old_agents,
@@ -147,7 +165,7 @@ def get_agent_knowledge_base_path(agent_id: str, kb_id: str) -> Path:
 
 
 def get_agent_skill_ids(agent_id: str) -> List[str]:
-    """config.yaml 中 agents.<id>.skills 列出的仓库内 skill 目录名（app/agents/skills/<id>/）。"""
+    """config/agents/<id>/SYSTEM.md 或 config.yaml 中 agents.<id>.skills 列出的仓库内 skill 目录名。"""
     block = AGENTS_CONFIG.get(agent_id) or {}
     if not block:
         # 再检查用户自定义 agent
