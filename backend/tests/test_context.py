@@ -78,8 +78,11 @@ def test_resolve_base_prompt_user_override(tmp_path):
 
 
 def test_resolve_base_prompt_public_alias(tmp_path):
-    cb = ContextBuilder(tmp_path)
-    with patch.object(Path, "read_text", return_value="---\n---\n\nbase"):
+    cb = ContextBuilder(tmp_path, agent_id="ag")
+    builtin_dir = tmp_path / "config" / "agents" / "ag"
+    builtin_dir.mkdir(parents=True)
+    (builtin_dir / "SYSTEM.md").write_text("---\n---\n\nbase")
+    with patch("app.agents.context.OMNIAGE_ROOT", tmp_path):
         assert cb.resolve_base_prompt() == cb._resolve_base_prompt()
 
 
