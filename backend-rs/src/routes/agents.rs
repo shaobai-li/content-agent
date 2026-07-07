@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use axum::extract::{Extension, Path};
 use axum::Json;
 use serde::Deserialize;
@@ -7,7 +5,7 @@ use serde_json::Value;
 
 use crate::agent::registry;
 use crate::core::auth::UserContext;
-use crate::core::config::get_config;
+use crate::core::config::{get_agent_base_dir, get_config};
 
 pub fn router() -> axum::Router {
     axum::Router::new()
@@ -72,25 +70,23 @@ async fn create_agent(
     // 生成 agent_id: a_ + UUID 前 8 位 hex
     let agent_id = format!("a_{}", &uuid::Uuid::new_v4().simple().to_string()[..8]);
 
-    // 构造 agent YAML 路径
-    let yaml_path = get_user_agent_path(&user_id, &agent_id);
+    // 构造 SYSTEM.md 路径
+    let system_path = get_agent_base_dir(&agent_id).join("SYSTEM.md");
 
     // 检查是否已存在
-    if yaml_path.exists() {
+    if system_path.exists() {
         return Json(serde_json::json!({
             "ok": false, "error": format!("智能体 '{}' 已存在", agent_id)
         }));
     }
 
-    // 写入 YAML（静态 JSON → YAML 序列化不会失败）
-    let yaml_content = serde_yaml::to_string(&serde_json::json!({
-        "name": name
-    })).expect("serialize static JSON to YAML cannot fail");
+    // 写入 SYSTEM.md（frontmatter + body）
+    let system_content = format!("---\nname: {}\n---\n", name);
 
-    if let Some(parent) = yaml_path.parent() {
+    if let Some(parent) = system_path.parent() {
         std::fs::create_dir_all(parent).ok();
     }
-    if let Err(e) = std::fs::write(&yaml_path, &yaml_content) {
+    if let Err(e) = std::fs::write(&system_path, &system_content) {
         return Json(serde_json::json!({
             "ok": false, "error": format!("写入智能体配置失败: {e}")
         }));
@@ -124,24 +120,15 @@ async fn delete_agent(
         }));
     }
 
-    let user_id = match &ctx.user_id {
-        Some(uid) => uid.clone(),
-        None => {
-            return Json(serde_json::json!({
-                "ok": false, "error": "未登录用户无法删除智能体"
-            }));
-        }
-    };
+    let system_path = get_agent_base_dir(&agent_id).join("SYSTEM.md");
 
-    let yaml_path = get_user_agent_path(&user_id, &agent_id);
-
-    if !yaml_path.exists() {
+    if !system_path.exists() {
         return Json(serde_json::json!({
             "ok": false, "error": format!("智能体 '{}' 不存在", agent_id)
         }));
     }
 
-    if let Err(e) = std::fs::remove_file(&yaml_path) {
+    if let Err(e) = std::fs::remove_file(&system_path) {
         return Json(serde_json::json!({
             "ok": false, "error": format!("删除智能体配置失败: {e}")
         }));
@@ -150,11 +137,3 @@ async fn delete_agent(
     Json(serde_json::json!({ "ok": true }))
 }
 
-/// 构造用户自定义智能体 YAML 路径
-fn get_user_agent_path(user_id: &str, agent_id: &str) -> PathBuf {
-    get_config()
-        .data_dir
-        .join(format!("u_{}", user_id))
-        .join("agent")
-        .join(format!("{}.yaml", agent_id))
-}

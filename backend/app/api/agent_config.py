@@ -15,11 +15,12 @@ from app.utils.disabled_skills import DisabledSkills
 router = APIRouter(prefix="/api/agents/{agent_id}", tags=["agent-config"])
 
 # ── 允许前端编辑的 prompts 文件列表 ─────────────────────────────
-ALLOWED_PROMPT_FILES = {"AGENTS.md", "SOUL.md", "USER.md", "system_prompt.md"}
+ALLOWED_PROMPT_FILES = {"SYSTEM.md", "SOUL.md", "USER.md", "IDENTITY.md"}
 
 
 def _agent_prompts_dir(agent_id: str) -> Path:
-    d = get_agent_base_dir(agent_id) / ".agent" / "prompts"
+    """Agent 可写文件目录：agent 根目录。"""
+    d = get_agent_base_dir(agent_id)
     d.mkdir(parents=True, exist_ok=True)
     return d
 
