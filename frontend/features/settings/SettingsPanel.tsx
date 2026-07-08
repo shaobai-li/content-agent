@@ -39,10 +39,11 @@ const settingsMultilineFieldClass = cn(
 const personalizationFields = [
   { id: "SOUL.md", label: "SOUL" },
   { id: "USER.md", label: "USER" },
+  { id: "IDENTITY.md", label: "IDENTITY" },
 ] as const;
 
 const systemFields = [
-  { id: "AGENTS.md", label: "AGENTS" },
+  { id: "SYSTEM.md", label: "SYSTEM" },
 ] as const;
 
 interface SettingsPanelProps {
@@ -212,7 +213,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
         })}
       </div>
 
-      {/* System tab: AGENTS.md */}
+      {/* System tab: SYSTEM.md */}
       {activeTab === "system" && (
         <div
           className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto"
@@ -380,7 +381,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
         </div>
       )}
 
-      {/* Personalization tab: SOUL.md, USER.md */}
+      {/* Personalization tab: SOUL.md, USER.md, IDENTITY.md */}
       {activeTab === "personalization" && (
         <div
           className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto"
