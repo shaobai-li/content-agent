@@ -86,40 +86,42 @@ pub async fn auth_middleware(
     }
 }
 
-/// 从 data_dir/u_{user_id}/agent/*.yaml 加载 custom agent（与 Python 后端一致）
+/// 从 data_dir/u_{user_id}/*/SYSTEM.md 加载 custom agent（与 Python 后端一致）
 fn load_user_agents(user_id: &str) -> HashMap<String, Value> {
     load_user_agents_from(&get_config().data_dir, user_id)
 }
 
-/// 内部实现：扫描指定目录下的 YAML 文件，文件名（stem）即 agent_id。
+/// 内部实现：扫描指定用户目录下的 SYSTEM.md 文件，目录名即 agent_id。
 fn load_user_agents_from(base_dir: &Path, user_id: &str) -> HashMap<String, Value> {
-    let agents_dir = base_dir.join(format!("u_{}", user_id)).join("agent");
+    let user_dir = base_dir.join(format!("u_{}", user_id));
     let mut result = HashMap::new();
 
-    if !agents_dir.is_dir() {
+    if !user_dir.is_dir() {
         return result;
     }
 
-    let mut entries: Vec<_> = match std::fs::read_dir(&agents_dir) {
+    let mut entries: Vec<_> = match std::fs::read_dir(&user_dir) {
         Ok(entries) => entries
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().is_some_and(|ext| ext == "yaml"))
+            .filter(|e| e.path().is_dir())
             .collect(),
         Err(_) => return result,
     };
     entries.sort_by_key(|e| e.file_name());
 
     for entry in entries {
-        let path = entry.path();
-        let agent_id = match path.file_stem().and_then(|s| s.to_str()) {
-            Some(id) => id.to_string(),
-            None => continue,
-        };
+        let system_md = entry.path().join("SYSTEM.md");
+        if !system_md.is_file() {
+            continue;
+        }
+        let agent_id = entry.file_name().to_string_lossy().to_string();
 
-        if let Ok(content) = std::fs::read_to_string(&path) {
-            if let Ok(cfg) = serde_yaml::from_str::<Value>(&content) {
-                if cfg.is_object() {
-                    result.insert(agent_id, cfg);
+        if let Ok(content) = std::fs::read_to_string(&system_md) {
+            if let Some(frontmatter) = crate::core::config::extract_yaml_frontmatter(&content) {
+                if let Ok(cfg) = serde_yaml::from_str::<Value>(frontmatter) {
+                    if cfg.is_object() {
+                        result.insert(agent_id, cfg);
+                    }
                 }
             }
         }
@@ -144,21 +146,21 @@ mod tests {
     fn test_load_user_agents_file_exists() {
         let tmp = setup_dir();
         let user_id = "test-user";
-        let agents_dir = tmp.path().join("u_test-user").join("agent");
-        fs::create_dir_all(&agents_dir).unwrap();
 
-        // 写入两个 YAML 文件
-        let agent1 = serde_yaml::to_string(&serde_json::json!({
-            "name": "My Custom Agent",
-            "skills": ["ingest-file"]
-        })).unwrap();
-        fs::write(agents_dir.join("my-agent.yaml"), &agent1).unwrap();
+        // 写入两个 SYSTEM.md 文件
+        let agent1_dir = tmp.path().join("u_test-user").join("my-agent");
+        fs::create_dir_all(&agent1_dir).unwrap();
+        fs::write(
+            agent1_dir.join("SYSTEM.md"),
+            "---\nname: My Custom Agent\nskills:\n  - ingest-file\n---\n\nbody",
+        ).unwrap();
 
-        let agent2 = serde_yaml::to_string(&serde_json::json!({
-            "name": "Helper Bot",
-            "locked": false
-        })).unwrap();
-        fs::write(agents_dir.join("helper.yaml"), &agent2).unwrap();
+        let agent2_dir = tmp.path().join("u_test-user").join("helper");
+        fs::create_dir_all(&agent2_dir).unwrap();
+        fs::write(
+            agent2_dir.join("SYSTEM.md"),
+            "---\nname: Helper Bot\nlocked: false\n---\n",
+        ).unwrap();
 
         let result = load_user_agents_from(tmp.path(), user_id);
         assert_eq!(result.len(), 2);
@@ -180,12 +182,12 @@ mod tests {
     }
 
     #[test]
-    fn test_load_user_agents_invalid_yaml() {
+    fn test_load_user_agents_invalid_frontmatter() {
         let tmp = setup_dir();
         let user_id = "test-user";
-        let agents_dir = tmp.path().join("u_test-user").join("agent");
-        fs::create_dir_all(&agents_dir).unwrap();
-        fs::write(agents_dir.join("bad.yaml"), "not: valid: yaml: [[[").unwrap();
+        let agent_dir = tmp.path().join("u_test-user").join("bad-agent");
+        fs::create_dir_all(&agent_dir).unwrap();
+        fs::write(agent_dir.join("SYSTEM.md"), "plain text without frontmatter").unwrap();
 
         let result = load_user_agents_from(tmp.path(), user_id);
         assert!(result.is_empty());
@@ -195,20 +197,21 @@ mod tests {
     fn test_load_user_agents_empty_dir() {
         let tmp = setup_dir();
         let user_id = "test-user";
-        let agents_dir = tmp.path().join("u_test-user").join("agent");
-        fs::create_dir_all(&agents_dir).unwrap();
+        let user_dir = tmp.path().join("u_test-user");
+        fs::create_dir_all(&user_dir).unwrap();
 
         let result = load_user_agents_from(tmp.path(), user_id);
         assert!(result.is_empty());
     }
 
     #[test]
-    fn test_load_user_agents_ignores_non_yaml() {
+    fn test_load_user_agents_ignores_non_dir() {
         let tmp = setup_dir();
         let user_id = "test-user";
-        let agents_dir = tmp.path().join("u_test-user").join("agent");
-        fs::create_dir_all(&agents_dir).unwrap();
-        fs::write(agents_dir.join("readme.txt"), "hello").unwrap();
+        let user_dir = tmp.path().join("u_test-user");
+        fs::create_dir_all(&user_dir).unwrap();
+        // 写入文件（非目录）应被忽略
+        fs::write(user_dir.join("readme.txt"), "hello").unwrap();
 
         let result = load_user_agents_from(tmp.path(), user_id);
         assert!(result.is_empty());

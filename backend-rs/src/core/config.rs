@@ -76,7 +76,7 @@ fn find_omniage_root() -> PathBuf {
     start
 }
 
-fn load_agent_yamls(config_dir: &Path) -> HashMap<String, AgentConfig> {
+fn load_agent_configs(config_dir: &Path) -> HashMap<String, AgentConfig> {
     let agents_dir = config_dir.join("agents");
     let mut agents = HashMap::new();
 
@@ -87,28 +87,40 @@ fn load_agent_yamls(config_dir: &Path) -> HashMap<String, AgentConfig> {
     let mut entries: Vec<_> = match std::fs::read_dir(&agents_dir) {
         Ok(entries) => entries
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().is_some_and(|ext| ext == "yaml"))
+            .filter(|e| e.path().is_dir())
             .collect(),
         Err(_) => return agents,
     };
     entries.sort_by_key(|e| e.file_name());
 
-    for entry in entries {
-        let path = entry.path();
-        let agent_id = path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .map(|s| s.to_string())
-            .unwrap_or_default();
+    for entry in &entries {
+        let system_md = entry.path().join("SYSTEM.md");
+        if !system_md.is_file() {
+            continue;
+        }
+        let agent_id = entry.file_name().to_string_lossy().to_string();
 
-        if let Ok(content) = std::fs::read_to_string(&path) {
-            if let Ok(cfg) = serde_yaml::from_str::<AgentConfig>(&content) {
-                agents.insert(agent_id, cfg);
+        if let Ok(content) = std::fs::read_to_string(&system_md) {
+            if let Some(frontmatter) = extract_yaml_frontmatter(&content) {
+                if let Ok(cfg) = serde_yaml::from_str::<AgentConfig>(frontmatter) {
+                    agents.insert(agent_id, cfg);
+                }
             }
         }
     }
 
     agents
+}
+
+/// 提取 YAML frontmatter（`---` 之间的内容）。
+pub(crate) fn extract_yaml_frontmatter(content: &str) -> Option<&str> {
+    let trimmed = content.trim();
+    if !trimmed.starts_with("---") {
+        return None;
+    }
+    let without_start = &trimmed[3..];
+    let end = without_start.find("\n---")?;
+    Some(&without_start[..end])
 }
 
 pub fn init_config() {
@@ -122,7 +134,7 @@ pub fn init_config() {
     // Windows: canonicalize() 会添加 \\?\ 前缀，去掉它以得到整洁路径
     let data_dir = crate::utils::helpers::normalize_path(data_dir);
 
-    let agents = load_agent_yamls(&config_dir);
+    let agents = load_agent_configs(&config_dir);
 
     let visibility = load_visibility_yaml(&config_dir);
 
@@ -156,18 +168,16 @@ pub fn get_agent_user_config(agent_id: &str) -> Option<AgentConfig> {
     let cfg = get_config();
     let base = cfg.agents.get(agent_id).cloned();
 
-    // 有用户上下文时尝试从用户目录加载 YAML 配置
-    if let Some(user_id) = crate::core::auth::get_current_user_id() {
-        let user_yaml = cfg
-            .data_dir
-            .join(format!("u_{}", user_id))
-            .join("agent")
-            .join(format!("{}.yaml", agent_id));
+    // 有用户上下文时尝试从用户目录加载 SYSTEM.md 配置
+    if let Some(_user_id) = crate::core::auth::get_current_user_id() {
+        let user_system = get_agent_base_dir(agent_id).join("SYSTEM.md");
 
-        if user_yaml.exists() {
-            if let Ok(content) = std::fs::read_to_string(&user_yaml) {
-                if let Ok(user_cfg) = serde_yaml::from_str::<AgentConfig>(&content) {
-                    return Some(merge_agent_configs(base, user_cfg));
+        if user_system.exists() {
+            if let Ok(content) = std::fs::read_to_string(&user_system) {
+                if let Some(frontmatter) = extract_yaml_frontmatter(&content) {
+                    if let Ok(user_cfg) = serde_yaml::from_str::<AgentConfig>(frontmatter) {
+                        return Some(merge_agent_configs(base, user_cfg));
+                    }
                 }
             }
         }
