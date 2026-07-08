@@ -79,7 +79,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
     setDeleteConfirm({ id: targetDatabaseId, name: databaseName });
   };
 
-  const handleRename = async (record: any, newName: string) => {
+  const handleRename = async (record: { id: string; name: string }, newName: string) => {
     const response = await renameKnowledgeBase(agentId, record.id, newName);
     if (!response.success) {
       throw new Error(response.message || "重命名失败");
