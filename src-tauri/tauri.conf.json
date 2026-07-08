@@ -36,7 +36,7 @@
     ],
     "resources": [
       "config/visibility.yaml",
-      "config/agents/*.yaml",
+      "config/agents/*/SYSTEM.md",
       "config/agents/skills/**/*.md",
       "config/agents/skills/**/*.py"
     ]
