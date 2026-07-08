@@ -80,8 +80,10 @@ async fn create_agent(
         }));
     }
 
-    // 写入 SYSTEM.md（frontmatter + body）
-    let system_content = format!("---\nname: {}\n---\n", name);
+    // 写入 SYSTEM.md（frontmatter + body，使用 YAML 序列化防止注入）
+    let frontmatter = serde_yaml::to_string(&serde_json::json!({"name": name}))
+        .expect("serialize static JSON to YAML cannot fail");
+    let system_content = format!("---\n{}---\n", frontmatter);
 
     if let Some(parent) = system_path.parent() {
         std::fs::create_dir_all(parent).ok();

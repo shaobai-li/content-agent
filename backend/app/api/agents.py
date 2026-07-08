@@ -81,8 +81,10 @@ async def create_agent(payload: dict = Body(...)):
     # 生成 agent_id: a_ + UUID 前 8 位 hex
     agent_id = f"a_{uuid.uuid4().hex[:8]}"
 
-    # 构造 SYSTEM.md 并写入
-    system_content = f"---\nname: {name}\n---\n"
+    # 构造 SYSTEM.md 并写入（使用 YAML 序列化防止注入）
+    import yaml as _yaml
+    frontmatter = _yaml.dump({"name": name}, allow_unicode=True)
+    system_content = f"---\n{frontmatter}---\n"
     system_path = get_agent_base_dir(agent_id) / "SYSTEM.md"
     system_path.parent.mkdir(parents=True, exist_ok=True)
     system_path.write_text(system_content, encoding="utf-8")
