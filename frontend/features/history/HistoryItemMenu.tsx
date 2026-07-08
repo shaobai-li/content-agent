@@ -9,10 +9,11 @@ import {
 } from "@/shared/ui/dropdown-menu";
 
 interface HistoryItemMenuProps {
+  onRename?: () => void;
   onDelete?: () => void;
 }
 
-export function HistoryItemMenu({ onDelete }: HistoryItemMenuProps) {
+export function HistoryItemMenu({ onRename, onDelete }: HistoryItemMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -28,7 +29,14 @@ export function HistoryItemMenu({ onDelete }: HistoryItemMenuProps) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem className="gap-2" disabled>
+        <DropdownMenuItem
+          className="gap-2"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onRename?.();
+          }}
+        >
           <Pencil className="size-4" />
           Rename
         </DropdownMenuItem>
