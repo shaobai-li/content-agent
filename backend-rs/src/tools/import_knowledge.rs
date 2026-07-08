@@ -580,6 +580,10 @@ import json
 
 import fitz
 
+# Windows 平台将输出流编码设为 UTF-8，避免中文乱码
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 path = sys.argv[1]
 parts = []
 with fitz.open(path) as doc:
