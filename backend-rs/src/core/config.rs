@@ -302,3 +302,132 @@ pub fn get_database_registry_path(agent_id: &str) -> PathBuf {
 pub fn get_database_nodes_path(agent_id: &str, kb_id: &str) -> PathBuf {
     get_agent_local_data_dir(agent_id).join(kb_id).join("view").join("nodes.json")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── extract_yaml_frontmatter ─────────────────────────────────
+
+    #[test]
+    fn test_extract_frontmatter_valid() {
+        let content = "---\nname: test\nskills:\n  - skill_a\n---\n\nbody text";
+        let result = extract_yaml_frontmatter(content);
+        assert!(result.is_some());
+        let fm = result.unwrap();
+        assert!(fm.contains("name: test"));
+        assert!(fm.contains("skill_a"));
+    }
+
+    #[test]
+    fn test_extract_frontmatter_no_frontmatter() {
+        assert_eq!(extract_yaml_frontmatter("just body text"), None);
+    }
+
+    #[test]
+    fn test_extract_frontmatter_non_dict() {
+        // Even non-dict YAML gets extracted — validation is caller's responsibility
+        let content = "---\n- list\n- items\n---\n\nbody";
+        let result = extract_yaml_frontmatter(content);
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("list"));
+    }
+
+    #[test]
+    fn test_extract_frontmatter_only_delimiters() {
+        // `---\n---` — empty frontmatter
+        let content = "---\n---\n\nbody";
+        let result = extract_yaml_frontmatter(content);
+        assert!(result.is_some());
+        assert!(result.unwrap().trim().is_empty());
+    }
+
+    #[test]
+    fn test_extract_frontmatter_no_closing() {
+        // No closing `---` delimiter
+        let content = "---\nname: test";
+        assert_eq!(extract_yaml_frontmatter(content), None);
+    }
+
+    #[test]
+    fn test_extract_frontmatter_body_contains_delimiter() {
+        // Body containing `---` should not confuse the parser
+        let content = "---\nkey: val\n---\nbody with ---\nmore text";
+        let result = extract_yaml_frontmatter(content);
+        assert!(result.is_some());
+        let fm = result.unwrap();
+        assert!(fm.contains("key: val"));
+        assert!(!fm.contains("more text"));
+    }
+
+    #[test]
+    fn test_extract_frontmatter_empty_content() {
+        assert_eq!(extract_yaml_frontmatter(""), None);
+    }
+
+    #[test]
+    fn test_extract_frontmatter_only_opening() {
+        assert_eq!(extract_yaml_frontmatter("---"), None);
+    }
+
+    // ── load_agent_configs ───────────────────────────────────────
+
+    #[test]
+    fn test_load_agent_configs_empty_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        // No agents/ subdirectory — function returns empty
+        let result = load_agent_configs(tmp.path());
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_load_agent_configs_loads_system_md() {
+        let tmp = tempfile::tempdir().unwrap();
+        let agent_dir = tmp.path().join("agents").join("std");
+        std::fs::create_dir_all(&agent_dir).unwrap();
+        std::fs::write(
+            agent_dir.join("SYSTEM.md"),
+            "---\nname: 标准助手\n---\n\n提示词正文",
+        )
+        .unwrap();
+
+        let result = load_agent_configs(tmp.path());
+        assert_eq!(result.len(), 1);
+        assert!(result.contains_key("std"));
+    }
+
+    #[test]
+    fn test_load_agent_configs_skips_non_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let agents_dir = tmp.path().join("agents");
+        std::fs::create_dir_all(&agents_dir).unwrap();
+        // Create a file (not directory) in agents dir — should be skipped
+        std::fs::write(agents_dir.join("not_a_dir.txt"), "").unwrap();
+
+        let result = load_agent_configs(tmp.path());
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_load_agent_configs_skips_missing_system_md() {
+        let tmp = tempfile::tempdir().unwrap();
+        let agent_dir = tmp.path().join("agents").join("std");
+        std::fs::create_dir_all(&agent_dir).unwrap();
+        // No SYSTEM.md file in the directory
+
+        let result = load_agent_configs(tmp.path());
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_load_agent_configs_skips_invalid_frontmatter() {
+        let tmp = tempfile::tempdir().unwrap();
+        let agent_dir = tmp.path().join("agents").join("bad");
+        std::fs::create_dir_all(&agent_dir).unwrap();
+        // Plain text without frontmatter
+        std::fs::write(agent_dir.join("SYSTEM.md"), "plain text without frontmatter").unwrap();
+
+        let result = load_agent_configs(tmp.path());
+        assert!(result.is_empty());
+    }
+}
