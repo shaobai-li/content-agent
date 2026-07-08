@@ -148,6 +148,18 @@ export const createKnowledgeBase = (agentId: string, name: string, description: 
     description,
   });
 
+type RenameKnowledgeBaseResponse = {
+  success: boolean;
+  message?: string;
+  database?: KnowledgeBaseDatabase;
+};
+
+export const renameKnowledgeBase = (agentId: string, kbId: string, name: string) =>
+  http.put<RenameKnowledgeBaseResponse>(
+    `/api/agents/${agentId}/knowledge-bases/${kbId}`,
+    { name },
+  );
+
 export const deleteKnowledgeBase = (agentId: string, kbId: string) =>
   http.delete<DeleteKnowledgeBaseResponse>(`/api/agents/${agentId}/knowledge-bases/${kbId}`);
 

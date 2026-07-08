@@ -163,6 +163,34 @@ pub fn create_knowledge_base(name: &str, description: &str, agent_id: &str) -> V
     serde_json::json!({"success": true, "database": database})
 }
 
+pub fn rename_knowledge_base(agent_id: &str, kb_id: &str, new_name: &str) -> Value {
+    let kb_id = kb_id.trim();
+    let name = new_name.trim();
+    if name.is_empty() {
+        return serde_json::json!({"success": false, "message": "名称不能为空"});
+    }
+
+    let mut databases = ensure_database_registry(agent_id);
+    let found = databases.iter().position(|d| {
+        d.get("id").and_then(|v| v.as_str()) == Some(kb_id)
+    });
+
+    match found {
+        None => {
+            warn!("kb not found for rename: {} / {}", agent_id, kb_id);
+            serde_json::json!({"success": false, "message": "知识库不存在"})
+        }
+        Some(idx) => {
+            let now = utc_iso();
+            databases[idx]["name"] = Value::String(name.to_string());
+            databases[idx]["updated_at"] = Value::String(now);
+            save_database_registry(agent_id, &databases);
+            let database = databases[idx].clone();
+            serde_json::json!({"success": true, "database": database})
+        }
+    }
+}
+
 pub fn delete_knowledge_base(agent_id: &str, kb_id: &str) -> Value {
     let kb_id = kb_id.trim();
     if kb_id.is_empty() {

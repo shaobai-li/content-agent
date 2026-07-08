@@ -11,7 +11,7 @@ pub fn router() -> axum::Router {
         )
         .route(
             "/api/agents/:agent_id/knowledge-bases/:kb_id",
-            axum::routing::delete(delete_kb),
+            axum::routing::delete(delete_kb).put(rename_kb),
         )
 }
 
@@ -33,4 +33,12 @@ async fn delete_kb(
     Path((agent_id, kb_id)): Path<(String, String)>,
 ) -> Json<Value> {
     Json(knowledge_base::delete_knowledge_base(&agent_id, &kb_id))
+}
+
+async fn rename_kb(
+    Path((agent_id, kb_id)): Path<(String, String)>,
+    axum::Json(payload): axum::Json<Value>,
+) -> Json<Value> {
+    let name = payload.get("name").and_then(|v| v.as_str()).unwrap_or("");
+    Json(knowledge_base::rename_knowledge_base(&agent_id, &kb_id, name))
 }

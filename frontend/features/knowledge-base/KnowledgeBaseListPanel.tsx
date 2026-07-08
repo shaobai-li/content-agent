@@ -19,9 +19,11 @@ import { cn } from "@/shared/lib/cn";
 import { usePagination } from "@/shared/lib/usePagination";
 import { HistoryFooter } from "../history/HistoryFooter";
 import { HistoryItemMenu } from "../history/HistoryItemMenu";
+import { RenameModal } from "../data/RenameModal";
 import { KNOWLEDGE_BASES_REFRESH_EVENT } from "./databaseRegistry";
 import { useKnowledgeBaseSelection } from "./useKnowledgeBaseSelection";
 import { useKnowledgeBases } from "./useKnowledgeBases";
+import { renameKnowledgeBase } from "@/shared/api/records";
 import { writeKnowledgeBaseDragData } from "@/shared/lib/dragData";
 
 const DATABASE_SEARCH_CHANGE_EVENT = "kb-database-search-change";
@@ -71,9 +73,18 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
   }, [normalizedSearchKeyword, resetPage]);
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
 
   const handleDelete = (targetDatabaseId: string, databaseName: string) => {
     setDeleteConfirm({ id: targetDatabaseId, name: databaseName });
+  };
+
+  const handleRename = async (record: { id: string; name: string }, newName: string) => {
+    const response = await renameKnowledgeBase(agentId, record.id, newName);
+    if (!response.success) {
+      throw new Error(response.message || "重命名失败");
+    }
+    window.dispatchEvent(new Event(KNOWLEDGE_BASES_REFRESH_EVENT));
   };
 
   const handleDeleteConfirmed = async () => {
@@ -162,7 +173,10 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
                 </CardDescription>
                 <CardAction>
                   <div onDragStart={(event) => event.stopPropagation()}>
-                    <HistoryItemMenu onDelete={() => handleDelete(database.id, database.name)} />
+                    <HistoryItemMenu
+                      onDelete={() => handleDelete(database.id, database.name)}
+                      onRename={() => setRenameTarget({ id: database.id, name: database.name })}
+                    />
                   </div>
                 </CardAction>
               </CardHeader>
@@ -170,6 +184,12 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
           );
         })}
       </div>
+      <RenameModal
+        open={renameTarget !== null}
+        onOpenChange={(open) => { if (!open) setRenameTarget(null); }}
+        record={renameTarget ? { id: renameTarget.id, name: renameTarget.name } : null}
+        onRename={handleRename}
+      />
       <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
