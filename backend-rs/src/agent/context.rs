@@ -97,7 +97,7 @@ impl ContextBuilder {
         if let Some(ref agent_id) = self.agent_id {
             let user_path = core_get_agent_base_dir(agent_id).join("SYSTEM.md");
             if user_path.exists() {
-                if let Some(body) = extract_system_md_body(&user_path) {
+                if let Some(body) = Self::extract_system_md_body(&user_path) {
                     return body;
                 }
             }
@@ -108,7 +108,7 @@ impl ContextBuilder {
             let config_dir = get_config_dir();
             let builtin_path = config_dir.join("agents").join(agent_id).join("SYSTEM.md");
             if builtin_path.exists() {
-                if let Some(body) = extract_system_md_body(&builtin_path) {
+                if let Some(body) = Self::extract_system_md_body(&builtin_path) {
                     return body;
                 }
             }
