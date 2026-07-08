@@ -164,6 +164,7 @@ pub fn create_knowledge_base(name: &str, description: &str, agent_id: &str) -> V
 }
 
 pub fn rename_knowledge_base(agent_id: &str, kb_id: &str, new_name: &str) -> Value {
+    let kb_id = kb_id.trim();
     let name = new_name.trim();
     if name.is_empty() {
         return serde_json::json!({"success": false, "message": "名称不能为空"});
