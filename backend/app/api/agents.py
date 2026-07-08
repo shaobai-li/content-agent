@@ -105,6 +105,12 @@ async def delete_agent(agent_id: str):
     if agent_id in AGENTS_CONFIG:
         return {"ok": False, "error": f"智能体 '{agent_id}' 是系统智能体，不能删除"}
 
+    # 检查用户登录状态（get_agent_base_dir 内部依赖 get_current_user_id）
+    try:
+        get_current_user_id()
+    except LookupError:
+        return {"ok": False, "error": "未登录用户无法删除智能体"}
+
     system_path = get_agent_base_dir(agent_id) / "SYSTEM.md"
     if not system_path.exists():
         return {"ok": False, "error": f"智能体 '{agent_id}' 不存在"}

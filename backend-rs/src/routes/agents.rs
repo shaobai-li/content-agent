@@ -122,6 +122,16 @@ async fn delete_agent(
         }));
     }
 
+    // 检查用户登录状态
+    let _user_id = match &ctx.user_id {
+        Some(uid) => uid.clone(),
+        None => {
+            return Json(serde_json::json!({
+                "ok": false, "error": "未登录用户无法删除智能体"
+            }));
+        }
+    };
+
     let system_path = get_agent_base_dir(&agent_id).join("SYSTEM.md");
 
     if !system_path.exists() {
