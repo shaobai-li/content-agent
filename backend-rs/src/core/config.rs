@@ -76,7 +76,7 @@ fn find_omniage_root() -> PathBuf {
     start
 }
 
-fn load_agent_yamls(config_dir: &Path) -> HashMap<String, AgentConfig> {
+fn load_agent_configs(config_dir: &Path) -> HashMap<String, AgentConfig> {
     let agents_dir = config_dir.join("agents");
     let mut agents = HashMap::new();
 
@@ -87,28 +87,40 @@ fn load_agent_yamls(config_dir: &Path) -> HashMap<String, AgentConfig> {
     let mut entries: Vec<_> = match std::fs::read_dir(&agents_dir) {
         Ok(entries) => entries
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().is_some_and(|ext| ext == "yaml"))
+            .filter(|e| e.path().is_dir())
             .collect(),
         Err(_) => return agents,
     };
     entries.sort_by_key(|e| e.file_name());
 
-    for entry in entries {
-        let path = entry.path();
-        let agent_id = path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .map(|s| s.to_string())
-            .unwrap_or_default();
+    for entry in &entries {
+        let system_md = entry.path().join("SYSTEM.md");
+        if !system_md.is_file() {
+            continue;
+        }
+        let agent_id = entry.file_name().to_string_lossy().to_string();
 
-        if let Ok(content) = std::fs::read_to_string(&path) {
-            if let Ok(cfg) = serde_yaml::from_str::<AgentConfig>(&content) {
-                agents.insert(agent_id, cfg);
+        if let Ok(content) = std::fs::read_to_string(&system_md) {
+            if let Some(frontmatter) = extract_yaml_frontmatter(&content) {
+                if let Ok(cfg) = serde_yaml::from_str::<AgentConfig>(frontmatter) {
+                    agents.insert(agent_id, cfg);
+                }
             }
         }
     }
 
     agents
+}
+
+/// 提取 YAML frontmatter（`---` 之间的内容）。
+pub(crate) fn extract_yaml_frontmatter(content: &str) -> Option<&str> {
+    let trimmed = content.trim();
+    if !trimmed.starts_with("---") {
+        return None;
+    }
+    let without_start = &trimmed[3..];
+    let end = without_start.find("\n---")?;
+    Some(&without_start[..end])
 }
 
 pub fn init_config() {
@@ -122,7 +134,7 @@ pub fn init_config() {
     // Windows: canonicalize() 会添加 \\?\ 前缀，去掉它以得到整洁路径
     let data_dir = crate::utils::helpers::normalize_path(data_dir);
 
-    let agents = load_agent_yamls(&config_dir);
+    let agents = load_agent_configs(&config_dir);
 
     let visibility = load_visibility_yaml(&config_dir);
 
@@ -156,18 +168,16 @@ pub fn get_agent_user_config(agent_id: &str) -> Option<AgentConfig> {
     let cfg = get_config();
     let base = cfg.agents.get(agent_id).cloned();
 
-    // 有用户上下文时尝试从用户目录加载 YAML 配置
-    if let Some(user_id) = crate::core::auth::get_current_user_id() {
-        let user_yaml = cfg
-            .data_dir
-            .join(format!("u_{}", user_id))
-            .join("agent")
-            .join(format!("{}.yaml", agent_id));
+    // 有用户上下文时尝试从用户目录加载 SYSTEM.md 配置
+    if crate::core::auth::get_current_user_id().is_some() {
+        let user_system = get_agent_base_dir(agent_id).join("SYSTEM.md");
 
-        if user_yaml.exists() {
-            if let Ok(content) = std::fs::read_to_string(&user_yaml) {
-                if let Ok(user_cfg) = serde_yaml::from_str::<AgentConfig>(&content) {
-                    return Some(merge_agent_configs(base, user_cfg));
+        if user_system.exists() {
+            if let Ok(content) = std::fs::read_to_string(&user_system) {
+                if let Some(frontmatter) = extract_yaml_frontmatter(&content) {
+                    if let Ok(user_cfg) = serde_yaml::from_str::<AgentConfig>(frontmatter) {
+                        return Some(merge_agent_configs(base, user_cfg));
+                    }
                 }
             }
         }
@@ -291,4 +301,133 @@ pub fn get_database_registry_path(agent_id: &str) -> PathBuf {
 
 pub fn get_database_nodes_path(agent_id: &str, kb_id: &str) -> PathBuf {
     get_agent_local_data_dir(agent_id).join(kb_id).join("view").join("nodes.json")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── extract_yaml_frontmatter ─────────────────────────────────
+
+    #[test]
+    fn test_extract_frontmatter_valid() {
+        let content = "---\nname: test\nskills:\n  - skill_a\n---\n\nbody text";
+        let result = extract_yaml_frontmatter(content);
+        assert!(result.is_some());
+        let fm = result.unwrap();
+        assert!(fm.contains("name: test"));
+        assert!(fm.contains("skill_a"));
+    }
+
+    #[test]
+    fn test_extract_frontmatter_no_frontmatter() {
+        assert_eq!(extract_yaml_frontmatter("just body text"), None);
+    }
+
+    #[test]
+    fn test_extract_frontmatter_non_dict() {
+        // Even non-dict YAML gets extracted — validation is caller's responsibility
+        let content = "---\n- list\n- items\n---\n\nbody";
+        let result = extract_yaml_frontmatter(content);
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("list"));
+    }
+
+    #[test]
+    fn test_extract_frontmatter_only_delimiters() {
+        // `---\n---` — empty frontmatter
+        let content = "---\n---\n\nbody";
+        let result = extract_yaml_frontmatter(content);
+        assert!(result.is_some());
+        assert!(result.unwrap().trim().is_empty());
+    }
+
+    #[test]
+    fn test_extract_frontmatter_no_closing() {
+        // No closing `---` delimiter
+        let content = "---\nname: test";
+        assert_eq!(extract_yaml_frontmatter(content), None);
+    }
+
+    #[test]
+    fn test_extract_frontmatter_body_contains_delimiter() {
+        // Body containing `---` should not confuse the parser
+        let content = "---\nkey: val\n---\nbody with ---\nmore text";
+        let result = extract_yaml_frontmatter(content);
+        assert!(result.is_some());
+        let fm = result.unwrap();
+        assert!(fm.contains("key: val"));
+        assert!(!fm.contains("more text"));
+    }
+
+    #[test]
+    fn test_extract_frontmatter_empty_content() {
+        assert_eq!(extract_yaml_frontmatter(""), None);
+    }
+
+    #[test]
+    fn test_extract_frontmatter_only_opening() {
+        assert_eq!(extract_yaml_frontmatter("---"), None);
+    }
+
+    // ── load_agent_configs ───────────────────────────────────────
+
+    #[test]
+    fn test_load_agent_configs_empty_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        // No agents/ subdirectory — function returns empty
+        let result = load_agent_configs(tmp.path());
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_load_agent_configs_loads_system_md() {
+        let tmp = tempfile::tempdir().unwrap();
+        let agent_dir = tmp.path().join("agents").join("std");
+        std::fs::create_dir_all(&agent_dir).unwrap();
+        std::fs::write(
+            agent_dir.join("SYSTEM.md"),
+            "---\nname: 标准助手\n---\n\n提示词正文",
+        )
+        .unwrap();
+
+        let result = load_agent_configs(tmp.path());
+        assert_eq!(result.len(), 1);
+        assert!(result.contains_key("std"));
+    }
+
+    #[test]
+    fn test_load_agent_configs_skips_non_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let agents_dir = tmp.path().join("agents");
+        std::fs::create_dir_all(&agents_dir).unwrap();
+        // Create a file (not directory) in agents dir — should be skipped
+        std::fs::write(agents_dir.join("not_a_dir.txt"), "").unwrap();
+
+        let result = load_agent_configs(tmp.path());
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_load_agent_configs_skips_missing_system_md() {
+        let tmp = tempfile::tempdir().unwrap();
+        let agent_dir = tmp.path().join("agents").join("std");
+        std::fs::create_dir_all(&agent_dir).unwrap();
+        // No SYSTEM.md file in the directory
+
+        let result = load_agent_configs(tmp.path());
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_load_agent_configs_skips_invalid_frontmatter() {
+        let tmp = tempfile::tempdir().unwrap();
+        let agent_dir = tmp.path().join("agents").join("bad");
+        std::fs::create_dir_all(&agent_dir).unwrap();
+        // Plain text without frontmatter
+        std::fs::write(agent_dir.join("SYSTEM.md"), "plain text without frontmatter").unwrap();
+
+        let result = load_agent_configs(tmp.path());
+        assert!(result.is_empty());
+    }
 }

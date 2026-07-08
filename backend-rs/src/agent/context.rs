@@ -3,12 +3,9 @@ use std::path::{Path, PathBuf};
 use chrono::Local;
 use serde_json::Value;
 
-use crate::core::config::get_agent_base_dir as core_get_agent_base_dir;
+use crate::core::config::{get_agent_base_dir as core_get_agent_base_dir, get_config_dir};
 
-/// Built-in base system prompt (embedded at compile time).
-const DEFAULT_SYSTEM_PROMPT: &str = include_str!("standard/prompts/system.md");
-
-const BOOTSTRAP_FILES: &[&str] = &["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md"];
+const BOOTSTRAP_FILES: &[&str] = &["SOUL.md", "USER.md", "IDENTITY.md"];
 
 /// Builds the context (system prompt + messages) for the agent.
 pub struct ContextBuilder {
@@ -73,12 +70,11 @@ impl ContextBuilder {
         prompt
     }
 
-    /// Load bootstrap files from `<workspace>/.agent/prompts/`.
+    /// Load bootstrap files from workspace root (SOUL.md, USER.md, IDENTITY.md).
     fn load_bootstrap_files(&self) -> String {
         let mut parts: Vec<String> = Vec::new();
-        let prompts_dir = self.workspace.join(".agent").join("prompts");
         for filename in BOOTSTRAP_FILES {
-            let file_path = prompts_dir.join(filename);
+            let file_path = self.workspace.join(filename);
             if file_path.exists() {
                 if let Ok(content) = std::fs::read_to_string(&file_path) {
                     let trimmed = content.trim().to_string();
@@ -94,21 +90,45 @@ impl ContextBuilder {
     /// Return the base system prompt.
     ///
     /// Priority:
-    ///   1. `<agent_base>/.agent/prompts/system_prompt.md` (user override via settings UI)
-    ///   2. Built-in default prompt
+    ///   1. `{agent_base}/SYSTEM.md` body (user override)
+    ///   2. `config/agents/{agent_id}/SYSTEM.md` body (built-in default)
     fn resolve_base_prompt(&self) -> String {
+        // 用户覆盖
         if let Some(ref agent_id) = self.agent_id {
-            let user_path = core_get_agent_base_dir(agent_id).join(".agent").join("prompts").join("system_prompt.md");
+            let user_path = core_get_agent_base_dir(agent_id).join("SYSTEM.md");
             if user_path.exists() {
-                if let Ok(text) = std::fs::read_to_string(&user_path) {
-                    let trimmed = text.trim().to_string();
-                    if !trimmed.is_empty() {
-                        return trimmed;
-                    }
+                if let Some(body) = Self::extract_system_md_body(&user_path) {
+                    return body;
                 }
             }
         }
-        DEFAULT_SYSTEM_PROMPT.trim().to_string()
+
+        // 内置默认
+        if let Some(ref agent_id) = self.agent_id {
+            let config_dir = get_config_dir();
+            let builtin_path = config_dir.join("agents").join(agent_id).join("SYSTEM.md");
+            if builtin_path.exists() {
+                if let Some(body) = Self::extract_system_md_body(&builtin_path) {
+                    return body;
+                }
+            }
+        }
+
+        String::new()
+    }
+
+    /// 提取 SYSTEM.md 中 frontmatter 之后的 Markdown body。
+    fn extract_system_md_body(path: &Path) -> Option<String> {
+        let content = std::fs::read_to_string(path).ok()?;
+        if content.starts_with("---") {
+            let parts: Vec<&str> = content.splitn(3, "---").collect();
+            if parts.len() >= 3 {
+                let body = parts[2].trim();
+                return if body.is_empty() { None } else { Some(body.to_string()) };
+            }
+        }
+        let trimmed = content.trim();
+        if trimmed.is_empty() { None } else { Some(trimmed.to_string()) }
     }
 
     /// Public alias for resolving base prompt (used by callers that need only the text).
