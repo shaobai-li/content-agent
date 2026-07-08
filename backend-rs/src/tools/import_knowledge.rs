@@ -396,7 +396,7 @@ async fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value
             let (text, meta) = extract_pdf_with_fallback(src).await?;
             std::fs::write(&md_path, &text)
                 .map_err(|e| format!("写入 parsed.md 失败: {}", e))?;
-            let mut parsed = json!({"markdown_path": md_path.to_string_lossy(), "parser": "pymupdf"});
+            let mut parsed = json!({"markdown_path": md_path.to_string_lossy(), "parser": "pymupdf", "parser_v0": "pdf_extract"});
             if let Some(obj) = meta.as_object() {
                 for (k, v) in obj {
                     parsed[k] = v.clone();
