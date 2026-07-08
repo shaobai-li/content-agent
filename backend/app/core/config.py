@@ -57,14 +57,14 @@ def _load_agent_configs() -> Dict[str, Dict[str, Any]]:
 
 
 # ── 合并：config/agents/*/SYSTEM.md 优先，config.yaml agents 作为降级 ──
-_agent_yamls = _load_agent_configs()
+_agent_configs = _load_agent_configs()
 _old_agents = config.get("agents", {}) or {}
 
 # 仅包含系统 agent（config/agents/*/SYSTEM.md + config.yaml agents 字段）
 # 用户自定义 agent 在 auth.require_user_id() 中按需加载
 AGENTS_CONFIG: Dict[str, Dict[str, Any]] = {
     **_old_agents,
-    **_agent_yamls,
+    **_agent_configs,
 }
 def _load_user_config(user_id: str) -> dict:
     """加载 data/u_{user_id}/admin/config.json，文件不存在时返回空 dict。"""
