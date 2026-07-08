@@ -169,7 +169,7 @@ pub fn get_agent_user_config(agent_id: &str) -> Option<AgentConfig> {
     let base = cfg.agents.get(agent_id).cloned();
 
     // 有用户上下文时尝试从用户目录加载 SYSTEM.md 配置
-    if let Some(_user_id) = crate::core::auth::get_current_user_id() {
+    if crate::core::auth::get_current_user_id().is_some() {
         let user_system = get_agent_base_dir(agent_id).join("SYSTEM.md");
 
         if user_system.exists() {
