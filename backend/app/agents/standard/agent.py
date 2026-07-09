@@ -8,6 +8,7 @@ from typing import Any, AsyncGenerator, Dict, List
 from loguru import logger
 
 from app.agents.base_agent import BaseAgent
+from app.core.auth import get_current_user_id
 from app.core.config import get_agent_mcp_servers, get_agent_workspace_dir
 from app.runtime.agent_turn_context import AgentTurnContext
 from app.service.stream_service import (
@@ -132,7 +133,7 @@ class StandardAgent(BaseAgent):
                 workspace, self.agent_id,
                 provider_name=ctx.provider,
                 model=ctx.model,
-                mcp_servers=get_agent_mcp_servers(self.agent_id),
+                mcp_servers=get_agent_mcp_servers(self.agent_id, user_id=get_current_user_id()),
             )
 
             # ── MCP 服务器连接 ──────────────────────────────────────────
