@@ -16,6 +16,7 @@ from loguru import logger
 
 from app.agents.tools.base import Tool
 from app.agents.tools.registry import ToolRegistry
+from app.core.utils import cfg_get
 
 # Transient connection errors that warrant a single retry.
 _TRANSIENT_EXC_NAMES: frozenset[str] = frozenset((
@@ -429,13 +430,6 @@ class MCPPromptWrapper(Tool):
         return "(MCP prompt call failed)"
 
 
-def _cfg_get(cfg, key: str, default: Any = None) -> Any:
-    """兼容 dict 和对象的配置取值。"""
-    if isinstance(cfg, dict):
-        return cfg.get(key, default)
-    return getattr(cfg, key, default)
-
-
 async def connect_mcp_servers(
     mcp_servers: dict, registry: ToolRegistry
 ) -> dict[str, AsyncExitStack]:
@@ -455,13 +449,13 @@ async def connect_mcp_servers(
         await server_stack.__aenter__()
 
         try:
-            transport_type = _cfg_get(cfg, "type", "") or ""
+            transport_type = cfg_get(cfg, "type", "") or ""
             if not transport_type:
-                if _cfg_get(cfg, "command", ""):
+                if cfg_get(cfg, "command", ""):
                     transport_type = "stdio"
-                elif _cfg_get(cfg, "url", ""):
+                elif cfg_get(cfg, "url", ""):
                     transport_type = (
-                        "sse" if _cfg_get(cfg, "url", "").rstrip("/").endswith("/sse")
+                        "sse" if cfg_get(cfg, "url", "").rstrip("/").endswith("/sse")
                         else "streamableHttp"
                     )
                 else:
@@ -471,9 +465,9 @@ async def connect_mcp_servers(
 
             if transport_type == "stdio":
                 command, args, env = _normalize_windows_stdio_command(
-                    _cfg_get(cfg, "command", ""),
-                    _cfg_get(cfg, "args", None),
-                    _cfg_get(cfg, "env", None) or None,
+                    cfg_get(cfg, "command", ""),
+                    cfg_get(cfg, "args", None),
+                    cfg_get(cfg, "env", None) or None,
                 )
                 params = StdioServerParameters(
                     command=command,
@@ -490,7 +484,7 @@ async def connect_mcp_servers(
                 ) -> httpx.AsyncClient:
                     merged_headers = {
                         "Accept": "application/json, text/event-stream",
-                        **(_cfg_get(cfg, "headers", None) or {}),
+                        **(cfg_get(cfg, "headers", None) or {}),
                         **(headers or {}),
                     }
                     return httpx.AsyncClient(
@@ -501,18 +495,18 @@ async def connect_mcp_servers(
                     )
 
                 read, write = await server_stack.enter_async_context(
-                    sse_client(_cfg_get(cfg, "url", ""), httpx_client_factory=httpx_client_factory)
+                    sse_client(cfg_get(cfg, "url", ""), httpx_client_factory=httpx_client_factory)
                 )
             elif transport_type == "streamableHttp":
                 http_client = await server_stack.enter_async_context(
                     httpx.AsyncClient(
-                        headers=_cfg_get(cfg, "headers", None) or None,
+                        headers=cfg_get(cfg, "headers", None) or None,
                         follow_redirects=True,
                         timeout=None,
                     )
                 )
                 read, write, _ = await server_stack.enter_async_context(
-                    streamable_http_client(_cfg_get(cfg, "url", ""), http_client=http_client)
+                    streamable_http_client(cfg_get(cfg, "url", ""), http_client=http_client)
                 )
             else:
                 logger.warning("MCP server '{}': unknown transport type '{}'", name, transport_type)
@@ -523,9 +517,9 @@ async def connect_mcp_servers(
             await session.initialize()
 
             tools_result = await session.list_tools()
-            enabled_tools = set(_cfg_get(cfg, "enabled_tools", None) or ["*"])
+            enabled_tools = set(cfg_get(cfg, "enabled_tools", None) or ["*"])
             allow_all_tools = "*" in enabled_tools
-            tool_timeout = _cfg_get(cfg, "tool_timeout", 0) or 30
+            tool_timeout = cfg_get(cfg, "tool_timeout", 0) or 30
             registered_count = 0
             matched_enabled_tools: set[str] = set()
             available_raw_names = [tool_def.name for tool_def in tools_result.tools]
