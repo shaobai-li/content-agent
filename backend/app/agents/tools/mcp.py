@@ -101,20 +101,19 @@ def _extract_nullable_branch(options: Any) -> tuple[dict[str, Any], bool] | None
     return None
 
 
-def _normalize_schema_for_openai(schema: Any) -> dict[str, Any]:
-    """Normalize only nullable JSON Schema patterns for tool definitions."""
-    if not isinstance(schema, dict):
-        return {"type": "object", "properties": {}}
-
-    normalized = dict(schema)
-
+def _normalize_nullable_type_array(normalized: dict[str, Any]) -> dict[str, Any]:
+    """处理 type: ["string", "null"] → type: "string", nullable: true。"""
     raw_type = normalized.get("type")
     if isinstance(raw_type, list):
         non_null = [item for item in raw_type if item != "null"]
         if "null" in raw_type and len(non_null) == 1:
             normalized["type"] = non_null[0]
             normalized["nullable"] = True
+    return normalized
 
+
+def _normalize_nullable_oneof_anyof(normalized: dict[str, Any]) -> dict[str, Any]:
+    """处理 oneOf/anyOf + null 分支 → 展平并标记 nullable。"""
     for key in ("oneOf", "anyOf"):
         nullable_branch = _extract_nullable_branch(normalized.get(key))
         if nullable_branch is not None:
@@ -124,6 +123,17 @@ def _normalize_schema_for_openai(schema: Any) -> dict[str, Any]:
             normalized = merged
             normalized["nullable"] = True
             break
+    return normalized
+
+
+def _normalize_schema_for_openai(schema: Any) -> dict[str, Any]:
+    """Normalize only nullable JSON Schema patterns for tool definitions."""
+    if not isinstance(schema, dict):
+        return {"type": "object", "properties": {}}
+
+    normalized = dict(schema)
+    normalized = _normalize_nullable_type_array(normalized)
+    normalized = _normalize_nullable_oneof_anyof(normalized)
 
     if "properties" in normalized and isinstance(normalized["properties"], dict):
         normalized["properties"] = {
