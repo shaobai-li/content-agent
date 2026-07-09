@@ -149,6 +149,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [jsonInput, setJsonInput] = useState("");
+  const [jsonError, setJsonError] = useState<string | null>(null);
 
   // Delete confirm state
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -171,19 +172,25 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
   const openAddDialog = () => {
     setEditingId(null);
     setJsonInput("");
+    setJsonError(null);
     setDialogOpen(true);
   };
 
   const openEditDialog = (server: McpServerConfig) => {
     setEditingId(server.id);
     setJsonInput(JSON.stringify(server, null, 2));
+    setJsonError(null);
     setDialogOpen(true);
   };
 
   const handleSave = () => {
     try {
+      setJsonError(null);
       const parsed: McpServerConfig = JSON.parse(jsonInput);
-      if (!parsed.name?.trim()) return;
+      if (!parsed.name?.trim()) {
+        setJsonError("服务器名称不能为空");
+        return;
+      }
 
       if (editingId) {
         setServers((prev) =>
@@ -194,7 +201,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
       }
       setDialogOpen(false);
     } catch {
-      // JSON 解析失败时不关闭 Dialog
+      setJsonError("JSON 格式错误，请检查后重试");
     }
   };
 
@@ -274,7 +281,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
       )}
 
       {/* ── Add / Edit Dialog ────────────────────────────────────── */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setJsonError(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -295,6 +302,9 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
                 rows={12}
                 autoComplete="off"
               />
+              {jsonError && (
+                <p className="text-xs text-destructive">{jsonError}</p>
+              )}
             </div>
           </div>
 
