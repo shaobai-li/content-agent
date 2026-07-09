@@ -23,6 +23,7 @@ import { Card, CardContent } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Switch } from "@/shared/ui/switch";
 import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -204,14 +205,16 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
       {/* ── Header ──────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-foreground">MCP 服务器</h3>
-        <button
+        <Button
           type="button"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-foreground"
           title="刷新"
         >
           <RotateCw className="size-3.5" />
           刷新
-        </button>
+        </Button>
       </div>
 
       {/* 衬线 */}
@@ -226,21 +229,22 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
         <div className="flex items-center gap-2">
-          <button
+          <Button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+            variant="outline"
+            size="sm"
           >
             <RefreshCw className="size-3.5" />
             全部重载
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={openAddDialog}
-            className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 transition-opacity cursor-pointer"
+            size="sm"
           >
             <Plus className="size-3.5" />
             添加服务器
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -295,20 +299,19 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
           </div>
 
           <DialogFooter>
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setDialogOpen(false)}
-              className="rounded-md border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               取消
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleSave}
-              className="rounded-md bg-foreground px-4 py-2 text-sm text-background hover:opacity-90 transition-opacity cursor-pointer"
             >
               保存
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -413,10 +416,10 @@ function ServerCard({
       <CardContent className="flex shrink-0 flex-col gap-0 px-4 pb-0">
         <div className="w-full border-t border-border" />
         <div className="flex items-center gap-4 pt-3">
-          <ActionButton onClick={onEdit}>编辑</ActionButton>
-          <ActionButton variant="destructive" onClick={onDelete}>
+          <Button variant="ghost" size="sm" className="h-auto px-0" onClick={onEdit}>编辑</Button>
+          <Button variant="destructive" size="sm" className="h-auto px-0" onClick={onDelete}>
             移除
-          </ActionButton>
+          </Button>
           <div className="ml-auto flex items-center">
             <Switch
               checked={server.enabled}
@@ -430,27 +433,3 @@ function ServerCard({
   );
 }
 
-function ActionButton({
-  children,
-  variant,
-  onClick,
-}: {
-  children: React.ReactNode;
-  variant?: "default" | "destructive";
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "text-sm transition-colors cursor-pointer",
-        variant === "destructive"
-          ? "text-destructive hover:text-destructive/80"
-          : "text-muted-foreground hover:text-foreground",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
