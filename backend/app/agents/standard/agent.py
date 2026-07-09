@@ -8,7 +8,7 @@ from typing import Any, AsyncGenerator, Dict, List
 from loguru import logger
 
 from app.agents.base_agent import BaseAgent
-from app.core.config import get_agent_workspace_dir
+from app.core.config import get_agent_mcp_servers, get_agent_workspace_dir
 from app.runtime.agent_turn_context import AgentTurnContext
 from app.service.stream_service import (
     build_stream_chunk,
@@ -125,13 +125,23 @@ class StandardAgent(BaseAgent):
         from app.service.sessions_service import save_session_if_new
 
         session_id = ctx.session_id or new_uuid()
+        mcp_stacks: dict = {}
         try:
             workspace = self._workspace_dir()
             registry = create_tool_registry(
                 workspace, self.agent_id,
                 provider_name=ctx.provider,
                 model=ctx.model,
+                mcp_servers=get_agent_mcp_servers(self.agent_id),
             )
+
+            # ── MCP 服务器连接 ──────────────────────────────────────────
+            if getattr(registry, "_pending_mcp_servers", None):
+                from app.agents.tools.mcp import connect_mcp_servers
+                mcp_stacks = await connect_mcp_servers(
+                    registry._pending_mcp_servers, registry,
+                )
+
             messages = self._build_loop_messages(ctx, workspace)
 
             text_preview = (ctx.user_text or "")[:100]
@@ -230,5 +240,12 @@ class StandardAgent(BaseAgent):
         except Exception:
             logger.exception("handle_chat_stream error")
             yield build_stream_chunk(f"出错了，请稍后重试")
+        finally:
+            # 清理 MCP 连接
+            for _name, stack in mcp_stacks.items():
+                try:
+                    await stack.aclose()
+                except Exception:
+                    pass
 
         yield build_stream_done(session_id=session_id)

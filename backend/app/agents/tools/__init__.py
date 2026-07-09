@@ -55,6 +55,7 @@ def create_tool_registry(
     agent_id: str,
     provider_name: str | None = None,
     model: str | None = None,
+    mcp_servers: dict | None = None,
 ) -> ToolRegistry:
     """Create and populate a ToolRegistry with all standard tools.
 
@@ -64,6 +65,9 @@ def create_tool_registry(
         provider_name: LLM provider name, inherited from agent context
                        (used by tools that call LLM internally).
         model: Model name, inherited from agent context.
+        mcp_servers: Optional dict of MCP server configs (name → config).
+                     Servers are connected asynchronously after creation
+                     via connect_mcp_servers().
     """
     registry = ToolRegistry()
     registry.register(RunCommandTool(
@@ -81,4 +85,9 @@ def create_tool_registry(
     registry.register(GenerateHTMLTool(provider_name=provider_name, model=model))
     registry.register(ImportKnowledgeTool(workspace=workspace, agent_id=agent_id))
     registry.register(LoadHTMLToCanvasTool(workspace))
+
+    # 暂存 MCP 配置，在 AgentLoop 启动时异步完成连接和注册
+    if mcp_servers:
+        registry._pending_mcp_servers = mcp_servers
+
     return registry
