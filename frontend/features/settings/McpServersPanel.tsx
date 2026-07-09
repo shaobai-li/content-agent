@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Plus, RotateCw, RefreshCw } from "lucide-react";
 import {
   Dialog,
@@ -152,6 +152,19 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
   // Delete confirm state
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredServers = useMemo(
+    () =>
+      servers.filter(
+        (s) =>
+          !searchQuery.trim() ||
+          s.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      ),
+    [servers, searchQuery],
+  );
+
   // ── Dialog handlers ─────────────────────────────────────────────
 
   const openAddDialog = () => {
@@ -209,7 +222,8 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
         <Input
           placeholder="搜索服务器..."
           className="max-w-60 h-9 text-sm"
-          readOnly
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
         <div className="flex items-center gap-2">
           <button
@@ -231,13 +245,15 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
       </div>
 
       {/* ── Server Card Grid ────────────────────────────────────── */}
-      {servers.length === 0 ? (
+      {filteredServers.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">
-          暂无 MCP 服务器，点击上方"添加服务器"开始配置
+          {searchQuery.trim()
+            ? "未找到匹配的服务器"
+            : "暂无 MCP 服务器，点击上方"添加服务器"开始配置"}
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {servers.map((server) => (
+          {filteredServers.map((server) => (
             <ServerCard
               key={server.id}
               server={server}
