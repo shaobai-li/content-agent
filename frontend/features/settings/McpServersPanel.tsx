@@ -143,6 +143,7 @@ interface McpServersPanelProps {
 }
 
 export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
+  // agentId — 为后续 API 对接预留，当前使用 fake data
   const [servers, setServers] = useState<McpServerConfig[]>(FAKE_SERVERS);
 
   // Dialog state
