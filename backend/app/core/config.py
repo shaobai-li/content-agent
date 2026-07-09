@@ -178,3 +178,43 @@ def get_agent_skill_ids(agent_id: str) -> List[str]:
     if not isinstance(raw, list):
         return []
     return [str(x).strip() for x in raw if str(x).strip()]
+
+
+def get_agent_mcp_servers(agent_id: str = "") -> dict:
+    """读取 MCP 服务器配置，独立于 agent prompt。
+
+    优先级：
+      1. data/u_{user_id}/mcp.yaml（用户覆盖，按需创建）
+      2. config/mcp.yaml（内置默认）
+    """
+    import yaml
+
+    # 1. 内置 config/mcp.yaml
+    mcp_yaml_path = OMNIAGE_ROOT / "config" / "mcp.yaml"
+    builtin: dict = {}
+    if mcp_yaml_path.exists():
+        try:
+            with open(mcp_yaml_path, "r", encoding="utf-8") as f:
+                builtin = yaml.safe_load(f) or {}
+        except Exception:
+            pass
+
+    # 2. 用户 data/u_{user_id}/mcp.yaml（覆盖内置）
+    from app.core.auth import get_current_user_id
+
+    try:
+        user_id = get_current_user_id()
+    except Exception:
+        user_id = ""
+    if user_id:
+        user_mcp_path = DEFAULT_DATA_DIR / f"u_{user_id}" / "mcp.yaml"
+        if user_mcp_path.exists():
+            try:
+                with open(user_mcp_path, "r", encoding="utf-8") as f:
+                    user_data = yaml.safe_load(f) or {}
+                if user_data:
+                    return {**builtin, **user_data}  # 用户覆盖内置
+            except Exception:
+                pass
+
+    return builtin
