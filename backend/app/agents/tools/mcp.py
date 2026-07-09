@@ -517,7 +517,8 @@ async def connect_mcp_servers(
             await session.initialize()
 
             tools_result = await session.list_tools()
-            enabled_tools = set(cfg_get(cfg, "enabled_tools", None) or ["*"])
+            raw_enabled = cfg_get(cfg, "enabled_tools", None)
+            enabled_tools = set(raw_enabled if raw_enabled is not None else ["*"])
             allow_all_tools = "*" in enabled_tools
             tool_timeout = cfg_get(cfg, "tool_timeout", 0) or 30
             registered_count = 0
