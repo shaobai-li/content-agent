@@ -180,12 +180,15 @@ def get_agent_skill_ids(agent_id: str) -> List[str]:
     return [str(x).strip() for x in raw if str(x).strip()]
 
 
-def get_agent_mcp_servers(agent_id: str = "") -> dict:
+def get_agent_mcp_servers(agent_id: str = "", user_id: str = "") -> dict:
     """读取 MCP 服务器配置，独立于 agent prompt。
 
     优先级：
       1. data/u_{user_id}/mcp.yaml（用户覆盖，按需创建）
       2. config/mcp.yaml（内置默认）
+
+    注意：
+      user_id 由调用方传入（如 agent.py），避免本模块引入 HTTP/auth 依赖。
     """
     import yaml
 
@@ -200,12 +203,6 @@ def get_agent_mcp_servers(agent_id: str = "") -> dict:
             pass
 
     # 2. 用户 data/u_{user_id}/mcp.yaml（覆盖内置）
-    from app.core.auth import get_current_user_id
-
-    try:
-        user_id = get_current_user_id()
-    except Exception:
-        user_id = ""
     if user_id:
         user_mcp_path = DEFAULT_DATA_DIR / f"u_{user_id}" / "mcp.yaml"
         if user_mcp_path.exists():
