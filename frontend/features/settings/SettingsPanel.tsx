@@ -22,11 +22,13 @@ import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
 import { usePrompts, useSkills } from "./useSettingsApi";
+import { McpServersPanel } from "./McpServersPanel";
 
 const settingsTabs = [
   { id: "system" as const, label: "System" },
   { id: "application" as const, label: "Application" },
   { id: "personalization" as const, label: "Personalization" },
+  { id: "capability" as const, label: "Capability" },
 ];
 
 type SettingsTabId = (typeof settingsTabs)[number]["id"];
@@ -444,6 +446,17 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
           </div>
         </div>
       )}
+
+      {/* Capability tab: MCP 服务器 */}
+      {activeTab === "capability" && (
+        <div
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto"
+          role="tabpanel"
+        >
+          <McpServersPanel agentId={agentId} />
+        </div>
+      )}
+
       <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
