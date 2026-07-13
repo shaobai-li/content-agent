@@ -261,7 +261,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
         <p className="py-12 text-center text-sm text-muted-foreground">
           {searchQuery.trim()
             ? "未找到匹配的服务器"
-            : "暂无 MCP 服务器，点击上方"添加服务器"开始配置"}
+            : "暂无 MCP 服务器，点击上方\"添加服务器\"开始配置"}
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
