@@ -46,7 +46,7 @@ export function DashboardHero() {
     if (phase === "typing") {
       if (displayText.length < currentPrompt.length) {
         const id = setTimeout(() => {
-          setDisplayText(currentPrompt.slice(0, displayText.length + 1));
+          setDisplayText((prev) => currentPrompt.slice(0, prev.length + 1));
         }, 80);
         return () => clearTimeout(id);
       }
@@ -64,7 +64,7 @@ export function DashboardHero() {
     if (phase === "deleting") {
       if (displayText.length > 0) {
         const id = setTimeout(() => {
-          setDisplayText(displayText.slice(0, -1));
+          setDisplayText((prev) => prev.slice(0, -1));
         }, 40);
         return () => clearTimeout(id);
       }
