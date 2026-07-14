@@ -155,7 +155,7 @@ def _normalize_schema_for_openai(schema: Any) -> dict[str, Any]:
 class MCPToolWrapper(Tool):
     """Wraps a single MCP server tool as a native agent Tool."""
 
-    def __init__(self, session, server_name: str, tool_def, tool_timeout: int = 30):
+    def __init__(self, session, server_name: str, tool_def, tool_timeout: int = 30, reconnect=None):
         self._session = session
         self._original_name = tool_def.name
         self._name = _sanitize_name(f"mcp_{server_name}_{tool_def.name}")
@@ -163,6 +163,7 @@ class MCPToolWrapper(Tool):
         raw_schema = tool_def.inputSchema or {"type": "object", "properties": {}}
         self._parameters = _normalize_schema_for_openai(raw_schema)
         self._tool_timeout = tool_timeout
+        self._reconnect = reconnect
 
     @property
     def name(self) -> str:
@@ -200,11 +201,21 @@ class MCPToolWrapper(Tool):
                 if _is_transient(exc):
                     if attempt == 0:
                         logger.warning(
-                            "MCP tool '{}' hit transient error ({}), retrying once...",
+                            "MCP tool '{}' hit transient error ({}), reconnecting and retrying...",
                             self._name,
                             type(exc).__name__,
                         )
                         await asyncio.sleep(1)
+                        # 重建连接后再重试（修复 streamableHttp 空闲断连问题）
+                        if self._reconnect:
+                            try:
+                                self._session = await self._reconnect()
+                            except Exception as recon_exc:
+                                logger.error(
+                                    "MCP tool '{}' reconnect failed: {}",
+                                    self._name,
+                                    recon_exc,
+                                )
                         continue
                     logger.error(
                         "MCP tool '{}' failed after retry: {}: {}",
@@ -235,7 +246,7 @@ class MCPToolWrapper(Tool):
 class MCPResourceWrapper(Tool):
     """Wraps an MCP resource URI as a read-only native agent Tool."""
 
-    def __init__(self, session, server_name: str, resource_def, resource_timeout: int = 30):
+    def __init__(self, session, server_name: str, resource_def, resource_timeout: int = 30, reconnect=None):
         self._session = session
         self._uri = resource_def.uri
         self._name = _sanitize_name(f"mcp_{server_name}_resource_{resource_def.name}")
@@ -247,6 +258,7 @@ class MCPResourceWrapper(Tool):
             "required": [],
         }
         self._resource_timeout = resource_timeout
+        self._reconnect = reconnect
 
     @property
     def name(self) -> str:
@@ -288,11 +300,20 @@ class MCPResourceWrapper(Tool):
                 if _is_transient(exc):
                     if attempt == 0:
                         logger.warning(
-                            "MCP resource '{}' hit transient error ({}), retrying once...",
+                            "MCP resource '{}' hit transient error ({}), reconnecting and retrying...",
                             self._name,
                             type(exc).__name__,
                         )
                         await asyncio.sleep(1)
+                        if self._reconnect:
+                            try:
+                                self._session = await self._reconnect()
+                            except Exception as recon_exc:
+                                logger.error(
+                                    "MCP resource '{}' reconnect failed: {}",
+                                    self._name,
+                                    recon_exc,
+                                )
                         continue
                     logger.error(
                         "MCP resource '{}' failed after retry: {}: {}",
@@ -325,7 +346,7 @@ class MCPResourceWrapper(Tool):
 class MCPPromptWrapper(Tool):
     """Wraps an MCP prompt as a read-only native agent Tool."""
 
-    def __init__(self, session, server_name: str, prompt_def, prompt_timeout: int = 30):
+    def __init__(self, session, server_name: str, prompt_def, prompt_timeout: int = 30, reconnect=None):
         self._session = session
         self._prompt_name = prompt_def.name
         self._name = _sanitize_name(f"mcp_{server_name}_prompt_{prompt_def.name}")
@@ -335,6 +356,7 @@ class MCPPromptWrapper(Tool):
             "Returns a filled prompt template that can be used as a workflow guide."
         )
         self._prompt_timeout = prompt_timeout
+        self._reconnect = reconnect
 
         # Build parameters from prompt arguments
         properties: dict[str, Any] = {}
@@ -401,11 +423,20 @@ class MCPPromptWrapper(Tool):
                 if _is_transient(exc):
                     if attempt == 0:
                         logger.warning(
-                            "MCP prompt '{}' hit transient error ({}), retrying once...",
+                            "MCP prompt '{}' hit transient error ({}), reconnecting and retrying...",
                             self._name,
                             type(exc).__name__,
                         )
                         await asyncio.sleep(1)
+                        if self._reconnect:
+                            try:
+                                self._session = await self._reconnect()
+                            except Exception as recon_exc:
+                                logger.error(
+                                    "MCP prompt '{}' reconnect failed: {}",
+                                    self._name,
+                                    recon_exc,
+                                )
                         continue
                     logger.error(
                         "MCP prompt '{}' failed after retry: {}: {}",
@@ -526,6 +557,37 @@ async def connect_mcp_servers(
             session = await server_stack.enter_async_context(ClientSession(read, write))
             await session.initialize()
 
+            # ── reconnect 闭包：重建 transport + session ──────────────
+            async def reconnect():
+                if transport_type == "stdio":
+                    command, args, env = _normalize_windows_stdio_command(
+                        cfg_get(cfg, "command", ""),
+                        cfg_get(cfg, "args", None),
+                        cfg_get(cfg, "env", None) or None,
+                    )
+                    params = StdioServerParameters(command=command, args=args, env=env)
+                    r, w = await server_stack.enter_async_context(stdio_client(params))
+                elif transport_type == "sse":
+                    r, w = await server_stack.enter_async_context(
+                        sse_client(cfg_get(cfg, "url", ""), httpx_client_factory=httpx_client_factory)
+                    )
+                elif transport_type == "streamableHttp":
+                    hc = await server_stack.enter_async_context(
+                        httpx.AsyncClient(
+                            headers=cfg_get(cfg, "headers", None) or None,
+                            follow_redirects=True,
+                            timeout=None,
+                        )
+                    )
+                    r, w, _ = await server_stack.enter_async_context(
+                        streamable_http_client(cfg_get(cfg, "url", ""), http_client=hc)
+                    )
+                else:
+                    raise RuntimeError(f"Unknown transport type: {transport_type}")
+                new_session = await server_stack.enter_async_context(ClientSession(r, w))
+                await new_session.initialize()
+                return new_session
+
             tools_result = await session.list_tools()
             raw_enabled = cfg_get(cfg, "enabled_tools", None)
             enabled_tools = set(raw_enabled if raw_enabled is not None else ["*"])
@@ -551,7 +613,7 @@ async def connect_mcp_servers(
                         name,
                     )
                     continue
-                wrapper = MCPToolWrapper(session, name, tool_def, tool_timeout=tool_timeout)
+                wrapper = MCPToolWrapper(session, name, tool_def, tool_timeout=tool_timeout, reconnect=reconnect)
                 registry.register(wrapper)
                 logger.debug("MCP: registered tool '{}' from server '{}'", wrapper.name, name)
                 registered_count += 1
@@ -577,7 +639,7 @@ async def connect_mcp_servers(
                 resources_result = await session.list_resources()
                 for resource in resources_result.resources:
                     wrapper = MCPResourceWrapper(
-                        session, name, resource, resource_timeout=tool_timeout
+                        session, name, resource, resource_timeout=tool_timeout, reconnect=reconnect,
                     )
                     registry.register(wrapper)
                     registered_count += 1
@@ -591,7 +653,7 @@ async def connect_mcp_servers(
                 prompts_result = await session.list_prompts()
                 for prompt in prompts_result.prompts:
                     wrapper = MCPPromptWrapper(
-                        session, name, prompt, prompt_timeout=tool_timeout
+                        session, name, prompt, prompt_timeout=tool_timeout, reconnect=reconnect,
                     )
                     registry.register(wrapper)
                     registered_count += 1
