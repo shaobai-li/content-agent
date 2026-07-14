@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import yaml
 from fastapi import APIRouter, Body, HTTPException
 from app.core.auth import get_current_user_id
-from app.core.config import _load_user_config, _save_user_config
+from app.core.config import DEFAULT_DATA_DIR, _load_user_config, _save_user_config
 from app.providers.registry import PROVIDERS
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -119,3 +120,45 @@ async def get_models():
             })
 
     return {"models": result}
+
+
+# ── MCP 服务器配置读写 ──────────────────────────────────────────────
+
+
+def _load_user_mcp(user_id: str) -> dict:
+    """读取用户的 mcp.yaml，不存在返回空 dict。"""
+    path = DEFAULT_DATA_DIR / f"u_{user_id}" / "mcp.yaml"
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return yaml.safe_load(f) or {}
+        except Exception:
+            pass
+    return {}
+
+
+def _save_user_mcp(user_id: str, config: dict) -> None:
+    """保存用户 mcp.yaml。"""
+    path = DEFAULT_DATA_DIR / f"u_{user_id}" / "mcp.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(config, f, allow_unicode=True, default_flow_style=False)
+
+
+@router.get("/mcp")
+async def get_mcp_settings():
+    """返回用户的 MCP 服务器配置（server_name → config dict）。"""
+    user_id = get_current_user_id()
+    return {"servers": _load_user_mcp(user_id)}
+
+
+@router.put("/mcp")
+async def update_mcp_settings(payload: dict = Body(...)):
+    """保存用户的 MCP 服务器配置。
+
+    请求体：{ "servers": { "time": { "command": "python", ... }, ... } }
+    """
+    user_id = get_current_user_id()
+    servers = payload.get("servers") or {}
+    _save_user_mcp(user_id, servers)
+    return {"ok": True}

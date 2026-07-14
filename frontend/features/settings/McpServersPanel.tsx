@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, RotateCw, RefreshCw } from "lucide-react";
+import { Plus, RotateCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,120 +21,9 @@ import {
 } from "@/shared/ui/alert-dialog";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
-import { Switch } from "@/shared/ui/switch";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
-
-// ── Types ────────────────────────────────────────────────────────
-
-interface McpServerConfig {
-  id: string;
-  name: string;
-  transport: "stdio" | "sse";
-  command?: string;
-  args?: string;
-  url?: string;
-  enabled: boolean;
-  tools?: string[];
-}
-
-// ── Fake data ─────────────────────────────────────────────────────
-
-const FAKE_SERVERS: McpServerConfig[] = [
-  {
-    id: "1",
-    name: "hermes-studio-api",
-    transport: "stdio",
-    command: "npx",
-    args: "hermes-studio-api",
-    enabled: true,
-    tools: ["hermes_studio_api_openapi_get", "hermes_studio_api_request"],
-  },
-  {
-    id: "2",
-    name: "memory-server",
-    transport: "sse",
-    url: "http://localhost:3001/sse",
-    enabled: false,
-    tools: [
-      "memory_read", "memory_write", "memory_search", "memory_delete",
-      "memory_list", "memory_export", "memory_import", "memory_backup",
-      "memory_restore", "memory_cleanup", "memory_optimize",
-      "memory_tag_add", "memory_tag_remove", "memory_tag_list",
-      "memory_query", "memory_batch_read", "memory_batch_write",
-      "memory_snapshot", "memory_diff", "memory_merge",
-      "memory_lock", "memory_unlock", "memory_history",
-      "memory_rollback", "memory_audit",
-    ],
-  },
-  {
-    id: "3",
-    name: "file-server",
-    transport: "stdio",
-    command: "npx",
-    args: "@anthropic/file-server",
-    enabled: true,
-    tools: ["file_read", "file_write", "file_delete", "file_list", "file_search", "file_stat"],
-  },
-  {
-    id: "4",
-    name: "database-connector",
-    transport: "sse",
-    url: "http://localhost:3002/sse",
-    enabled: true,
-    tools: ["db_query", "db_execute", "db_list_tables", "db_describe_table"],
-  },
-  {
-    id: "5",
-    name: "search-engine",
-    transport: "sse",
-    url: "http://localhost:3003/sse",
-    enabled: false,
-    tools: ["web_search", "web_fetch", "news_search", "image_search", "video_search"],
-  },
-  {
-    id: "6",
-    name: "code-analyzer",
-    transport: "stdio",
-    command: "npx",
-    args: "code-analyzer",
-    enabled: true,
-    tools: [
-      "code_lint", "code_format", "code_complexity", "code_coverage",
-      "code_duplication", "code_security_scan", "code_dependency_check",
-    ],
-  },
-  {
-    id: "7",
-    name: "git-integration",
-    transport: "stdio",
-    command: "npx",
-    args: "@anthropic/git-mcp",
-    enabled: true,
-    tools: ["git_status", "git_diff", "git_log", "git_commit", "git_branch", "git_merge"],
-  },
-  {
-    id: "8",
-    name: "slack-bot",
-    transport: "sse",
-    url: "http://localhost:3004/sse",
-    enabled: false,
-    tools: ["slack_send_message", "slack_list_channels", "slack_read_messages"],
-  },
-  {
-    id: "9",
-    name: "docker-manager",
-    transport: "stdio",
-    command: "docker",
-    args: "run --rm mcp/docker",
-    enabled: true,
-    tools: [
-      "docker_ps", "docker_images", "docker_pull", "docker_run",
-      "docker_stop", "docker_logs", "docker_exec", "docker_compose_up",
-      "docker_compose_down", "docker_network_list", "docker_volume_list",
-    ],
-  },
-];
+import { useMcpSettings, type McpServerConfig } from "./useMcpSettings";
 
 // ── Component ─────────────────────────────────────────────────────
 
@@ -143,12 +32,11 @@ interface McpServersPanelProps {
 }
 
 export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
-  // agentId — 为后续 API 对接预留，当前使用 fake data
-  const [servers, setServers] = useState<McpServerConfig[]>(FAKE_SERVERS);
+  const { servers, loading, error, save } = useMcpSettings();
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState<string | null>(null);
   const [jsonInput, setJsonInput] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
 
@@ -158,12 +46,12 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredServers = useMemo(
+  const filteredNames = useMemo(
     () =>
-      servers.filter(
-        (s) =>
+      Object.keys(servers).filter(
+        (name) =>
           !searchQuery.trim() ||
-          s.name.toLowerCase().includes(searchQuery.toLowerCase()),
+          name.toLowerCase().includes(searchQuery.toLowerCase()),
       ),
     [servers, searchQuery],
   );
@@ -171,15 +59,15 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
   // ── Dialog handlers ─────────────────────────────────────────────
 
   const openAddDialog = () => {
-    setEditingId(null);
+    setEditingName(null);
     setJsonInput("");
     setJsonError(null);
     setDialogOpen(true);
   };
 
-  const openEditDialog = (server: McpServerConfig) => {
-    setEditingId(server.id);
-    setJsonInput(JSON.stringify(server, null, 2));
+  const openEditDialog = (name: string, cfg: McpServerConfig) => {
+    setEditingName(name);
+    setJsonInput(JSON.stringify({ name, ...cfg }, null, 2));
     setJsonError(null);
     setDialogOpen(true);
   };
@@ -187,19 +75,15 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
   const handleSave = () => {
     try {
       setJsonError(null);
-      const parsed: McpServerConfig = JSON.parse(jsonInput);
+      const parsed = JSON.parse(jsonInput);
       if (!parsed.name?.trim()) {
         setJsonError("服务器名称不能为空");
         return;
       }
 
-      if (editingId) {
-        setServers((prev) =>
-          prev.map((s) => (s.id === editingId ? { ...parsed, id: editingId } : s)),
-        );
-      } else {
-        setServers((prev) => [...prev, { ...parsed, id: String(Date.now()) }]);
-      }
+      const { name, ...cfg } = parsed;
+      const updated = { ...servers, [name]: cfg };
+      save(updated);
       setDialogOpen(false);
     } catch {
       setJsonError("JSON 格式错误，请检查后重试");
@@ -219,6 +103,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
           size="sm"
           className="text-muted-foreground hover:text-foreground"
           title="刷新"
+          onClick={() => save(servers)}
         >
           <RotateCw className="size-3.5" />
           刷新
@@ -239,14 +124,6 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
         <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-          >
-            <RefreshCw className="size-3.5" />
-            全部重载
-          </Button>
-          <Button
-            type="button"
             onClick={openAddDialog}
             size="sm"
           >
@@ -257,7 +134,9 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
       </div>
 
       {/* ── Server Card Grid ────────────────────────────────────── */}
-      {filteredServers.length === 0 ? (
+      {loading ? (
+        <p className="py-12 text-center text-sm text-muted-foreground">加载中...</p>
+      ) : filteredNames.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">
           {searchQuery.trim()
             ? "未找到匹配的服务器"
@@ -265,17 +144,13 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {filteredServers.map((server) => (
+          {filteredNames.map((name) => (
             <ServerCard
-              key={server.id}
-              server={server}
-              onEdit={() => openEditDialog(server)}
-              onDelete={() => setDeleteConfirm(server.id)}
-              onToggle={(enabled) =>
-                setServers((prev) =>
-                  prev.map((s) => (s.id === server.id ? { ...s, enabled } : s)),
-                )
-              }
+              key={name}
+              name={name}
+              config={servers[name]}
+              onEdit={() => openEditDialog(name, servers[name])}
+              onDelete={() => setDeleteConfirm(name)}
             />
           ))}
         </div>
@@ -286,14 +161,17 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? "编辑 MCP 服务器" : "添加 MCP 服务器"}
+              {editingName ? "编辑 MCP 服务器" : "添加 MCP 服务器"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-4 py-2">
+            <p className="text-xs text-muted-foreground">
+              格式：{"{ \"name\": \"server-name\", \"command\": \"python\", \"args\": [\"-m\", \"my_server\"], ... }"}
+            </p>
             <div className="flex flex-col gap-1.5">
               <textarea
-                placeholder='在此粘贴 JSON 配置…'
+                placeholder={`{\n  "name": "my-server",\n  "command": "python",\n  "args": ["-m", "mcp_server_time"]\n}`}
                 value={jsonInput}
                 onChange={(e) => setJsonInput(e.target.value)}
                 className={cn(
@@ -338,9 +216,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>确认删除</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除 MCP 服务器「
-              {servers.find((s) => s.id === deleteConfirm)?.name ?? ""}
-              」吗？
+              确定要删除 MCP 服务器「{deleteConfirm ?? ""}」吗？
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -348,7 +224,10 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
             <AlertDialogAction
               variant="destructive"
               onClick={() => {
-                setServers((prev) => prev.filter((s) => s.id !== deleteConfirm));
+                if (deleteConfirm) {
+                  const { [deleteConfirm]: _, ...rest } = servers;
+                  save(rest);
+                }
                 setDeleteConfirm(null);
               }}
             >
@@ -364,64 +243,45 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
 // ── Sub-components ────────────────────────────────────────────────
 
 function ServerCard({
-  server,
+  name,
+  config,
   onEdit,
   onDelete,
-  onToggle,
 }: {
-  server: McpServerConfig;
+  name: string;
+  config: McpServerConfig;
   onEdit: () => void;
   onDelete: () => void;
-  onToggle: (enabled: boolean) => void;
 }) {
-  const transportLabel = server.transport === "stdio" ? "stdio" : "sse";
-  const isConnected = server.enabled;
+  const transport: string = config.command
+    ? "stdio"
+    : config.url
+      ? config.url.endsWith("/sse") ? "sse" : "streamableHttp"
+      : "-";
 
   return (
     <Card className="flex flex-col h-55 gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
       {/* Top: name + badges */}
       <CardContent className="flex shrink-0 items-start justify-between px-4 pb-0">
-        <span className="text-base font-semibold text-foreground">{server.name}</span>
+        <span className="text-base font-semibold text-foreground">{name}</span>
         <div className="flex shrink-0 items-center gap-2">
           {/* Transport badge */}
           <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
-            {transportLabel}
-          </span>
-          {/* Status badge */}
-          <span
-            className={cn(
-              "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium",
-              isConnected
-                ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                : "bg-gray-500/10 text-muted-foreground",
-            )}
-          >
-            {isConnected ? "已连接" : "未连接"}
+            {transport}
           </span>
         </div>
       </CardContent>
 
-      {/* Tools list */}
-      {server.tools && server.tools.length > 0 && (
-        <CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pt-4 pb-0">
-          <div className="flex shrink-0 items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">工具列表</span>
-            <span className="text-xs text-muted-foreground/70">
-              {server.tools.length}/{server.tools.length}个工具
-            </span>
-          </div>
-          <div className="flex min-h-0 flex-1 flex-wrap gap-1.5 overflow-y-auto content-start">
-            {server.tools.map((tool) => (
-              <span
-                key={tool}
-                className="inline-flex items-center rounded-md bg-accent/50 px-2 py-0.5 text-xs font-mono text-accent-foreground shrink-0"
-              >
-                {tool}
-              </span>
-            ))}
-          </div>
-        </CardContent>
-      )}
+      {/* Command / URL summary */}
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pt-4 pb-0">
+        <span className="text-xs text-muted-foreground">
+          {config.command
+            ? `command: ${config.command} ${(config.args || []).join(" ")}`
+            : config.url
+              ? `url: ${config.url}`
+              : "未配置 command 或 url"}
+        </span>
+      </CardContent>
 
       {/* Bottom: actions */}
       <CardContent className="flex shrink-0 flex-col gap-0 px-4 pb-0">
@@ -431,13 +291,6 @@ function ServerCard({
           <Button variant="destructive" size="sm" className="h-auto px-0" onClick={onDelete}>
             移除
           </Button>
-          <div className="ml-auto flex items-center">
-            <Switch
-              checked={server.enabled}
-              onCheckedChange={onToggle}
-              aria-label={`${server.enabled ? "禁用" : "启用"} ${server.name}`}
-            />
-          </div>
         </div>
       </CardContent>
     </Card>
