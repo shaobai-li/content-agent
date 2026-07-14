@@ -32,7 +32,7 @@ interface McpServersPanelProps {
 }
 
 export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
-  const { servers, loading, error, save } = useMcpSettings();
+  const { servers, loading, error, load, save } = useMcpSettings();
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -103,7 +103,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
           size="sm"
           className="text-muted-foreground hover:text-foreground"
           title="刷新"
-          onClick={() => save(servers)}
+          onClick={load}
         >
           <RotateCw className="size-3.5" />
           刷新
