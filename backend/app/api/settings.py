@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 from fastapi import APIRouter, Body, HTTPException
+from pydantic import BaseModel
 from app.core.auth import get_current_user_id
 from app.core.config import DEFAULT_DATA_DIR, _load_user_config, _save_user_config
 from app.providers.registry import PROVIDERS
@@ -125,6 +127,23 @@ async def get_models():
 # ── MCP 服务器配置读写 ──────────────────────────────────────────────
 
 
+class _McpServerConfig(BaseModel):
+    """单个 MCP 服务器配置项的校验模型。"""
+    transport: str | None = None
+    command: str | None = None
+    args: list[str] | None = None
+    env: dict[str, str] | None = None
+    url: str | None = None
+    headers: dict[str, str] | None = None
+    enabled_tools: list[str] | None = None
+    tool_timeout: int | None = None
+
+
+class _McpSettingsPayload(BaseModel):
+    """PUT /api/settings/mcp 请求体校验模型。"""
+    servers: dict[str, _McpServerConfig]
+
+
 def _load_user_mcp(user_id: str) -> dict:
     """读取用户的 mcp.yaml，不存在返回空 dict。"""
     path = DEFAULT_DATA_DIR / f"u_{user_id}" / "mcp.yaml"
@@ -153,12 +172,14 @@ async def get_mcp_settings():
 
 
 @router.put("/mcp")
-async def update_mcp_settings(payload: dict = Body(...)):
+async def update_mcp_settings(payload: _McpSettingsPayload):
     """保存用户的 MCP 服务器配置。
 
     请求体：{ "servers": { "time": { "command": "python", ... }, ... } }
     """
     user_id = get_current_user_id()
-    servers = payload.get("servers") or {}
-    _save_user_mcp(user_id, servers)
+    raw = {}
+    for name, cfg in payload.servers.items():
+        raw[name] = cfg.model_dump(exclude_none=True)
+    _save_user_mcp(user_id, raw)
     return {"ok": True}
