@@ -41,6 +41,26 @@ function CopyButton({ code }: { code: string }) {
   );
 }
 
+function UserMessageCopyButton({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="absolute right-1 top-1 z-10 p-0.5 text-slate-400 opacity-0 transition-opacity hover:text-slate-600 group-hover:opacity-100"
+      title="复制消息"
+    >
+      {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+    </button>
+  );
+}
+
 function renderParts(parts: MessagePart[]) {
   return parts.map((part, i) => {
     if (part.type === "trace") {
@@ -152,16 +172,19 @@ export function ChatMessage({ messages }: ChatMessageProps) {
             data-message-id={msg.id}
             className={`min-w-0 max-w-[90%] rounded-lg p-3 text-sm break-all ${
               msg.role === "user"
-                ? "bg-slate-100 text-slate-800 self-end"
+                ? "bg-slate-100 text-slate-800 self-end group relative p-4"
                 : "bg-white text-slate-800 self-start"
             }`}
           >
             {msg.role === "assistant"
               ? renderParts(msg.parts ?? [{ type: "text", content: msg.content }])
               : msg.content && (
-                  <div className="min-w-0 max-w-full whitespace-pre-wrap break-all">
-                    {msg.content}
-                  </div>
+                  <>
+                    <div className="min-w-0 max-w-full whitespace-pre-wrap break-all">
+                      {msg.content}
+                    </div>
+                    <UserMessageCopyButton content={msg.content} />
+                  </>
                 )}
           </div>
         );
