@@ -257,11 +257,13 @@ function ServerCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const transport: string = config.command
-    ? "stdio"
-    : config.url
-      ? config.url.endsWith("/sse") ? "sse" : "streamableHttp"
-      : "-";
+  const transport: string =
+    config.transport ||
+    (config.command
+      ? "stdio"
+      : config.url
+        ? config.url.endsWith("/sse") ? "sse" : "streamableHttp"
+        : "-");
 
   return (
     <Card className="flex flex-col h-55 gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { http } from "@/shared/api/http";
 
 export interface McpServerConfig {
+  transport?: string;
   command?: string;
   args?: string[];
   env?: Record<string, string>;
