@@ -35,9 +35,16 @@ export function useMcpSettings() {
     }
   }, []);
 
-  const save = useCallback(async (updated: Record<string, McpServerConfig>) => {
-    await http.put("/api/settings/mcp", { servers: updated });
-    setServers(updated);
+  const save = useCallback(async (updated: Record<string, McpServerConfig>): Promise<boolean> => {
+    try {
+      await http.put("/api/settings/mcp", { servers: updated });
+      setServers(updated);
+      setError(null);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "保存 MCP 配置失败");
+      return false;
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
