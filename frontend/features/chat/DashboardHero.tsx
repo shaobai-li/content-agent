@@ -80,8 +80,8 @@ export function DashboardHero() {
           <h1 className="w-full text-center text-xl text-muted-foreground">
             Welcome back!
           </h1>
-          <div className="flex items-center justify-center h-9">
-            <span className="text-center text-lg text-foreground/80 font-normal tracking-normal">
+          <div role="status" aria-atomic="true" className="flex items-center justify-center h-9">
+            <span aria-live="polite" className="text-center text-lg text-foreground/80 font-normal tracking-normal">
               {displayText}
               <span
                 className={`inline-flex ml-0.5 w-[2px] h-[1em] bg-foreground/60 ${phase === "pausing" ? "" : "animate-pulse"}`}
