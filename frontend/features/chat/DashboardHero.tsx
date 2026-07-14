@@ -84,7 +84,7 @@ export function DashboardHero() {
             <span className="text-center text-lg text-foreground/80 font-normal tracking-normal">
               {displayText}
               <span
-                className={`inline-flex ml-0.5 w-[2px] h-5 bg-foreground/60 ${phase === "pausing" ? "" : "animate-pulse"}`}
+                className={`inline-flex ml-0.5 w-[2px] h-[1em] bg-foreground/60 ${phase === "pausing" ? "" : "animate-pulse"}`}
               >
                 &nbsp;
               </span>
