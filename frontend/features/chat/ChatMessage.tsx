@@ -53,7 +53,7 @@ function UserMessageCopyButton({ content }: { content: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="absolute right-1 top-1 z-10 p-0.5 text-slate-400 opacity-0 transition-opacity hover:text-slate-600 group-hover:opacity-100"
+      className="absolute right-1 top-1 z-10 p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
       title="复制消息"
     >
       {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
