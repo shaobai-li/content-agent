@@ -72,7 +72,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
       setJsonError(null);
       const parsed = JSON.parse(jsonInput);
@@ -83,8 +83,12 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
 
       const { name, ...cfg } = parsed;
       const updated = { ...servers, [name]: cfg };
-      save(updated);
-      setDialogOpen(false);
+      const ok = await save(updated);
+      if (ok) {
+        setDialogOpen(false);
+      } else {
+        setJsonError(error || "保存失败，请重试");
+      }
     } catch {
       setJsonError("JSON 格式错误，请检查后重试");
     }
