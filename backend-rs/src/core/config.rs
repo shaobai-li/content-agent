@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 static CONFIG: OnceLock<AppConfig> = OnceLock::new();
 static CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
@@ -301,6 +302,36 @@ pub fn get_database_registry_path(agent_id: &str) -> PathBuf {
 
 pub fn get_database_nodes_path(agent_id: &str, kb_id: &str) -> PathBuf {
     get_agent_local_data_dir(agent_id).join(kb_id).join("view").join("nodes.json")
+}
+
+/// 读取 MCP 服务器配置。
+///   1. config/mcp.yaml（内置）
+///   2. data/u_{user_id}/mcp.yaml（用户覆盖）
+pub fn load_mcp_servers(user_id: &str) -> HashMap<String, Value> {
+    let config_dir = get_config_dir();
+    let data_dir = &get_config().data_dir;
+    let mut result = HashMap::new();
+
+    if let Ok(content) = std::fs::read_to_string(config_dir.join("mcp.yaml")) {
+        if let Ok(root) = serde_yaml::from_str::<Value>(&content) {
+            if let Some(obj) = root.as_object() {
+                for (k, v) in obj { result.insert(k.clone(), v.clone()); }
+            }
+        }
+    }
+
+    if !user_id.is_empty() {
+        let p = data_dir.join(format!("u_{}", user_id)).join("mcp.yaml");
+        if let Ok(content) = std::fs::read_to_string(&p) {
+            if let Ok(root) = serde_yaml::from_str::<Value>(&content) {
+                if let Some(obj) = root.as_object() {
+                    for (k, v) in obj { result.insert(k.clone(), v.clone()); }
+                }
+            }
+        }
+    }
+
+    result
 }
 
 #[cfg(test)]

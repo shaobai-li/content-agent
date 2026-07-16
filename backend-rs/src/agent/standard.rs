@@ -10,7 +10,7 @@ use crate::agent::context::ContextBuilder;
 use crate::agent::hook::AgentHook;
 use crate::agent::runner::{AgentRunner, AgentRunSpec};
 use crate::agent::turn_context::AgentTurnContext;
-use crate::core::config::{get_agent_workspace_dir, get_provider_config};
+use crate::core::config::{get_agent_workspace_dir, get_provider_config, load_mcp_servers};
 use crate::provider::base::ToolCallRequest;
 use crate::provider::factory;
 use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
@@ -21,6 +21,7 @@ use crate::service::stream::{
     build_tool_exec_end, build_tool_exec_start,
 };
 use crate::tools::create_tool_registry;
+use crate::tools::mcp::connect_mcp_servers;
 use crate::utils::tool_hints::format_tool_hint;
 
 const MAX_TOOL_ROUNDS: u32 = 30;
@@ -105,11 +106,19 @@ impl BaseAgent for StandardAgent {
             .as_deref()
             .unwrap_or_else(|| factory::default_model_for(provider_name));
 
-        let registry =
-            create_tool_registry(&workspace.display().to_string(), &self.agent_id, Some(provider_name), Some(model));
+        let mut registry =
+            create_tool_registry(&workspace.display().to_string(), &self.agent_id, Some(provider_name), Some(model), None);
+
+        // ── MCP 服务器连接 ──────────────────────────────────────────
+        let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
+        let mcp_servers = load_mcp_servers(&user_id);
+        let _mcp_guards = if !mcp_servers.is_empty() {
+            connect_mcp_servers(&mcp_servers, &mut registry).await
+        } else {
+            vec![]
+        };
 
         // 从 config.json 读取 provider 配置，不再从环境变量获取
-        let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
         let provider_cfg = get_provider_config(&user_id, provider_name);
         let api_key = provider_cfg.get("api_key").cloned();
         let api_base = provider_cfg.get("api_base").cloned();

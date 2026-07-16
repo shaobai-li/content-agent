@@ -10,13 +10,14 @@ use crate::agent::context::ContextBuilder;
 use crate::agent::runner::{AgentRunner, AgentRunSpec};
 use crate::agent::standard::history_llm_turns;
 use crate::agent::turn_context::AgentTurnContext;
-use crate::core::config::get_agent_workspace_dir;
+use crate::core::config::{get_agent_workspace_dir, load_mcp_servers};
 use crate::provider::factory;
 use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
 use crate::service::context_utils::append_attachments_to_user_text;
 use crate::service::messages::save_message;
 use crate::service::stream::build_stream_done;
 use crate::tools::create_tool_registry;
+use crate::tools::mcp::connect_mcp_servers;
 
 const MAX_TOOL_ROUNDS: u32 = 15;
 
@@ -77,12 +78,22 @@ impl BaseAgent for WriteAgent {
 
         let provider_name = ctx.provider.as_deref().unwrap_or("deepseek");
         let model = ctx.model.as_deref().unwrap_or_else(|| factory::default_model_for(provider_name));
-        let registry = create_tool_registry(
+        let mut registry = create_tool_registry(
             &workspace.display().to_string(),
             &self.agent_id,
             Some(provider_name),
             Some(model),
+            None,
         );
+
+        // ── MCP 服务器连接 ──────────────────────────────────────────
+        let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
+        let mcp_servers = load_mcp_servers(&user_id);
+        let _mcp_guards = if !mcp_servers.is_empty() {
+            connect_mcp_servers(&mcp_servers, &mut registry).await
+        } else {
+            vec![]
+        };
 
         let provider = match factory::create_provider(provider_name, None, None, Some(model.to_string())) {
             Ok(p) => Arc::new(p) as Arc<dyn crate::provider::base::LLMProvider>,

@@ -15,6 +15,7 @@ pub fn router() -> Router {
     Router::new()
         .route("/api/settings/env", get(get_env_settings).put(update_env_settings))
         .route("/api/settings/models", get(get_models))
+        .route("/api/settings/mcp", get(get_mcp_settings).put(update_mcp_settings))
 }
 
 /// 掩码 API key：保留前3后4，中间用 *** 替代
@@ -234,6 +235,38 @@ async fn update_env_settings(Json(body): Json<Value>) -> Json<Value> {
     }
 
     save_user_config(&user_id, &existing);
+    Json(json!({"ok": true}))
+}
+
+// ── MCP 配置读写 ────────────────────────────────────────────────────────
+
+fn load_user_mcp(user_id: &str) -> Value {
+    let cfg = get_config();
+    let p = cfg.data_dir.join(format!("u_{}", user_id)).join("mcp.yaml");
+    if p.exists() {
+        if let Ok(content) = std::fs::read_to_string(&p) {
+            if let Ok(val) = serde_yaml::from_str::<Value>(&content) { return val; }
+        }
+    }
+    json!({})
+}
+
+fn save_user_mcp(user_id: &str, config: &Value) {
+    let cfg = get_config();
+    let p = cfg.data_dir.join(format!("u_{}", user_id)).join("mcp.yaml");
+    if let Some(parent) = p.parent() { std::fs::create_dir_all(parent).ok(); }
+    if let Ok(content) = serde_yaml::to_string(config) { std::fs::write(&p, content).ok(); }
+}
+
+async fn get_mcp_settings() -> Json<Value> {
+    let uid = crate::core::auth::get_current_user_id().unwrap_or_default();
+    Json(json!({ "servers": load_user_mcp(&uid) }))
+}
+
+async fn update_mcp_settings(Json(body): Json<Value>) -> Json<Value> {
+    let uid = crate::core::auth::get_current_user_id().unwrap_or_default();
+    let servers = body.get("servers").cloned().unwrap_or(json!({}));
+    save_user_mcp(&uid, &servers);
     Json(json!({"ok": true}))
 }
 
