@@ -3,6 +3,7 @@ pub mod file_state;
 pub mod filesystem;
 pub mod import_knowledge;
 pub mod load_html_to_canvas;
+pub mod mcp;
 pub mod registry;
 pub mod shell;
 pub mod skill;
@@ -25,6 +26,7 @@ pub fn create_tool_registry(
     agent_id: &str,
     provider_name: Option<&str>,
     model: Option<&str>,
+    _mcp_servers: Option<&std::collections::HashMap<String, serde_json::Value>>,
 ) -> ToolRegistry {
     let mut registry = ToolRegistry::new();
     registry.register(Box::new(RunCommandTool::new(workspace, 60)));
