@@ -16,7 +16,8 @@ use super::registry::ToolRegistry;
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 fn sanitize_name(name: &str) -> String {
-    let re = regex::Regex::new(r"[^a-zA-Z0-9_-]").unwrap();
+    static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    let re = RE.get_or_init(|| regex::Regex::new(r"[^a-zA-Z0-9_-]").unwrap());
     re.replace_all(&re.replace_all(name, "_"), "_").to_string()
 }
 
