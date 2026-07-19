@@ -112,11 +112,9 @@ impl BaseAgent for StandardAgent {
         // ── MCP 服务器连接 ──────────────────────────────────────────
         let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
         let mcp_servers = load_mcp_servers(&user_id);
-        let _mcp_guards = if !mcp_servers.is_empty() {
-            connect_mcp_servers(&mcp_servers, &mut registry).await
-        } else {
-            vec![]
-        };
+        if !mcp_servers.is_empty() {
+            connect_mcp_servers(&mcp_servers, &mut registry).await;
+        }
 
         // 从 config.json 读取 provider 配置，不再从环境变量获取
         let provider_cfg = get_provider_config(&user_id, provider_name);
