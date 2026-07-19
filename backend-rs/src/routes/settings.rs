@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use axum::routing::get;
 use axum::{Json, Router};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::core::config::get_config;
@@ -240,6 +243,26 @@ async fn update_env_settings(Json(body): Json<Value>) -> Json<Value> {
 
 // ── MCP 配置读写 ────────────────────────────────────────────────────────
 
+/// 单个 MCP 服务器配置的校验模型，与 Python 端 _McpServerConfig 对等。
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct McpServerConfig {
+    transport: Option<String>,
+    command: Option<String>,
+    args: Option<Vec<String>>,
+    env: Option<HashMap<String, String>>,
+    url: Option<String>,
+    headers: Option<HashMap<String, String>>,
+    enabled_tools: Option<Vec<String>>,
+    tool_timeout: Option<u64>,
+}
+
+/// PUT /api/settings/mcp 请求体的校验模型，与 Python 端 _McpSettingsPayload 对等。
+#[derive(Deserialize)]
+struct McpSettingsPayload {
+    servers: HashMap<String, McpServerConfig>,
+}
+
 fn load_user_mcp(user_id: &str) -> Value {
     let cfg = get_config();
     let p = cfg.data_dir.join(format!("u_{}", user_id)).join("mcp.yaml");
@@ -263,10 +286,9 @@ async fn get_mcp_settings() -> Json<Value> {
     Json(json!({ "servers": load_user_mcp(&uid) }))
 }
 
-async fn update_mcp_settings(Json(body): Json<Value>) -> Json<Value> {
+async fn update_mcp_settings(Json(body): Json<McpSettingsPayload>) -> Json<Value> {
     let uid = crate::core::auth::get_current_user_id().unwrap_or_default();
-    let servers = body.get("servers").cloned().unwrap_or(json!({}));
-    save_user_mcp(&uid, &servers);
+    save_user_mcp(&uid, &json!(body.servers));
     Json(json!({"ok": true}))
 }
 
