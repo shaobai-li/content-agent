@@ -401,3 +401,107 @@ pub async fn connect_mcp_servers(
     }
     guards
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── sanitize_name ────────────────────────────────────────────────
+
+    #[test]
+    fn test_sanitize_name_keeps_alphanumeric() {
+        assert_eq!(sanitize_name("hello"), "hello");
+    }
+
+    #[test]
+    fn test_sanitize_name_replaces_spaces() {
+        assert_eq!(sanitize_name("my tool"), "my_tool");
+    }
+
+    #[test]
+    fn test_sanitize_name_replaces_special_chars() {
+        assert_eq!(sanitize_name("a@b#c$d"), "a_b_c_d");
+    }
+
+    #[test]
+    fn test_sanitize_name_keeps_underscore_dash() {
+        assert_eq!(sanitize_name("a-b_c"), "a-b_c");
+    }
+
+    #[test]
+    fn test_sanitize_name_empty() {
+        assert_eq!(sanitize_name(""), "");
+    }
+
+    #[test]
+    fn test_sanitize_name_mcp_prefix() {
+        let result = sanitize_name("mcp_server_my-tool");
+        assert_eq!(result, "mcp_server_my-tool");
+    }
+
+    // ── normalize_schema_for_openai ───────────────────────────────────
+
+    #[test]
+    fn test_normalize_schema_non_object_returns_default() {
+        let result = normalize_schema_for_openai(&json!("string"));
+        assert_eq!(result, json!({"type": "object", "properties": {}}));
+    }
+
+    #[test]
+    fn test_normalize_schema_type_array_with_null() {
+        let schema = json!({
+            "type": ["null", "string"],
+            "title": "Name"
+        });
+        let result = normalize_schema_for_openai(&schema);
+        assert_eq!(result["type"], "string");
+        assert_eq!(result["nullable"], true);
+        assert_eq!(result["title"], "Name");
+    }
+
+    #[test]
+    fn test_normalize_schema_type_array_without_null() {
+        let schema = json!({
+            "type": ["string", "integer"],
+        });
+        let result = normalize_schema_for_openai(&schema);
+        // multiple non-null types stay as array
+        assert!(result["type"].is_array());
+    }
+
+    #[test]
+    fn test_normalize_schema_recurses_properties() {
+        let schema = json!({
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": ["null", "string"]
+                }
+            }
+        });
+        let result = normalize_schema_for_openai(&schema);
+        assert_eq!(result["properties"]["name"]["type"], "string");
+        assert_eq!(result["properties"]["name"]["nullable"], true);
+    }
+
+    #[test]
+    fn test_normalize_schema_recurses_items() {
+        let schema = json!({
+            "type": "array",
+            "items": {
+                "type": ["null", "string"]
+            }
+        });
+        let result = normalize_schema_for_openai(&schema);
+        assert_eq!(result["items"]["type"], "string");
+        assert_eq!(result["items"]["nullable"], true);
+    }
+
+    #[test]
+    fn test_normalize_schema_adds_missing_properties() {
+        let schema = json!({"type": "string"});
+        let result = normalize_schema_for_openai(&schema);
+        assert_eq!(result["type"], "string");
+        assert_eq!(result["properties"], json!({}));
+    }
+}
