@@ -218,10 +218,11 @@ pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
     }
 
     // 读取用户配置 config.json 中的 user_data_dir
+    // 使用 serde_json::Value 而非 HashMap<String,String>，以兼容包含嵌套对象（如 providers）的配置
     let config_path = default_base.join("admin").join("config.json");
     if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(user_config) = serde_json::from_str::<std::collections::HashMap<String, String>>(&content) {
-            if let Some(user_data_dir) = user_config.get("user_data_dir") {
+        if let Ok(user_config) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(user_data_dir) = user_config.get("user_data_dir").and_then(|v| v.as_str()) {
                 let trimmed = user_data_dir.trim();
                 if !trimmed.is_empty() {
                     return PathBuf::from(trimmed).join(agent_id);
