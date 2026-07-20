@@ -125,10 +125,30 @@ def _resolve_agent_base_dir(agent_id: str, user_id: str) -> Path:
         return (default_base / agent_id).resolve()
 
 
+def _lazy_seed_workspace(workspace: Path, agent_id: str) -> None:
+    """惰性播种：如果 workspace 缺少 SYSTEM.md，从内置配置补齐。"""
+    config_agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    agent_src = config_agents_dir / agent_id
+
+    target = workspace / "SYSTEM.md"
+    if not target.exists():
+        source = agent_src / "SYSTEM.md"
+        if source.exists():
+            target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+    for name in ("SOUL.md", "USER.md", "IDENTITY.md"):
+        target = workspace / name
+        if not target.exists():
+            source = agent_src / name
+            if source.exists():
+                target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+
 def get_agent_workspace_dir(agent_id: str) -> Path:
     """Agent 工作区根目录：<base>/（.local 仍用于内部状态，见下文）"""
     ws = get_agent_base_dir(agent_id)
     ws.mkdir(parents=True, exist_ok=True)
+    _lazy_seed_workspace(ws, agent_id)
     return ws
 
 
