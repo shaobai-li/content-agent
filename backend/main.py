@@ -80,6 +80,8 @@ def _register_agents_from_system_config():
 
 _register_agents_from_system_config()
 
+# 注意：prompts 不在此处全量播种，而在 get_agent_workspace_dir() 中惰性按需触发
+
 logger.info("app started, agents={}", list(AGENTS_CONFIG.keys()))
 
 app = FastAPI(
