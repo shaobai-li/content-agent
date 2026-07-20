@@ -208,9 +208,9 @@ fn merge_agent_configs(base: Option<AgentConfig>, user: AgentConfig) -> AgentCon
     }
 }
 
-pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
+/// 内部函数：按指定 user_id 解析 agent base dir（不依赖 auth 上下文）
+fn get_agent_base_dir_for(agent_id: &str, user_id: &str) -> PathBuf {
     let cfg = get_config();
-    let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
     let default_base = cfg.data_dir.join(format!("u_{}", user_id));
 
     // 管理员 workspace 永远在 data/u_{user_id}/admin/
@@ -233,6 +233,11 @@ pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
     }
 
     default_base.join(agent_id)
+}
+
+pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
+    let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
+    get_agent_base_dir_for(agent_id, &user_id)
 }
 
 /// 从 config.json 中读取指定 provider 的配置（api_key, api_base）。
