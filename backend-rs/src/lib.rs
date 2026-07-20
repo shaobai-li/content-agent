@@ -14,6 +14,7 @@ pub fn initialize() {
     core::config::init_config();
     agent::registry::init_registry();
     agent::registry::init_agent_instances();
+    // 注意：prompts 不在此处全量播种，而在 get_agent_workspace_dir() 中惰性按需触发
 }
 
 /// 组装 Axum Router（不含日志和 dotenvy）

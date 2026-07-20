@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use chrono::Local;
 use serde_json::Value;
 
-use crate::core::config::{get_agent_base_dir as core_get_agent_base_dir, get_config_dir};
+use crate::core::config::get_agent_base_dir as core_get_agent_base_dir;
 
 const BOOTSTRAP_FILES: &[&str] = &["SOUL.md", "USER.md", "IDENTITY.md"];
 
@@ -89,26 +89,12 @@ impl ContextBuilder {
 
     /// Return the base system prompt.
     ///
-    /// Priority:
-    ///   1. `{agent_base}/SYSTEM.md` body (user override)
-    ///   2. `config/agents/{agent_id}/SYSTEM.md` body (built-in default)
+    /// 只从 workspace 目录读取 SYSTEM.md（由 seed 机制保证文件存在）。
     fn resolve_base_prompt(&self) -> String {
-        // 用户覆盖
         if let Some(ref agent_id) = self.agent_id {
             let user_path = core_get_agent_base_dir(agent_id).join("SYSTEM.md");
             if user_path.exists() {
                 if let Some(body) = Self::extract_system_md_body(&user_path) {
-                    return body;
-                }
-            }
-        }
-
-        // 内置默认
-        if let Some(ref agent_id) = self.agent_id {
-            let config_dir = get_config_dir();
-            let builtin_path = config_dir.join("agents").join(agent_id).join("SYSTEM.md");
-            if builtin_path.exists() {
-                if let Some(body) = Self::extract_system_md_body(&builtin_path) {
                     return body;
                 }
             }
