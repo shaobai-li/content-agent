@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from app.core.config import OMNIAGE_ROOT, get_agent_base_dir, get_agent_local_data_dir
+from app.core.config import get_agent_base_dir, get_agent_local_data_dir
 from app.utils.skill_loader import discover_skills_xml_for_agent
 
 
@@ -74,21 +74,12 @@ class ContextBuilder:
     def _resolve_base_prompt(self) -> str:
         """Return the base system prompt.
 
-        Priority:
-          1. Agent data dir ``SYSTEM.md`` body (user override)
-          2. Built-in ``config/agents/{agent_id}/SYSTEM.md`` body
+        只从 workspace 目录读取 SYSTEM.md（由 seed 机制保证文件存在）。
         """
         if self.agent_id:
             user_path = get_agent_base_dir(self.agent_id) / "SYSTEM.md"
             if user_path.is_file():
                 body = self._extract_system_md_body(user_path)
-                if body:
-                    return body
-
-        if self.agent_id:
-            builtin_path = OMNIAGE_ROOT / "config" / "agents" / self.agent_id / "SYSTEM.md"
-            if builtin_path.is_file():
-                body = self._extract_system_md_body(builtin_path)
                 if body:
                     return body
 
