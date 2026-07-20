@@ -53,7 +53,7 @@ export function LanguageSelector() {
   const selected = LANGUAGES.find((l) => l.value === current);
 
   return (
-    <div className="flex items-start justify-between gap-6">
+    <div className="flex items-start justify-between gap-12">
       <div className="flex flex-col gap-0.5">
         <label className="text-sm font-medium text-foreground">
           语言
@@ -65,11 +65,11 @@ export function LanguageSelector() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant="outline"
-            className="h-9 w-[140px] justify-between px-3 font-normal shrink-0"
+            variant="ghost"
+            className="h-9 w-[140px] justify-end gap-1.5 px-3 font-normal shrink-0 hover:border hover:border-input hover:bg-background data-[state=open]:border data-[state=open]:border-input data-[state=open]:bg-background"
           >
             <span>{selected ? selected.label : DEFAULT_LANG}</span>
-            <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent

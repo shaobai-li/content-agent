@@ -67,7 +67,7 @@ function GeneralSettings() {
         <label htmlFor="env-user-data-dir" className="text-sm font-medium text-foreground">
           用户数据存储目录
         </label>
-        <div className="relative border border-input rounded-md bg-card overflow-hidden focus-within:border-ring transition-colors">
+        <div className="relative border border-input rounded-md bg-card overflow-hidden transition-colors">
           <input
             id="env-user-data-dir"
             type="text"
