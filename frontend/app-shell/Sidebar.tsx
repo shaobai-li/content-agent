@@ -5,7 +5,7 @@ import { Button } from "@/shared/ui/button";
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/cn";
-import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench, Server } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { GeneralSettings } from "./GeneralSettings";
+import { ProviderSettings } from "./ProviderSettings";
 import { AboutPanel } from "@/features/settings/AboutPanel";
 import {
   DndContext,
@@ -41,6 +42,7 @@ const STORAGE_KEY = "agent-order";
 
 const SETTINGS_NAV = [
   { id: "general", label: "General", icon: SlidersHorizontal },
+  { id: "providers", label: "Providers", icon: Server },
   { id: "account", label: "Account", icon: User },
   { id: "about", label: "About", icon: Info },
 ] as const;
@@ -354,6 +356,7 @@ export function Sidebar({ routes }: SidebarProps) {
               {SETTINGS_NAV.find((i) => i.id === selectedSetting)?.label}
             </h3>
             {selectedSetting === "general" && <GeneralSettings />}
+            {selectedSetting === "providers" && <ProviderSettings />}
             {selectedSetting === "about" && <AboutPanel />}
           </div>
         </DialogContent>
