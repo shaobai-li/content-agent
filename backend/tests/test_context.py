@@ -52,37 +52,27 @@ def test_context_builder_init_with_agent(tmp_path):
 
 # ── _resolve_base_prompt / resolve_base_prompt ─────────────────────────────
 
-def test_resolve_base_prompt_builtin(tmp_path):
-    """从 config/agents/{agent_id}/SYSTEM.md 读取 built-in base prompt。"""
-    # 创建内置 SYSTEM.md
-    builtin_dir = tmp_path / "config" / "agents" / "ag"
-    builtin_dir.mkdir(parents=True)
-    (builtin_dir / "SYSTEM.md").write_text(
-        "---\nname: ag\n---\n\nbuilt-in system prompt"
-    )
-    cb = ContextBuilder(tmp_path, agent_id="ag")
-    with patch("app.agents.context.OMNIAGE_ROOT", tmp_path):
-        assert cb._resolve_base_prompt() == "built-in system prompt"
-
-
-def test_resolve_base_prompt_user_override(tmp_path):
-    """从 {agent_base}/SYSTEM.md 读取 user override。"""
-    # 创建用户覆盖 SYSTEM.md
+def test_resolve_base_prompt_from_workspace(tmp_path):
+    """从 workspace 目录 SYSTEM.md 读取 base prompt（唯一路径）。"""
     (tmp_path / "SYSTEM.md").write_text(
-        "---\nname: ag\n---\n\nuser override prompt"
+        "---\nname: ag\n---\n\nworkspace prompt"
     )
     cb = ContextBuilder(tmp_path, agent_id="ag")
-    with patch("app.agents.context.get_agent_base_dir", return_value=tmp_path), \
-         patch("app.agents.context.OMNIAGE_ROOT", tmp_path):  # 避免走到 builtin
-        assert cb._resolve_base_prompt() == "user override prompt"
+    with patch("app.agents.context.get_agent_base_dir", return_value=tmp_path):
+        assert cb._resolve_base_prompt() == "workspace prompt"
+
+
+def test_resolve_base_prompt_missing_returns_empty(tmp_path):
+    """workspace 中无 SYSTEM.md 时返回空字符串。"""
+    cb = ContextBuilder(tmp_path, agent_id="ag")
+    with patch("app.agents.context.get_agent_base_dir", return_value=tmp_path):
+        assert cb._resolve_base_prompt() == ""
 
 
 def test_resolve_base_prompt_public_alias(tmp_path):
     cb = ContextBuilder(tmp_path, agent_id="ag")
-    builtin_dir = tmp_path / "config" / "agents" / "ag"
-    builtin_dir.mkdir(parents=True)
-    (builtin_dir / "SYSTEM.md").write_text("---\n---\n\nbase")
-    with patch("app.agents.context.OMNIAGE_ROOT", tmp_path):
+    (tmp_path / "SYSTEM.md").write_text("---\n---\n\nbase")
+    with patch("app.agents.context.get_agent_base_dir", return_value=tmp_path):
         assert cb.resolve_base_prompt() == cb._resolve_base_prompt()
 
 
