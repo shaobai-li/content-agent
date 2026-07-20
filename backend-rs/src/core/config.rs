@@ -211,7 +211,12 @@ fn merge_agent_configs(base: Option<AgentConfig>, user: AgentConfig) -> AgentCon
 /// 内部函数：按指定 user_id 解析 agent base dir（不依赖 auth 上下文）
 fn get_agent_base_dir_for(agent_id: &str, user_id: &str) -> PathBuf {
     let cfg = get_config();
-    let default_base = cfg.data_dir.join(format!("u_{}", user_id));
+    resolve_agent_base_dir_for(agent_id, user_id, &cfg.data_dir)
+}
+
+/// get_agent_base_dir_for 的核心路径解析逻辑（纯函数，便于测试）。
+fn resolve_agent_base_dir_for(agent_id: &str, user_id: &str, data_dir: &Path) -> PathBuf {
+    let default_base = data_dir.join(format!("u_{}", user_id));
 
     // 管理员 workspace 永远在 data/u_{user_id}/admin/
     if agent_id == "admin" {
@@ -243,7 +248,11 @@ pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
 /// 惰性播种：如果 workspace 缺少 SYSTEM.md（新用户或新 agent），从内置配置补齐。
 fn ensure_agent_seeded(workspace: &Path, agent_id: &str) {
     let config_dir = get_config_dir();
+    seed_workspace_from(workspace, agent_id, config_dir);
+}
 
+/// ensure_agent_seeded 的核心文件复制逻辑（纯函数，便于测试）。
+fn seed_workspace_from(workspace: &Path, agent_id: &str, config_dir: &Path) {
     let system_path = workspace.join("SYSTEM.md");
     if !system_path.exists() {
         let source = config_dir.join("agents").join(agent_id).join("SYSTEM.md");
@@ -491,5 +500,134 @@ mod tests {
 
         let result = load_agent_configs(tmp.path());
         assert!(result.is_empty());
+    }
+
+    // ── resolve_agent_base_dir_for ─────────────────────────────────
+
+    #[test]
+    fn test_resolve_agent_base_dir_for_default() {
+        let tmp = tempfile::tempdir().unwrap();
+        let data_dir = tmp.path().join("data");
+        // No config.json → default path
+        let result = resolve_agent_base_dir_for("my-agent", "user123", &data_dir);
+        assert_eq!(result, data_dir.join("u_user123").join("my-agent"));
+    }
+
+    #[test]
+    fn test_resolve_agent_base_dir_for_admin() {
+        let tmp = tempfile::tempdir().unwrap();
+        let data_dir = tmp.path().join("data");
+        // admin 永远在 data/u_{user_id}/admin/
+        let result = resolve_agent_base_dir_for("admin", "user456", &data_dir);
+        assert_eq!(result, data_dir.join("u_user456").join("admin"));
+    }
+
+    #[test]
+    fn test_resolve_agent_base_dir_for_with_user_data_dir() {
+        let tmp = tempfile::tempdir().unwrap();
+        let data_dir = tmp.path().join("data");
+        let custom_dir = tmp.path().join("custom_storage");
+        // Write config.json with user_data_dir
+        let admin_dir = data_dir.join("u_u1").join("admin");
+        std::fs::create_dir_all(&admin_dir).unwrap();
+        let config_content = serde_json::json!({"user_data_dir": custom_dir}).to_string();
+        std::fs::write(admin_dir.join("config.json"), &config_content).unwrap();
+
+        let result = resolve_agent_base_dir_for("my-agent", "u1", &data_dir);
+        assert_eq!(result, custom_dir.join("my-agent"));
+    }
+
+    #[test]
+    fn test_resolve_agent_base_dir_for_user_data_dir_empty() {
+        let tmp = tempfile::tempdir().unwrap();
+        let data_dir = tmp.path().join("data");
+        // user_data_dir is an empty string in config.json → fallback to default
+        let admin_dir = data_dir.join("u_u1").join("admin");
+        std::fs::create_dir_all(&admin_dir).unwrap();
+        std::fs::write(
+            admin_dir.join("config.json"),
+            r#"{"user_data_dir": ""}"#,
+        )
+        .unwrap();
+
+        let result = resolve_agent_base_dir_for("my-agent", "u1", &data_dir);
+        assert_eq!(result, data_dir.join("u_u1").join("my-agent"));
+    }
+
+    // ── seed_workspace_from ────────────────────────────────────────
+
+    #[test]
+    fn test_seed_workspace_from_copies_system_md() {
+        let tmp = tempfile::tempdir().unwrap();
+        let config_dir = tmp.path().join("config");
+        let workspace = tmp.path().join("workspace");
+        std::fs::create_dir_all(&workspace).unwrap();
+
+        // Create built-in agent template
+        let agent_src = config_dir.join("agents").join("std");
+        std::fs::create_dir_all(&agent_src).unwrap();
+        std::fs::write(agent_src.join("SYSTEM.md"), "---\nname: Std\n---\n\nprompt body").unwrap();
+
+        seed_workspace_from(&workspace, "std", &config_dir);
+
+        assert!(workspace.join("SYSTEM.md").exists());
+        let content = std::fs::read_to_string(workspace.join("SYSTEM.md")).unwrap();
+        assert_eq!(content, "---\nname: Std\n---\n\nprompt body");
+    }
+
+    #[test]
+    fn test_seed_workspace_from_no_overwrite() {
+        let tmp = tempfile::tempdir().unwrap();
+        let config_dir = tmp.path().join("config");
+        let workspace = tmp.path().join("workspace");
+        std::fs::create_dir_all(&workspace).unwrap();
+
+        // Built-in template
+        let agent_src = config_dir.join("agents").join("std");
+        std::fs::create_dir_all(&agent_src).unwrap();
+        std::fs::write(agent_src.join("SYSTEM.md"), "built-in").unwrap();
+
+        // User already has a SYSTEM.md in workspace — should NOT be overwritten
+        std::fs::write(workspace.join("SYSTEM.md"), "user-modified").unwrap();
+
+        seed_workspace_from(&workspace, "std", &config_dir);
+
+        let content = std::fs::read_to_string(workspace.join("SYSTEM.md")).unwrap();
+        assert_eq!(content, "user-modified", "现有的 SYSTEM.md 不应被覆盖");
+    }
+
+    #[test]
+    fn test_seed_workspace_from_skips_missing_source() {
+        let tmp = tempfile::tempdir().unwrap();
+        let config_dir = tmp.path().join("config"); // No agents/ subdirectory
+        let workspace = tmp.path().join("workspace");
+        std::fs::create_dir_all(&workspace).unwrap();
+
+        // Should not panic
+        seed_workspace_from(&workspace, "nonexistent", &config_dir);
+        assert!(!workspace.join("SYSTEM.md").exists());
+    }
+
+    #[test]
+    fn test_seed_workspace_from_copies_bootstrap() {
+        let tmp = tempfile::tempdir().unwrap();
+        let config_dir = tmp.path().join("config");
+        let workspace = tmp.path().join("workspace");
+        std::fs::create_dir_all(&workspace).unwrap();
+
+        // Built-in agent with SOUL.md and USER.md
+        let agent_src = config_dir.join("agents").join("std");
+        std::fs::create_dir_all(&agent_src).unwrap();
+        std::fs::write(agent_src.join("SYSTEM.md"), "system prompt").unwrap();
+        std::fs::write(agent_src.join("SOUL.md"), "soul content").unwrap();
+        std::fs::write(agent_src.join("USER.md"), "user content").unwrap();
+
+        seed_workspace_from(&workspace, "std", &config_dir);
+
+        assert!(workspace.join("SYSTEM.md").exists());
+        assert!(workspace.join("SOUL.md").exists());
+        assert!(workspace.join("USER.md").exists());
+        // IDENTITY.md 没有模板 → 不应创建
+        assert!(!workspace.join("IDENTITY.md").exists());
     }
 }
