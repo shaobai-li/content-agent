@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, ChevronsUpDown, Languages } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
@@ -53,20 +53,22 @@ export function LanguageSelector() {
   const selected = LANGUAGES.find((l) => l.value === current);
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-foreground">
-        语言 / Language
-      </label>
+    <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col gap-0.5">
+        <label className="text-sm font-medium text-foreground">
+          语言
+        </label>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          更改 OmniAge 的显示语言
+        </p>
+      </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="h-9 w-full justify-between px-3 font-normal"
+            className="h-9 w-[140px] justify-between px-3 font-normal shrink-0"
           >
-            <span className="flex items-center gap-2">
-              <Languages className="size-4 shrink-0 text-muted-foreground" />
-              <span>{selected ? selected.label : DEFAULT_LANG}</span>
-            </span>
+            <span>{selected ? selected.label : DEFAULT_LANG}</span>
             <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
@@ -89,9 +91,6 @@ export function LanguageSelector() {
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      <p className="text-xs text-muted-foreground">
-        切换应用界面语言（即将支持）
-      </p>
     </div>
   );
 }
