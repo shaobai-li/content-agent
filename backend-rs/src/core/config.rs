@@ -240,6 +240,29 @@ pub fn get_agent_base_dir(agent_id: &str) -> PathBuf {
     get_agent_base_dir_for(agent_id, &user_id)
 }
 
+/// 惰性播种：如果 workspace 缺少 SYSTEM.md（新用户或新 agent），从内置配置补齐。
+fn ensure_agent_seeded(workspace: &Path, agent_id: &str) {
+    let config_dir = get_config_dir();
+
+    let system_path = workspace.join("SYSTEM.md");
+    if !system_path.exists() {
+        let source = config_dir.join("agents").join(agent_id).join("SYSTEM.md");
+        if source.exists() {
+            std::fs::copy(&source, &system_path).ok();
+        }
+    }
+
+    for name in &["SOUL.md", "USER.md", "IDENTITY.md"] {
+        let target = workspace.join(name);
+        if !target.exists() {
+            let source = config_dir.join("agents").join(agent_id).join(name);
+            if source.exists() {
+                std::fs::copy(&source, &target).ok();
+            }
+        }
+    }
+}
+
 /// 从 config.json 中读取指定 provider 的配置（api_key, api_base）。
 /// 返回 HashMap，可能为空（未配置时）。
 pub fn get_provider_config(user_id: &str, provider_name: &str) -> HashMap<String, String> {
@@ -284,6 +307,8 @@ pub fn get_agent_session_messages_path(agent_id: &str, session_id: &str) -> Path
 pub fn get_agent_workspace_dir(agent_id: &str) -> PathBuf {
     let ws = get_agent_base_dir(agent_id);
     std::fs::create_dir_all(&ws).ok();
+    // 惰性播种：如果 workspace 缺少 SYSTEM.md，从内置配置补齐
+    ensure_agent_seeded(&ws, agent_id);
     ws
 }
 
