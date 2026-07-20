@@ -105,6 +105,11 @@ def get_agent_base_dir(agent_id: str) -> Path:
     from app.core.auth import get_current_user_id
 
     user_id = get_current_user_id()
+    return _resolve_agent_base_dir(agent_id, user_id)
+
+
+def _resolve_agent_base_dir(agent_id: str, user_id: str) -> Path:
+    """内部函数：按指定 user_id 解析 agent base dir（不依赖 auth 上下文）。"""
     default_base = DEFAULT_DATA_DIR / f"u_{user_id}"
 
     # 管理员 workspace 永远在 data/u_{user_id}/admin/
