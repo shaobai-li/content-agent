@@ -6,7 +6,7 @@ import { Button } from "@/shared/ui/button";
 import { Loader2 } from "lucide-react";
 
 interface EnvResponse {
-  providers: unknown[];
+  providers: { provider: string; display_name: string; set: boolean; masked: string }[];
   user_data_dir: string;
 }
 
