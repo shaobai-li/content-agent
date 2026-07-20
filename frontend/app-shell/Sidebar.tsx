@@ -5,7 +5,7 @@ import { Button } from "@/shared/ui/button";
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/cn";
-import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench, Server } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, FileText, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench, Cpu } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
@@ -42,7 +42,7 @@ const STORAGE_KEY = "agent-order";
 
 const SETTINGS_NAV = [
   { id: "general", label: "General", icon: SlidersHorizontal },
-  { id: "providers", label: "Providers", icon: Server },
+  { id: "providers", label: "Providers", icon: Cpu },
   { id: "account", label: "Account", icon: User },
   { id: "about", label: "About", icon: Info },
 ] as const;
