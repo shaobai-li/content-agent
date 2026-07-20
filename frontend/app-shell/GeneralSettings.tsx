@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { http } from "@/shared/api/http";
 import { Button } from "@/shared/ui/button";
 import { Loader2 } from "lucide-react";
+import { LanguageSelector } from "./LanguageSelector";
 
 interface EnvResponse {
   providers: { provider: string; display_name: string; set: boolean; masked: string }[];
@@ -55,6 +56,9 @@ function GeneralSettings() {
   return (
     <div className="flex flex-col gap-4">
       {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {/* 语言切换 — UI 骨架，功能待后续实现 */}
+      <LanguageSelector />
 
       {/* 用户数据存储目录 */}
       <div className="flex flex-col gap-1.5">
