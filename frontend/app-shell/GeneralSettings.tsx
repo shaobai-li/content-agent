@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { http } from "@/shared/api/http";
 import { Button } from "@/shared/ui/button";
 import { Loader2 } from "lucide-react";
+import { LanguageSelector } from "./LanguageSelector";
 
 interface EnvResponse {
   providers: { provider: string; display_name: string; set: boolean; masked: string }[];
@@ -56,12 +57,17 @@ function GeneralSettings() {
     <div className="flex flex-col gap-4">
       {error && <p className="text-sm text-destructive">{error}</p>}
 
+      {/* 语言切换 — UI 骨架，功能待后续实现 */}
+      <LanguageSelector />
+
+      <div className="border-t border-border" />
+
       {/* 用户数据存储目录 */}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="env-user-data-dir" className="text-sm font-medium text-foreground">
           用户数据存储目录
         </label>
-        <div className="relative border border-input rounded-md bg-card overflow-hidden focus-within:border-ring transition-colors">
+        <div className="relative border border-input rounded-md bg-card overflow-hidden transition-colors">
           <input
             id="env-user-data-dir"
             type="text"
