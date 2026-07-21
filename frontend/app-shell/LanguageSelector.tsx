@@ -25,13 +25,15 @@ const STORAGE_KEY = "app-language";
 const DEFAULT_LANG = "zh-CN";
 
 function getStoredLanguage(): string {
-  if (typeof window === "undefined") return DEFAULT_LANG;
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored && LANGUAGES.some((l) => l.value === stored) ? stored : DEFAULT_LANG;
-  } catch {
-    return DEFAULT_LANG;
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored && LANGUAGES.some((l) => l.value === stored)) return stored;
+    } catch {
+      // Fall through to default
+    }
   }
+  return DEFAULT_LANG;
 }
 
 function setHtmlLang(locale: string) {
