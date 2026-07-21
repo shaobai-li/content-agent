@@ -67,7 +67,7 @@ export function LanguageSelector() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="h-9 w-[140px] justify-end gap-1.5 px-3 font-normal shrink-0 hover:border hover:border-input hover:bg-background data-[state=open]:border data-[state=open]:border-input data-[state=open]:bg-background"
+            className="h-9 w-[140px] justify-end gap-1.5 px-3 font-normal shrink-0 border border-transparent hover:border-input hover:bg-background data-[state=open]:border-input data-[state=open]:bg-background"
           >
             <span>{selected ? selected.label : DEFAULT_LANG}</span>
             <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
