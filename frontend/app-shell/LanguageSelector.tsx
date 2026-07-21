@@ -27,7 +27,8 @@ const DEFAULT_LANG = "zh-CN";
 function getStoredLanguage(): string {
   if (typeof window === "undefined") return DEFAULT_LANG;
   try {
-    return localStorage.getItem(STORAGE_KEY) || DEFAULT_LANG;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored && LANGUAGES.some((l) => l.value === stored) ? stored : DEFAULT_LANG;
   } catch {
     return DEFAULT_LANG;
   }
