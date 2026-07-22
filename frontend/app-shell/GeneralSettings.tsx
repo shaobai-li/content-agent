@@ -67,11 +67,11 @@ function GeneralSettings() {
         <label htmlFor="env-user-data-dir" className="text-sm font-medium text-foreground">
           用户数据存储目录
         </label>
-        <div className="relative border border-input rounded-md bg-card overflow-hidden transition-colors">
+        <div className="flex items-center border border-input rounded-md bg-card overflow-hidden transition-colors focus-within:border-ring">
           <input
             id="env-user-data-dir"
             type="text"
-            className="w-full px-3 py-2.5 pr-[70px] text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
+            className="flex-1 min-w-0 px-3 py-1.5 text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
             placeholder="留空则使用默认位置"
             value={userDataDir}
             onChange={(e) => setUserDataDir(e.target.value)}
@@ -79,10 +79,9 @@ function GeneralSettings() {
           <Button
             type="button"
             variant="default"
-            size="sm"
             onClick={handleSaveUserDataDir}
             disabled={savingUserDataDir || !userDataDirChanged}
-            className="absolute right-0 top-0 bottom-0 m-0.5 text-xs font-normal"
+            className="mr-1 text-xs font-normal px-2 min-h-0 h-6"
           >
             {savingUserDataDir && <Loader2 className="size-3.5 animate-spin" />}
             Save
