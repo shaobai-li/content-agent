@@ -214,8 +214,8 @@ fn get_agent_base_dir_for(agent_id: &str, user_id: &str) -> PathBuf {
     resolve_agent_base_dir_for(agent_id, user_id, &cfg.data_dir)
 }
 
-/// get_agent_base_dir_for 的核心路径解析逻辑（纯函数，便于测试）。
-fn resolve_agent_base_dir_for(agent_id: &str, user_id: &str, data_dir: &Path) -> PathBuf {
+/// get_agent_base_dir_for 的核心路径解析逻辑（支持显式 user_data_dir，不依赖 config.json 当前值）。
+fn resolve_agent_base_dir_with_udd(agent_id: &str, user_id: &str, user_data_dir: &str, data_dir: &Path) -> PathBuf {
     let default_base = data_dir.join(format!("u_{}", user_id));
 
     // 管理员 workspace 永远在 data/u_{user_id}/admin/
@@ -223,16 +223,28 @@ fn resolve_agent_base_dir_for(agent_id: &str, user_id: &str, data_dir: &Path) ->
         return default_base.join("admin");
     }
 
+    let trimmed = user_data_dir.trim();
+    if !trimmed.is_empty() {
+        PathBuf::from(trimmed).join(agent_id)
+    } else {
+        default_base.join(agent_id)
+    }
+}
+
+/// get_agent_base_dir_for 的核心路径解析逻辑（从 config.json 读取 user_data_dir，便于测试）。
+fn resolve_agent_base_dir_for(agent_id: &str, user_id: &str, data_dir: &Path) -> PathBuf {
+    let default_base = data_dir.join(format!("u_{}", user_id));
+
+    if agent_id == "admin" {
+        return default_base.join("admin");
+    }
+
     // 读取用户配置 config.json 中的 user_data_dir
-    // 使用 serde_json::Value 而非 HashMap<String,String>，以兼容包含嵌套对象（如 providers）的配置
     let config_path = default_base.join("admin").join("config.json");
     if let Ok(content) = std::fs::read_to_string(&config_path) {
         if let Ok(user_config) = serde_json::from_str::<serde_json::Value>(&content) {
             if let Some(user_data_dir) = user_config.get("user_data_dir").and_then(|v| v.as_str()) {
-                let trimmed = user_data_dir.trim();
-                if !trimmed.is_empty() {
-                    return PathBuf::from(trimmed).join(agent_id);
-                }
+                return resolve_agent_base_dir_with_udd(agent_id, user_id, user_data_dir, data_dir);
             }
         }
     }
@@ -338,6 +350,61 @@ pub fn seed_user_agent_workspaces(user_agent_ids: &[String]) {
 
     for agent_id in all_ids {
         get_agent_workspace_dir(&agent_id);
+    }
+}
+
+/// 递归复制目录下所有内容（类似 `cp -r`）。
+fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        if ty.is_dir() {
+            copy_dir_all(&src_path, &dst_path)?;
+        } else {
+            std::fs::copy(&src_path, &dst_path)?;
+        }
+    }
+    Ok(())
+}
+
+/// 当 user_data_dir 变化时，将所有非 admin agent 的 workspace 从旧路径迁移到新路径。
+///
+/// 在 settings API 写入新 user_data_dir 后调用。
+/// - admin 固定在 DEFAULT_DATA_DIR，不参与迁移
+/// - 旧路径不存在时跳过
+/// - 新路径已存在时跳过（不覆盖已有数据）
+pub fn migrate_workspace_if_needed(
+    user_id: &str,
+    old_user_data_dir: &str,
+    new_user_data_dir: &str,
+    user_agent_ids: &[String],
+) {
+    if old_user_data_dir == new_user_data_dir {
+        return;
+    }
+
+    let cfg = get_config();
+    let data_dir = &cfg.data_dir;
+
+    let mut all_ids: Vec<String> = cfg.agents.keys().cloned().collect();
+    all_ids.extend(user_agent_ids.iter().cloned());
+
+    for agent_id in all_ids {
+        if agent_id == "admin" {
+            continue;
+        }
+
+        let old_base = resolve_agent_base_dir_with_udd(&agent_id, user_id, old_user_data_dir, data_dir);
+        let new_base = resolve_agent_base_dir_with_udd(&agent_id, user_id, new_user_data_dir, data_dir);
+
+        if old_base == new_base || !old_base.exists() || new_base.exists() {
+            continue;
+        }
+
+        copy_dir_all(&old_base, &new_base).ok();
     }
 }
 
