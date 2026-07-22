@@ -253,9 +253,15 @@ fn ensure_agent_seeded(workspace: &Path, agent_id: &str) {
 
 /// ensure_agent_seeded 的核心文件复制逻辑（纯函数，便于测试）。
 fn seed_workspace_from(workspace: &Path, agent_id: &str, config_dir: &Path) {
+    // 模板来源规则：
+    //   - admin → config/agents/admin/
+    //   - 其他所有 agent（std、用户自定义等）→ config/agents/std/
+    let template_id = if agent_id == "admin" { "admin" } else { "std" };
+    let template_dir = config_dir.join("agents").join(template_id);
+
     let system_path = workspace.join("SYSTEM.md");
     if !system_path.exists() {
-        let source = config_dir.join("agents").join(agent_id).join("SYSTEM.md");
+        let source = template_dir.join("SYSTEM.md");
         if source.exists() {
             std::fs::copy(&source, &system_path).ok();
         }
@@ -264,7 +270,7 @@ fn seed_workspace_from(workspace: &Path, agent_id: &str, config_dir: &Path) {
     for name in &["SOUL.md", "USER.md", "IDENTITY.md"] {
         let target = workspace.join(name);
         if !target.exists() {
-            let source = config_dir.join("agents").join(agent_id).join(name);
+            let source = template_dir.join(name);
             if source.exists() {
                 std::fs::copy(&source, &target).ok();
             }
@@ -629,5 +635,63 @@ mod tests {
         assert!(workspace.join("USER.md").exists());
         // IDENTITY.md 没有模板 → 不应创建
         assert!(!workspace.join("IDENTITY.md").exists());
+    }
+
+    // ── 新增：admin → config/agents/admin/ ─────────────────────────
+
+    #[test]
+    fn test_seed_workspace_from_admin_uses_admin_template() {
+        let tmp = tempfile::tempdir().unwrap();
+        let config_dir = tmp.path().join("config");
+        let workspace = tmp.path().join("workspace");
+        std::fs::create_dir_all(&workspace).unwrap();
+
+        // admin 模板
+        let admin_src = config_dir.join("agents").join("admin");
+        std::fs::create_dir_all(&admin_src).unwrap();
+        std::fs::write(admin_src.join("SYSTEM.md"), "admin-prompt").unwrap();
+
+        // std 模板（不应被 admin 使用）
+        let std_src = config_dir.join("agents").join("std");
+        std::fs::create_dir_all(&std_src).unwrap();
+        std::fs::write(std_src.join("SYSTEM.md"), "std-prompt").unwrap();
+
+        seed_workspace_from(&workspace, "admin", &config_dir);
+
+        let content = std::fs::read_to_string(workspace.join("SYSTEM.md")).unwrap();
+        assert_eq!(content, "admin-prompt", "admin 应使用 admin 的模板");
+    }
+
+    // ── 新增：用户自定义 agent → 回退到 config/agents/std/ ─────────
+
+    #[test]
+    fn test_seed_workspace_from_user_agent_falls_back_to_std() {
+        let tmp = tempfile::tempdir().unwrap();
+        let config_dir = tmp.path().join("config");
+        let workspace = tmp.path().join("workspace");
+        std::fs::create_dir_all(&workspace).unwrap();
+
+        // std 模板
+        let std_src = config_dir.join("agents").join("std");
+        std::fs::create_dir_all(&std_src).unwrap();
+        std::fs::write(std_src.join("SYSTEM.md"), "std-prompt").unwrap();
+
+        // 用户自定义 agent a_xxx — 没有自己的模板目录
+        seed_workspace_from(&workspace, "a_abc123", &config_dir);
+
+        let content = std::fs::read_to_string(workspace.join("SYSTEM.md")).unwrap();
+        assert_eq!(content, "std-prompt", "用户自定义 agent 应回退到 std 的模板");
+    }
+
+    #[test]
+    fn test_seed_workspace_from_user_agent_ignores_missing_std() {
+        let tmp = tempfile::tempdir().unwrap();
+        let config_dir = tmp.path().join("config"); // No agents/ at all
+        let workspace = tmp.path().join("workspace");
+        std::fs::create_dir_all(&workspace).unwrap();
+
+        // User agent with no std template directory — should not panic
+        seed_workspace_from(&workspace, "a_custom", &config_dir);
+        assert!(!workspace.join("SYSTEM.md").exists(), "无模板时应静默跳过");
     }
 }
