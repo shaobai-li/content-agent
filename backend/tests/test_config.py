@@ -8,6 +8,7 @@ from app.core.config import (
     get_agent_attachment_cache_dir,
     get_agent_sessions_path,
     get_agent_knowledge_base_path,
+    _lazy_seed_workspace,
     get_agent_skill_ids,
     _load_agent_configs,
     parse_system_md_frontmatter,
@@ -348,3 +349,95 @@ def test_get_agent_skill_ids_non_list():
         assert result == []
     finally:
         m.AGENTS_CONFIG = original
+
+
+# ── _lazy_seed_workspace ───────────────────────────────────────────
+
+def test_lazy_seed_workspace_std_uses_std_template(tmp_path, monkeypatch):
+    """std agent → config/agents/std/ 的模板"""
+    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+
+    agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    (agents_dir / "std").mkdir(parents=True, exist_ok=True)
+    (agents_dir / "admin").mkdir(parents=True, exist_ok=True)
+    (agents_dir / "std" / "SYSTEM.md").write_text("std-prompt", encoding="utf-8")
+    (agents_dir / "admin" / "SYSTEM.md").write_text("admin-prompt", encoding="utf-8")
+
+    ws = tmp_path / "workspace"
+    ws.mkdir()
+    _lazy_seed_workspace(ws, "std")
+    assert (ws / "SYSTEM.md").read_text(encoding="utf-8") == "std-prompt"
+
+
+def test_lazy_seed_workspace_admin_uses_admin_template(tmp_path, monkeypatch):
+    """admin agent → config/agents/admin/ 的模板"""
+    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+
+    agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    (agents_dir / "std").mkdir(parents=True, exist_ok=True)
+    (agents_dir / "admin").mkdir(parents=True, exist_ok=True)
+    (agents_dir / "std" / "SYSTEM.md").write_text("std-prompt", encoding="utf-8")
+    (agents_dir / "admin" / "SYSTEM.md").write_text("admin-prompt", encoding="utf-8")
+
+    ws = tmp_path / "workspace"
+    ws.mkdir()
+    _lazy_seed_workspace(ws, "admin")
+    assert (ws / "SYSTEM.md").read_text(encoding="utf-8") == "admin-prompt"
+
+
+def test_lazy_seed_workspace_user_agent_falls_back_to_std(tmp_path, monkeypatch):
+    """用户自定义 agent → 回退到 config/agents/std/ 的模板"""
+    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+
+    agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    (agents_dir / "std").mkdir(parents=True, exist_ok=True)
+    (agents_dir / "std" / "SYSTEM.md").write_text("std-prompt", encoding="utf-8")
+
+    ws = tmp_path / "workspace"
+    ws.mkdir()
+    _lazy_seed_workspace(ws, "a_abc123")
+    assert (ws / "SYSTEM.md").read_text(encoding="utf-8") == "std-prompt"
+
+
+def test_lazy_seed_workspace_does_not_overwrite(tmp_path, monkeypatch):
+    """已存在的 SYSTEM.md 不应被覆盖"""
+    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+
+    agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    (agents_dir / "std").mkdir(parents=True, exist_ok=True)
+    (agents_dir / "std" / "SYSTEM.md").write_text("std-prompt", encoding="utf-8")
+
+    ws = tmp_path / "workspace"
+    ws.mkdir()
+    (ws / "SYSTEM.md").write_text("user-modified", encoding="utf-8")
+    _lazy_seed_workspace(ws, "std")
+    assert (ws / "SYSTEM.md").read_text(encoding="utf-8") == "user-modified"
+
+
+def test_lazy_seed_workspace_copies_bootstrap_files(tmp_path, monkeypatch):
+    """SOUL.md/USER.md 也应一并 seed（IDENTITY.md 无模板时不创建）"""
+    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+
+    agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    (agents_dir / "std").mkdir(parents=True, exist_ok=True)
+    (agents_dir / "std" / "SYSTEM.md").write_text("system", encoding="utf-8")
+    (agents_dir / "std" / "SOUL.md").write_text("soul", encoding="utf-8")
+    (agents_dir / "std" / "USER.md").write_text("user", encoding="utf-8")
+
+    ws = tmp_path / "workspace"
+    ws.mkdir()
+    _lazy_seed_workspace(ws, "std")
+    assert (ws / "SYSTEM.md").read_text(encoding="utf-8") == "system"
+    assert (ws / "SOUL.md").read_text(encoding="utf-8") == "soul"
+    assert (ws / "USER.md").read_text(encoding="utf-8") == "user"
+    assert not (ws / "IDENTITY.md").exists()
+
+
+def test_lazy_seed_workspace_skips_missing_template(tmp_path, monkeypatch):
+    """config/agents/ 目录不存在时静默跳过"""
+    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+
+    ws = tmp_path / "workspace"
+    ws.mkdir()
+    _lazy_seed_workspace(ws, "nonexistent")
+    assert not (ws / "SYSTEM.md").exists()
