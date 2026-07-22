@@ -251,7 +251,7 @@ fn ensure_agent_seeded(workspace: &Path, agent_id: &str) {
     seed_workspace_from(workspace, agent_id, config_dir);
 }
 
-/// ensure_agent_seeded 的核心文件复制逻辑（纯函数，便于测试）。
+/// ensure_agent_seeded 的核心文件复制逻辑（依赖通过参数注入，便于测试）。
 fn seed_workspace_from(workspace: &Path, agent_id: &str, config_dir: &Path) {
     // 模板来源规则：
     //   - admin → config/agents/admin/
