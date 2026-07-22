@@ -327,6 +327,19 @@ pub fn get_agent_workspace_dir(agent_id: &str) -> PathBuf {
     ws
 }
 
+/// 为当前用户 seed 所有 agent workspace（系统 agent + 用户自定义 agent）。
+///
+/// 在用户认证通过后立即调用，确保该用户的 agent workspace 目录和 prompt 文件已就绪。
+/// 不会覆盖用户已有的文件。
+pub fn seed_user_agent_workspaces(user_agent_ids: &[String]) {
+    let cfg = get_config();
+    let mut all_ids: Vec<String> = cfg.agents.keys().cloned().collect();
+    all_ids.extend(user_agent_ids.iter().cloned());
+
+    for agent_id in all_ids {
+        get_agent_workspace_dir(&agent_id);
+    }
+}
 
 pub fn get_agent_local_data_dir(agent_id: &str) -> PathBuf {
     // Python 端等义：<base>/knowledge_base/
