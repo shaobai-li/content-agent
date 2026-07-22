@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
+use axum::extract::Extension;
 use axum::routing::get;
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::core::config::get_config;
+use crate::core::auth::UserContext;
 use crate::provider::factory::PROVIDERS;
 
 /// 非 LLM 的服务提供商，同样需要在 settings 页面配置 API key。
@@ -189,16 +191,37 @@ async fn get_models() -> Json<Value> {
 }
 
 /// PUT /api/settings/env
-async fn update_env_settings(Json(body): Json<Value>) -> Json<Value> {
+async fn update_env_settings(
+    Extension(ctx): Extension<UserContext>,
+    Json(body): Json<Value>,
+) -> Json<Value> {
     let user_id = crate::core::auth::get_current_user_id().unwrap_or_default();
     let mut existing = load_user_config(&user_id);
 
     // Handle user_data_dir
     if let Some(user_data_dir_val) = body.get("user_data_dir") {
-        if let Some(v) = user_data_dir_val.as_str() {
+        let old_user_data_dir = existing
+            .get("user_data_dir")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let new_user_data_dir = if let Some(v) = user_data_dir_val.as_str() {
             existing["user_data_dir"] = json!(v.to_string());
+            v.to_string()
         } else {
             existing["user_data_dir"] = json!("");
+            String::new()
+        };
+
+        // user_data_dir 变化时迁移 workspace
+        if old_user_data_dir != new_user_data_dir {
+            let agent_ids: Vec<String> = ctx.user_agents.keys().cloned().collect();
+            crate::core::config::migrate_workspace_if_needed(
+                &user_id,
+                &old_user_data_dir,
+                &new_user_data_dir,
+                &agent_ids,
+            );
         }
     }
 
