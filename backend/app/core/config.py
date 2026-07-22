@@ -149,6 +149,26 @@ def _lazy_seed_workspace(workspace: Path, agent_id: str) -> None:
                 target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
 
 
+def seed_user_agent_workspaces(user_agent_ids: Optional[List[str]] = None) -> None:
+    """为当前用户 seed 所有 agent workspace（系统 agent + 用户自定义 agent）。
+
+    在用户认证通过后立即调用，确保该用户的 agent workspace 目录和 prompt 文件已就绪。
+    不会覆盖用户已有的文件。
+    """
+    from app.core.auth import get_current_user_id
+
+    user_id = get_current_user_id()
+    if not user_id:
+        return
+
+    all_ids: set[str] = set(AGENTS_CONFIG.keys())
+    if user_agent_ids:
+        all_ids |= set(user_agent_ids)
+
+    for agent_id in all_ids:
+        get_agent_workspace_dir(agent_id)
+
+
 def get_agent_workspace_dir(agent_id: str) -> Path:
     """Agent 工作区根目录：<base>/（.local 仍用于内部状态，见下文）"""
     ws = get_agent_base_dir(agent_id)

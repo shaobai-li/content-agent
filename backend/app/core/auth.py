@@ -54,3 +54,7 @@ async def require_user_id(request: Request) -> None:
     # 加载该用户的自定义 agent（系统 agent 已在 config.py 模块级加载）
     user_agents = _load_user_agent_configs(user_id)
     _user_agents_var.set(user_agents)
+
+    # 认证通过后立即 seed 所有 agent workspace，确保 SYSTEM.md 等 prompt 文件已就绪
+    from app.core.config import seed_user_agent_workspaces
+    seed_user_agent_workspaces(list(user_agents.keys()))
