@@ -128,7 +128,12 @@ def _resolve_agent_base_dir(agent_id: str, user_id: str) -> Path:
 def _lazy_seed_workspace(workspace: Path, agent_id: str) -> None:
     """惰性播种：如果 workspace 缺少 SYSTEM.md，从内置配置补齐。"""
     config_agents_dir = OMNIAGE_ROOT / "config" / "agents"
-    agent_src = config_agents_dir / agent_id
+
+    # 模板来源规则：
+    #   - admin → config/agents/admin/
+    #   - 其他所有 agent（std、用户自定义等）→ config/agents/std/
+    template_id = "admin" if agent_id == "admin" else "std"
+    agent_src = config_agents_dir / template_id
 
     target = workspace / "SYSTEM.md"
     if not target.exists():
