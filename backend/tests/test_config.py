@@ -355,9 +355,11 @@ def test_get_agent_skill_ids_non_list():
 
 def test_lazy_seed_workspace_std_uses_std_template(tmp_path, monkeypatch):
     """std agent → config/agents/std/ 的模板"""
-    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+    from app.core.config import _lazy_seed_workspace
 
-    agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    fake_root = tmp_path / "omniage"
+    monkeypatch.setattr("app.core.config.OMNIAGE_ROOT", fake_root)
+    agents_dir = fake_root / "config" / "agents"
     (agents_dir / "std").mkdir(parents=True, exist_ok=True)
     (agents_dir / "admin").mkdir(parents=True, exist_ok=True)
     (agents_dir / "std" / "SYSTEM.md").write_text("std-prompt", encoding="utf-8")
@@ -371,9 +373,11 @@ def test_lazy_seed_workspace_std_uses_std_template(tmp_path, monkeypatch):
 
 def test_lazy_seed_workspace_admin_uses_admin_template(tmp_path, monkeypatch):
     """admin agent → config/agents/admin/ 的模板"""
-    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+    from app.core.config import _lazy_seed_workspace
 
-    agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    fake_root = tmp_path / "omniage"
+    monkeypatch.setattr("app.core.config.OMNIAGE_ROOT", fake_root)
+    agents_dir = fake_root / "config" / "agents"
     (agents_dir / "std").mkdir(parents=True, exist_ok=True)
     (agents_dir / "admin").mkdir(parents=True, exist_ok=True)
     (agents_dir / "std" / "SYSTEM.md").write_text("std-prompt", encoding="utf-8")
@@ -387,9 +391,11 @@ def test_lazy_seed_workspace_admin_uses_admin_template(tmp_path, monkeypatch):
 
 def test_lazy_seed_workspace_user_agent_falls_back_to_std(tmp_path, monkeypatch):
     """用户自定义 agent → 回退到 config/agents/std/ 的模板"""
-    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+    from app.core.config import _lazy_seed_workspace
 
-    agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    fake_root = tmp_path / "omniage"
+    monkeypatch.setattr("app.core.config.OMNIAGE_ROOT", fake_root)
+    agents_dir = fake_root / "config" / "agents"
     (agents_dir / "std").mkdir(parents=True, exist_ok=True)
     (agents_dir / "std" / "SYSTEM.md").write_text("std-prompt", encoding="utf-8")
 
@@ -401,9 +407,11 @@ def test_lazy_seed_workspace_user_agent_falls_back_to_std(tmp_path, monkeypatch)
 
 def test_lazy_seed_workspace_does_not_overwrite(tmp_path, monkeypatch):
     """已存在的 SYSTEM.md 不应被覆盖"""
-    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+    from app.core.config import _lazy_seed_workspace
 
-    agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    fake_root = tmp_path / "omniage"
+    monkeypatch.setattr("app.core.config.OMNIAGE_ROOT", fake_root)
+    agents_dir = fake_root / "config" / "agents"
     (agents_dir / "std").mkdir(parents=True, exist_ok=True)
     (agents_dir / "std" / "SYSTEM.md").write_text("std-prompt", encoding="utf-8")
 
@@ -416,9 +424,11 @@ def test_lazy_seed_workspace_does_not_overwrite(tmp_path, monkeypatch):
 
 def test_lazy_seed_workspace_copies_bootstrap_files(tmp_path, monkeypatch):
     """SOUL.md/USER.md 也应一并 seed（IDENTITY.md 无模板时不创建）"""
-    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+    from app.core.config import _lazy_seed_workspace
 
-    agents_dir = OMNIAGE_ROOT / "config" / "agents"
+    fake_root = tmp_path / "omniage"
+    monkeypatch.setattr("app.core.config.OMNIAGE_ROOT", fake_root)
+    agents_dir = fake_root / "config" / "agents"
     (agents_dir / "std").mkdir(parents=True, exist_ok=True)
     (agents_dir / "std" / "SYSTEM.md").write_text("system", encoding="utf-8")
     (agents_dir / "std" / "SOUL.md").write_text("soul", encoding="utf-8")
@@ -435,8 +445,10 @@ def test_lazy_seed_workspace_copies_bootstrap_files(tmp_path, monkeypatch):
 
 def test_lazy_seed_workspace_skips_missing_template(tmp_path, monkeypatch):
     """config/agents/ 目录不存在时静默跳过"""
-    from app.core.config import OMNIAGE_ROOT, _lazy_seed_workspace
+    from app.core.config import _lazy_seed_workspace
 
+    fake_root = tmp_path / "omniage"
+    monkeypatch.setattr("app.core.config.OMNIAGE_ROOT", fake_root)
     ws = tmp_path / "workspace"
     ws.mkdir()
     _lazy_seed_workspace(ws, "nonexistent")
