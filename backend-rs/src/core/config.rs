@@ -4,6 +4,7 @@ use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tracing::warn;
 
 static CONFIG: OnceLock<AppConfig> = OnceLock::new();
 static CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
@@ -404,7 +405,9 @@ pub fn migrate_workspace_if_needed(
             continue;
         }
 
-        copy_dir_all(&old_base, &new_base).ok();
+        if let Err(e) = copy_dir_all(&old_base, &new_base) {
+            warn!("workspace 迁移失败: {} -> {}: {}", old_base.display(), new_base.display(), e);
+        }
     }
 }
 
