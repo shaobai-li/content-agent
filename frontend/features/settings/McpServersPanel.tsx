@@ -293,8 +293,8 @@ function ServerCard({
       <CardContent className="flex shrink-0 flex-col gap-0 px-4 pb-0">
         <div className="w-full border-t border-border" />
         <div className="flex items-center gap-4 pt-3">
-          <Button variant="ghost" size="sm" className="h-auto px-0" onClick={onEdit}>编辑</Button>
-          <Button variant="destructive" size="sm" className="h-auto px-0" onClick={onDelete}>
+          <Button variant="ghost" size="sm" onClick={onEdit}>编辑</Button>
+          <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive hover:text-white" onClick={onDelete}>
             移除
           </Button>
         </div>
