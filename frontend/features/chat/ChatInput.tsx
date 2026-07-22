@@ -222,7 +222,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
             <Button
               size="sm"
               variant="ghost"
-              className="text-xs gap-1 px-2 font-normal text-muted-foreground hover:text-foreground ml-auto"
+              className="text-xs gap-1 px-2 font-normal text-muted-foreground hover:text-foreground ml-auto focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-transparent"
               disabled={noModelAvailable}
             >
               {noModelAvailable ? "未配置" : modelOption?.label ?? "未配置"}
