@@ -65,6 +65,7 @@ async def update_env_settings(payload: dict = Body(...)):
     user_data_dir_val = payload.pop("user_data_dir", None)
     if user_data_dir_val is not None:
         v = user_data_dir_val.strip() if isinstance(user_data_dir_val, str) else ""
+        old_user_data_dir = existing.get("user_data_dir", "") or ""
         if v:
             p = Path(v)
             if not p.is_absolute():
@@ -74,6 +75,16 @@ async def update_env_settings(payload: dict = Body(...)):
             if not p.is_dir():
                 raise HTTPException(status_code=400, detail=f"路径不是目录: {v}")
         existing["user_data_dir"] = v
+
+        # user_data_dir 变化时迁移 workspace
+        if old_user_data_dir != v:
+            from app.core.auth import _load_user_agent_configs
+            user_agents = _load_user_agent_configs(user_id)
+            from app.core.config import migrate_workspace_if_needed
+            migrate_workspace_if_needed(
+                user_id, old_user_data_dir, v,
+                user_agent_ids=list(user_agents.keys()),
+            )
 
     # Handle providers — merge with existing
     providers_val = payload.pop("providers", None)
