@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from pathlib import Path
 import yaml
 from typing import Dict, Any, List, Optional
@@ -149,7 +150,64 @@ def _lazy_seed_workspace(workspace: Path, agent_id: str) -> None:
                 target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
 
 
-def seed_user_agent_workspaces(user_agent_ids: Optional[List[str]] = None) -> None:
+def _resolve_base_dir_with_override(agent_id: str, user_id: str, user_data_dir: str) -> Path:
+    """按指定的 user_data_dir 解析 agent base dir（不依赖 config.json 当前值）。
+
+    用于计算 user_data_dir 变更前的旧路径或变更后的新路径。
+    """
+    default_base = DEFAULT_DATA_DIR / f"u_{user_id}"
+
+    if agent_id == "admin":
+        return (default_base / "admin").resolve()
+
+    udd = user_data_dir.strip() if user_data_dir else ""
+    if udd:
+        return (Path(udd).resolve() / agent_id).resolve()
+    else:
+        return (default_base / agent_id).resolve()
+
+
+def _copy_workspace(src: Path, dst: Path) -> None:
+    """递归复制 workspace 目录下所有内容到目标路径。
+
+    目标路径已存在时不覆盖（静默跳过）。
+    """
+    if dst.exists():
+        return
+    shutil.copytree(src, dst, dirs_exist_ok=False)
+
+
+def migrate_workspace_if_needed(
+    user_id: str,
+    old_user_data_dir: str,
+    new_user_data_dir: str,
+    user_agent_ids: Optional[List[str]] = None,
+) -> None:
+    """当 user_data_dir 变化时，将所有非 admin agent 的 workspace 从旧路径迁移到新路径。
+
+    在 settings API 写入新 user_data_dir 后调用。
+    - admin 固定在 DEFAULT_DATA_DIR，不参与迁移
+    - 旧路径不存在时跳过（兼容首次设置）
+    - 新路径已存在时跳过（不覆盖已有数据）
+    """
+    if old_user_data_dir == new_user_data_dir:
+        return
+
+    all_ids: set[str] = set(AGENTS_CONFIG.keys())
+    if user_agent_ids:
+        all_ids |= set(user_agent_ids)
+
+    for agent_id in all_ids:
+        if agent_id == "admin":
+            continue
+
+        old_base = _resolve_base_dir_with_override(agent_id, user_id, old_user_data_dir)
+        new_base = _resolve_base_dir_with_override(agent_id, user_id, new_user_data_dir)
+
+        if old_base == new_base or not old_base.exists() or new_base.exists():
+            continue
+
+        _copy_workspace(old_base, new_base)(user_agent_ids: Optional[List[str]] = None) -> None:
     """为当前用户 seed 所有 agent workspace（系统 agent + 用户自定义 agent）。
 
     在用户认证通过后立即调用，确保该用户的 agent workspace 目录和 prompt 文件已就绪。
