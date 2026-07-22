@@ -9,6 +9,9 @@ from app.core.config import (
     get_agent_sessions_path,
     get_agent_knowledge_base_path,
     _lazy_seed_workspace,
+    _resolve_base_dir_with_override,
+    _copy_workspace,
+    migrate_workspace_if_needed,
     get_agent_skill_ids,
     _load_agent_configs,
     parse_system_md_frontmatter,
@@ -453,3 +456,117 @@ def test_lazy_seed_workspace_skips_missing_template(tmp_path, monkeypatch):
     ws.mkdir()
     _lazy_seed_workspace(ws, "nonexistent")
     assert not (ws / "SYSTEM.md").exists()
+
+
+# ── _resolve_base_dir_with_override ─────────────────────────────────
+
+def test_resolve_base_dir_with_override_default(tmp_path):
+    """user_data_dir 为空时 → DEFAULT_DATA_DIR/u_{user_id}/<agent_id>/"""
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+        result = _resolve_base_dir_with_override("my_agent", "u1", "")
+    assert result == (tmp_path / "u_u1" / "my_agent").resolve()
+
+
+def test_resolve_base_dir_with_override_admin(tmp_path):
+    """admin → DEFAULT_DATA_DIR/u_{user_id}/admin/（不受 user_data_dir 影响）"""
+    with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+        result = _resolve_base_dir_with_override("admin", "u1", "/custom/path")
+    assert result == (tmp_path / "u_u1" / "admin").resolve()
+
+
+def test_resolve_base_dir_with_override_custom(tmp_path):
+    """user_data_dir 非空时 → {user_data_dir}/<agent_id>/"""
+    result = _resolve_base_dir_with_override("my_agent", "u1", str(tmp_path))
+    assert result == (tmp_path / "my_agent").resolve()
+
+
+# ── _copy_workspace ─────────────────────────────────────────────────
+
+def test_copy_workspace_copies_all_content(tmp_path):
+    """递归复制整个 workspace 内容"""
+    src = tmp_path / "src"
+    dst = tmp_path / "dst"
+    (src / "sub").mkdir(parents=True)
+    (src / "file.txt").write_text("hello", encoding="utf-8")
+    (src / "sub" / "nested.txt").write_text("nested", encoding="utf-8")
+
+    _copy_workspace(src, dst)
+    assert (dst / "file.txt").read_text(encoding="utf-8") == "hello"
+    assert (dst / "sub" / "nested.txt").read_text(encoding="utf-8") == "nested"
+
+
+def test_copy_workspace_skips_existing_dest(tmp_path):
+    """目标路径已存在时跳过复制"""
+    src = tmp_path / "src"
+    dst = tmp_path / "dst"
+    src.mkdir()
+    dst.mkdir()
+    (src / "file.txt").write_text("from-src", encoding="utf-8")
+    (dst / "existing.txt").write_text("from-dst", encoding="utf-8")
+
+    _copy_workspace(src, dst)
+    assert not (dst / "file.txt").exists()
+    assert (dst / "existing.txt").read_text(encoding="utf-8") == "from-dst"
+
+
+# ── migrate_workspace_if_needed ─────────────────────────────────────
+
+def test_migrate_workspace_if_needed_copies(tmp_path):
+    """user_data_dir 变化时将非 admin agent 的 workspace 复制到新路径"""
+    import app.core.config as m
+    original = dict(m.AGENTS_CONFIG)
+
+    try:
+        m.AGENTS_CONFIG = {"std": {"name": "std"}, "admin": {"name": "admin"}}
+
+        old_root = tmp_path / "old_data"
+        new_root = tmp_path / "new_data"
+        (old_root / "std").mkdir(parents=True)
+        (old_root / "std" / "SYSTEM.md").write_text("old-prompt", encoding="utf-8")
+        (old_root / "admin").mkdir(parents=True)
+        (old_root / "admin" / "SYSTEM.md").write_text("admin-prompt", encoding="utf-8")
+
+        with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+            migrate_workspace_if_needed("u1", str(old_root), str(new_root))
+
+        # std → 迁移到新路径
+        assert (new_root / "std" / "SYSTEM.md").read_text(encoding="utf-8") == "old-prompt"
+        # admin → 不迁移（admin 始终在 DEFAULT_DATA_DIR）
+        assert not (new_root / "admin" / "SYSTEM.md").exists()
+    finally:
+        m.AGENTS_CONFIG = original
+
+
+def test_migrate_workspace_if_needed_skips_same_dir(tmp_path):
+    """新旧 user_data_dir 相同时跳过"""
+    import app.core.config as m
+    original = dict(m.AGENTS_CONFIG)
+
+    try:
+        m.AGENTS_CONFIG = {"std": {}}
+        migrate_workspace_if_needed("u1", str(tmp_path), str(tmp_path))
+        # 不崩溃即通过
+    finally:
+        m.AGENTS_CONFIG = original
+
+
+def test_migrate_workspace_if_needed_skips_existing_new(tmp_path):
+    """新路径已存在时跳过（不覆盖）"""
+    import app.core.config as m
+    original = dict(m.AGENTS_CONFIG)
+
+    try:
+        m.AGENTS_CONFIG = {"std": {}}
+        old_root = tmp_path / "old"
+        new_root = tmp_path / "new"
+        (old_root / "std").mkdir(parents=True)
+        (old_root / "std" / "SYSTEM.md").write_text("old", encoding="utf-8")
+        (new_root / "std").mkdir(parents=True)
+        (new_root / "std" / "SYSTEM.md").write_text("existing", encoding="utf-8")
+
+        with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
+            migrate_workspace_if_needed("u1", str(old_root), str(new_root))
+
+        assert (new_root / "std" / "SYSTEM.md").read_text(encoding="utf-8") == "existing"
+    finally:
+        m.AGENTS_CONFIG = original
