@@ -73,6 +73,8 @@ pub async fn auth_middleware(
         load_user_agents(&user_id)
     };
 
+    let agent_ids: Vec<String> = user_agents.keys().cloned().collect();
+
     let ctx = UserContext {
         user_id: if user_id.is_empty() { None } else { Some(user_id.clone()) },
         user_agents,
@@ -82,7 +84,12 @@ pub async fn auth_middleware(
     if user_id.is_empty() {
         next.run(req).await
     } else {
-        CURRENT_USER_ID.scope(user_id, next.run(req)).await
+        CURRENT_USER_ID.scope(user_id, async move {
+            // 认证通过后立即 seed 所有 agent workspace
+            crate::core::config::seed_user_agent_workspaces(&agent_ids);
+
+            next.run(req).await
+        }).await
     }
 }
 
