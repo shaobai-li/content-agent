@@ -82,7 +82,7 @@ function GeneralSettings() {
             size="sm"
             onClick={handleSaveUserDataDir}
             disabled={savingUserDataDir || !userDataDirChanged}
-            className="absolute right-0 top-0 bottom-0 m-0.5 text-xs font-semibold"
+            className="absolute right-0 top-0 bottom-0 m-0.5 text-xs font-normal"
           >
             {savingUserDataDir && <Loader2 className="size-3.5 animate-spin" />}
             Save
