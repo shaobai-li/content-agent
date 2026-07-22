@@ -777,4 +777,74 @@ mod tests {
         seed_workspace_from(&workspace, "a_custom", &config_dir);
         assert!(!workspace.join("SYSTEM.md").exists(), "无模板时应静默跳过");
     }
+
+    // ── resolve_agent_base_dir_with_udd ────────────────────────────
+
+    #[test]
+    fn test_resolve_agent_base_dir_with_udd_default() {
+        let tmp = tempfile::tempdir().unwrap();
+        let data_dir = tmp.path().join("data");
+        let result = resolve_agent_base_dir_with_udd("my-agent", "u1", "", &data_dir);
+        assert_eq!(result, data_dir.join("u_u1").join("my-agent"));
+    }
+
+    #[test]
+    fn test_resolve_agent_base_dir_with_udd_admin() {
+        let tmp = tempfile::tempdir().unwrap();
+        let data_dir = tmp.path().join("data");
+        // admin 不受 user_data_dir 影响
+        let result = resolve_agent_base_dir_with_udd("admin", "u1", "/custom/path", &data_dir);
+        assert_eq!(result, data_dir.join("u_u1").join("admin"));
+    }
+
+    #[test]
+    fn test_resolve_agent_base_dir_with_udd_custom() {
+        let tmp = tempfile::tempdir().unwrap();
+        let data_dir = tmp.path().join("data");
+        let custom = tmp.path().join("custom_storage");
+        let result = resolve_agent_base_dir_with_udd("my-agent", "u1", custom.to_str().unwrap(), &data_dir);
+        assert_eq!(result, custom.join("my-agent"));
+    }
+
+    // ── copy_dir_all ───────────────────────────────────────────────
+
+    #[test]
+    fn test_copy_dir_all_copies_contents() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("src");
+        let dst = tmp.path().join("dst");
+
+        std::fs::create_dir_all(src.join("sub")).unwrap();
+        std::fs::write(src.join("file.txt"), "hello").unwrap();
+        std::fs::write(src.join("sub").join("nested.txt"), "nested").unwrap();
+
+        copy_dir_all(&src, &dst).unwrap();
+
+        assert_eq!(std::fs::read_to_string(dst.join("file.txt")).unwrap(), "hello");
+        assert_eq!(std::fs::read_to_string(dst.join("sub").join("nested.txt")).unwrap(), "nested");
+    }
+
+    // ── migrate_workspace_if_needed ─────────────────────────────────
+
+    #[test]
+    fn test_migrate_workspace_if_needed_copies_std() {
+        let tmp = tempfile::tempdir().unwrap();
+        let data_dir = tmp.path().join("data");
+        let old_root = tmp.path().join("old_data");
+        let new_root = tmp.path().join("new_data");
+
+        // Create old workspace for std
+        std::fs::create_dir_all(old_root.join("std")).unwrap();
+        std::fs::write(old_root.join("std").join("SYSTEM.md"), "old-prompt").unwrap();
+
+        // Simulate: old_std path = old_root/std, new_std path = new_root/std
+        let old_std = resolve_agent_base_dir_with_udd("std", "u1", old_root.to_str().unwrap(), &data_dir);
+        let new_std = resolve_agent_base_dir_with_udd("std", "u1", new_root.to_str().unwrap(), &data_dir);
+
+        assert!(old_std.exists());
+        assert!(!new_std.exists());
+
+        copy_dir_all(&old_std, &new_std).unwrap();
+        assert_eq!(std::fs::read_to_string(new_std.join("SYSTEM.md")).unwrap(), "old-prompt");
+    }
 }
