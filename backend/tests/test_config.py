@@ -521,18 +521,15 @@ def test_migrate_workspace_if_needed_copies(tmp_path):
 
         old_root = tmp_path / "old_data"
         new_root = tmp_path / "new_data"
-        (old_root / "std").mkdir(parents=True)
-        (old_root / "std" / "SYSTEM.md").write_text("old-prompt", encoding="utf-8")
-        (old_root / "admin").mkdir(parents=True)
-        (old_root / "admin" / "SYSTEM.md").write_text("admin-prompt", encoding="utf-8")
+        # 新路径格式：{user_data_dir}/u_{user_id}/<agent_id>/
+        (old_root / "u_u1" / "std").mkdir(parents=True)
+        (old_root / "u_u1" / "std" / "SYSTEM.md").write_text("old-prompt", encoding="utf-8")
 
         with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
             migrate_workspace_if_needed("u1", str(old_root), str(new_root))
 
         # std → 迁移到新路径
-        assert (new_root / "std" / "SYSTEM.md").read_text(encoding="utf-8") == "old-prompt"
-        # admin → 不迁移（admin 始终在 DEFAULT_DATA_DIR）
-        assert not (new_root / "admin" / "SYSTEM.md").exists()
+        assert (new_root / "u_u1" / "std" / "SYSTEM.md").read_text(encoding="utf-8") == "old-prompt"
     finally:
         m.AGENTS_CONFIG = original
 
@@ -559,14 +556,76 @@ def test_migrate_workspace_if_needed_skips_existing_new(tmp_path):
         m.AGENTS_CONFIG = {"std": {}}
         old_root = tmp_path / "old"
         new_root = tmp_path / "new"
-        (old_root / "std").mkdir(parents=True)
-        (old_root / "std" / "SYSTEM.md").write_text("old", encoding="utf-8")
-        (new_root / "std").mkdir(parents=True)
-        (new_root / "std" / "SYSTEM.md").write_text("existing", encoding="utf-8")
+        (old_root / "u_u1" / "std").mkdir(parents=True)
+        (old_root / "u_u1" / "std" / "SYSTEM.md").write_text("old", encoding="utf-8")
+        (new_root / "u_u1" / "std").mkdir(parents=True)
+        (new_root / "u_u1" / "std" / "SYSTEM.md").write_text("existing", encoding="utf-8")
 
         with patch("app.core.config.DEFAULT_DATA_DIR", tmp_path):
             migrate_workspace_if_needed("u1", str(old_root), str(new_root))
 
-        assert (new_root / "std" / "SYSTEM.md").read_text(encoding="utf-8") == "existing"
+        assert (new_root / "u_u1" / "std" / "SYSTEM.md").read_text(encoding="utf-8") == "existing"
     finally:
         m.AGENTS_CONFIG = original
+
+
+# ── _check_and_migrate_old_user_data_dir_format ──────────────────────────
+
+def test_migrate_old_format_copies_to_new(tmp_path):
+    """旧格式 {udd}/<agent_id>/ → 新格式 {udd}/u_{user_id}/<agent_id>/"""
+    from app.core.config import _check_and_migrate_old_user_data_dir_format
+
+    udd = tmp_path / "user_data"
+    (udd / "std").mkdir(parents=True)
+    (udd / "std" / "SYSTEM.md").write_text("old-prompt", encoding="utf-8")
+    (udd / "custom_agent").mkdir(parents=True)
+    (udd / "custom_agent" / "SYSTEM.md").write_text("custom", encoding="utf-8")
+
+    _check_and_migrate_old_user_data_dir_format("u1", str(udd))
+
+    assert (udd / "u_u1" / "std" / "SYSTEM.md").read_text(encoding="utf-8") == "old-prompt"
+    assert (udd / "u_u1" / "custom_agent" / "SYSTEM.md").read_text(encoding="utf-8") == "custom"
+    # 旧格式数据应保留
+    assert (udd / "std" / "SYSTEM.md").read_text(encoding="utf-8") == "old-prompt"
+
+
+def test_migrate_old_format_skips_admin(tmp_path):
+    """admin 不参与旧格式迁移"""
+    from app.core.config import _check_and_migrate_old_user_data_dir_format
+
+    udd = tmp_path / "user_data"
+    (udd / "admin").mkdir(parents=True)
+    (udd / "admin" / "SYSTEM.md").write_text("admin-prompt", encoding="utf-8")
+    (udd / "std").mkdir(parents=True)
+    (udd / "std" / "SYSTEM.md").write_text("std-prompt", encoding="utf-8")
+
+    _check_and_migrate_old_user_data_dir_format("u1", str(udd))
+
+    # admin 不应迁移
+    assert not (udd / "u_u1" / "admin").exists()
+    # std 应迁移
+    assert (udd / "u_u1" / "std" / "SYSTEM.md").read_text(encoding="utf-8") == "std-prompt"
+
+
+def test_migrate_old_format_skips_if_new_exists(tmp_path):
+    """新路径已存在时跳过迁移"""
+    from app.core.config import _check_and_migrate_old_user_data_dir_format
+
+    udd = tmp_path / "user_data"
+    (udd / "std").mkdir(parents=True)
+    (udd / "std" / "SYSTEM.md").write_text("old-prompt", encoding="utf-8")
+    (udd / "u_u1" / "std").mkdir(parents=True)
+    (udd / "u_u1" / "std" / "SYSTEM.md").write_text("existing", encoding="utf-8")
+
+    _check_and_migrate_old_user_data_dir_format("u1", str(udd))
+
+    # 不应覆盖
+    assert (udd / "u_u1" / "std" / "SYSTEM.md").read_text(encoding="utf-8") == "existing"
+
+
+def test_migrate_old_format_skips_empty_udd(tmp_path):
+    """user_data_dir 为空时跳过"""
+    from app.core.config import _check_and_migrate_old_user_data_dir_format
+
+    _check_and_migrate_old_user_data_dir_format("u1", "")
+    # 不崩溃即通过
