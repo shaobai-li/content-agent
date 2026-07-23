@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, FolderPlus, Plus, Search } from "lucide-react";
@@ -17,6 +17,7 @@ import { DataHeader } from "../data/DataHeader";
 import { KNOWLEDGE_BASES_REFRESH_EVENT } from "./databaseRegistry";
 import { useKnowledgeBaseSelection } from "./useKnowledgeBaseSelection";
 import { useKnowledgeBases } from "./useKnowledgeBases";
+import { useTranslation } from "react-i18next";
 
 const DATABASE_SEARCH_CHANGE_EVENT = "kb-database-search-change";
 
@@ -25,6 +26,7 @@ interface KnowledgeBaseHeaderProps {
 }
 
 export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
+  const { t } = useTranslation();
   const { databases } = useKnowledgeBases(agentId);
   const { databaseId, clearDatabase } = useKnowledgeBaseSelection();
   const selectedDatabase = useMemo(
@@ -51,7 +53,7 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
   const handleCreateData = async (name: string, description: string) => {
     const response = await createKnowledgeBase(agentId, name, description);
     if (!response.success || !response.database) {
-      throw new Error(response.message || "创建知识库失败");
+      throw new Error(response.message || t("kb.createFailed"));
     }
 
     window.dispatchEvent(new Event(KNOWLEDGE_BASES_REFRESH_EVENT));
@@ -61,12 +63,12 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
     return (
       <>
         <div className="flex w-full flex-row items-center">
-          <h2 className="text-sm font-semibold text-foreground">KNOWLEDGE BASE</h2>
+          <h2 className="text-sm font-semibold text-foreground">{t("kb.title")}</h2>
           <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center rounded-md bg-muted px-4 py-0 text-xs focus-visible:ring-2">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <Input
-                placeholder="Search"
+                placeholder={t("kb.search")}
                 className="h-8 w-full border-none text-xs placeholder:text-muted-foreground shadow-none focus-visible:ring-0"
                 value={searchKeyword}
                 onChange={(event) => setSearchKeyword(event.target.value)}
@@ -77,7 +79,7 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-label="Create new item"
+                  aria-label={t("kb.createNew")}
                   className="border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <Plus className="size-4" strokeWidth={3} />
@@ -89,11 +91,11 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
                   onSelect={() => setIsNewDataModalOpen(true)}
                 >
                   <BookOpen className="size-4" strokeWidth={3} />
-                  <span>New Knowledge Base</span>
+                  <span>{t("kb.newKnowledgeBase")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem disabled className="gap-2.5">
                   <FolderPlus className="size-4" strokeWidth={3} />
-                  <span>New Folder</span>
+                  <span>{t("kb.newFolder")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -111,10 +113,11 @@ export function KnowledgeBaseHeader({ agentId }: KnowledgeBaseHeaderProps) {
   return (
     <DataHeader
       agentId={agentId}
-      title="KNOWLEDGE BASE"
+      title={t("kb.title")}
       databaseId={selectedDatabase.id}
       onBack={clearDatabase}
       onCreateData={handleCreateData}
     />
   );
 }
+

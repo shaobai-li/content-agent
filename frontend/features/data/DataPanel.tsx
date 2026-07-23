@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Fragment, useState, useEffect, useCallback, useMemo } from "react";
 import { BookOpen } from "lucide-react";
@@ -30,6 +30,7 @@ import {
 } from "@/shared/ui/alert-dialog";
 import { DataTable } from "./DataTable";
 import type { DataPanelConfig } from "./type";
+import { useTranslation } from "react-i18next";
 
 interface DataPanelProps extends DataPanelConfig {
   onView?: (item: any) => void;
@@ -48,7 +49,7 @@ export function DataPanel({
   deleteData: deleteDataFn,
   rowKeyField,
   dataKey = "nodes",
-  emptyMessage = "暂无数据",
+  emptyMessage = "鏆傛棤鏁版嵁",
   refreshEvent = "data-panel-refresh",
   columnLabels,
   customRenderers,
@@ -60,12 +61,13 @@ export function DataPanel({
   onView,
   onRemove,
 }: DataPanelProps) {
+  const { t } = useTranslation();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
   const [searchKeyword, setSearchKeyword] = useState("");
 
-  // 数据获取函数
+  // 鏁版嵁鑾峰彇鍑芥暟
   const loadData = useCallback(() => {
     setLoading(true);
     fetchDataFn()
@@ -74,7 +76,7 @@ export function DataPanel({
         setLoading(false);
       })
       .catch((err) => {
-        console.error("获取数据失败:", err);
+        console.error("鑾峰彇鏁版嵁澶辫触:", err);
         setLoading(false);
       });
   }, [fetchDataFn, dataKey]);
@@ -199,7 +201,7 @@ export function DataPanel({
     };
   }, [customRenderers]);
 
-  // 删除处理函数
+  // 鍒犻櫎澶勭悊鍑芥暟
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
 
   const handleRemove = useCallback(
@@ -225,24 +227,24 @@ export function DataPanel({
           : deleteConfirm.record_id ?? deleteConfirm.id;
 
       if (typeof targetId !== "string" || !targetId) {
-        throw new Error("缺少可删除的节点标识");
+        throw new Error(t("data.error.missingIdentifier"));
       }
 
       const response = await deleteDataFn(targetId);
       if (response?.success === false) {
-        throw new Error(response.message || "删除失败");
+        throw new Error(response.message || t("data.error.deleteFailed"));
       }
       loadData();
     } catch (error) {
-      console.error("删除失败:", error);
-      toast.error("删除失败，请重试");
+      console.error(t("data.error.deleteFailed"), error);
+      toast.error(t("data.error.deleteFailed"));
     }
     setDeleteConfirm(null);
   }, [deleteConfirm, deleteDataFn, onRemove, loadData]);
 
   const handleRename = useCallback(async (record: any, name: string) => {
     if (!renameDataFn) {
-      console.warn("未配置重命名函数");
+      console.warn(t("data.error.renameNotConfigured"));
       return;
     }
 
@@ -252,12 +254,12 @@ export function DataPanel({
         : record.record_id ?? record.id;
 
     if (typeof targetId !== "string" || !targetId) {
-      throw new Error("缺少可重命名的节点标识");
+      throw new Error(t("data.error.missingRenameIdentifier"));
     }
 
     const response = await renameDataFn(targetId, name);
     if (response?.success === false) {
-      throw new Error(response.message || "重命名失败");
+      throw new Error(response.message || t("data.error.renameFailed"));
     }
 
     loadData();
@@ -265,7 +267,7 @@ export function DataPanel({
 
   const handleMove = useCallback(async (record: any, parentId: string) => {
     if (!moveDataFn) {
-      console.warn("未配置移动函数");
+      console.warn(t("data.error.moveNotConfigured"));
       return;
     }
 
@@ -275,12 +277,12 @@ export function DataPanel({
         : record.record_id ?? record.id;
 
     if (typeof targetId !== "string" || !targetId) {
-      throw new Error("缺少可移动的节点标识");
+      throw new Error(t("data.error.missingMoveIdentifier"));
     }
 
     const response = await moveDataFn(targetId, parentId);
     if (response?.success === false) {
-      throw new Error(response.message || "移动失败");
+      throw new Error(response.message || t("data.error.moveFailed"));
     }
 
     loadData();
@@ -295,7 +297,7 @@ export function DataPanel({
     onView?.(record);
   }, [onView]);
 
-  // 初始加载
+  // 鍒濆鍔犺浇
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -331,10 +333,10 @@ export function DataPanel({
     };
   }, []);
 
-  // 监听自定义刷新事件
+  // 鐩戝惉鑷畾涔夊埛鏂颁簨浠?
   useEffect(() => {
     const handleRefresh = () => {
-      console.log(`收到刷新事件: ${refreshEvent}`);
+      console.log(`鏀跺埌鍒锋柊浜嬩欢: ${refreshEvent}`);
       loadData();
     };
 
@@ -346,10 +348,10 @@ export function DataPanel({
   }, [refreshEvent, loadData]);
 
   const resolvedEmptyMessage = normalizedSearchKeyword
-    ? "未找到匹配的文件或文件夹"
+    ? t("data.noResults")
     : currentFolderId === ROOT_FOLDER_ID
       ? emptyMessage
-      : "该文件夹为空";
+      : t("data.folderEmpty");
 
   return (
     <div className="-mt-2 flex h-full flex-col gap-2">
@@ -357,11 +359,11 @@ export function DataPanel({
         <BreadcrumbList className="text-xs">
           <BreadcrumbItem>
             {currentFolderId === ROOT_FOLDER_ID ? (
-              <BreadcrumbPage aria-label="DATA">
+              <BreadcrumbPage aria-label={t("data.rootLabel")}>
                 <BookOpen className="size-4" />
               </BreadcrumbPage>
             ) : (
-              <BreadcrumbLink asChild className="cursor-pointer" aria-label="返回根层级">
+              <BreadcrumbLink asChild className="cursor-pointer" aria-label={t("data.rootLabel")}>
                 <button
                   type="button"
                   onClick={() => setCurrentFolderId(ROOT_FOLDER_ID)}
@@ -395,7 +397,7 @@ export function DataPanel({
                     <button
                       type="button"
                       className="rounded-sm transition-colors hover:text-foreground"
-                      aria-label="展开隐藏的面包屑层级"
+                      aria-label={t("data.breadcrumbEllipsis")}
                     >
                       <BreadcrumbEllipsis className="size-4" />
                     </button>
@@ -462,15 +464,15 @@ export function DataPanel({
       <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogTitle>{t("data.confirmDelete.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除 "{deleteConfirm?.name || deleteConfirm?.record_id || ""}" 吗？
+              {t("data.confirmDelete.description", { name: deleteConfirm?.name || deleteConfirm?.record_id || "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t("data.confirmDelete.cancel")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={handleDeleteConfirmed}>
-              删除
+              {t("data.confirmDelete.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -478,3 +480,4 @@ export function DataPanel({
     </div>
   );
 }
+

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from "react";
+import { useTranslation } from "react-i18next";
 import { $getRoot, type EditorState } from "lexical";
 import { LexicalEditor, type LexicalEditorHandle } from "./LexicalEditor";
 import { Button } from "@/shared/ui/button";
@@ -75,6 +76,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
   onModelChange,
   modelOptions = [],
 }, ref) {
+  const { t } = useTranslation();
   const editorRef = useRef<LexicalEditorHandle>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
@@ -211,7 +213,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
             "flex-1 min-w-[120px] max-h-[140px] overflow-y-auto" +
             (expanded ? " basis-full" : "")
           }
-          placeholder="Type messages ..."
+          placeholder={t("chat.inputPlaceholder")}
           value={value}
           onChange={handleEditorChange}
           onEnter={onSend}
@@ -225,7 +227,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
               className="text-xs gap-1 px-2 font-normal text-muted-foreground hover:text-foreground ml-auto focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-transparent"
               disabled={noModelAvailable}
             >
-              {noModelAvailable ? "未配置" : modelOption?.label ?? "未配置"}
+              {noModelAvailable ? t("chat.noModel") : modelOption?.label ?? t("chat.noModel")}
               <ChevronDown className="size-3" />
             </Button>
           </DropdownMenuTrigger>
@@ -242,7 +244,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
           </DropdownMenuContent>
         </DropdownMenu>
         <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
-          Send
+          {t("common.send")}
         </Button>
       </div>
     </div>
