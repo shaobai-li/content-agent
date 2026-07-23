@@ -93,25 +93,6 @@ pub async fn auth_middleware(
     }
 }
 
-/// 获取用户数据的有效根目录。
-///
-/// 若用户设置了 user_data_dir，则返回该路径；否则返回默认 data_dir。
-/// 读取 admin/config.json（始终在默认位置），不依赖 user_data_dir 自身。
-fn get_effective_user_data_root(user_id: &str, data_dir: &Path) -> PathBuf {
-    let config_path = data_dir.join(format!("u_{}", user_id)).join("admin").join("config.json");
-    if let Ok(content) = std::fs::read_to_string(&config_path) {
-        if let Ok(cfg) = serde_json::from_str::<serde_json::Value>(&content) {
-            if let Some(udd) = cfg.get("user_data_dir").and_then(|v| v.as_str()) {
-                let trimmed = udd.trim();
-                if !trimmed.is_empty() {
-                    return PathBuf::from(trimmed);
-                }
-            }
-        }
-    }
-    data_dir.to_path_buf()
-}
-
 /// 从 user_data_dir/u_{user_id}/*/SYSTEM.md 加载 custom agent（与 Python 后端一致）。
 fn load_user_agents(user_id: &str) -> HashMap<String, Value> {
     let cfg = get_config();
