@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import {
@@ -57,7 +57,7 @@ export function DataTable({
     columnOrder,
     getDragData,
     loading = false,
-    emptyMessage = "鏆傛棤鏁版嵁",
+    emptyMessage = "暂无数据",
     onView,
     onMove,
     onRename,
@@ -109,7 +109,7 @@ export function DataTable({
 
         return keys.map(key => ({
             key,
-            label: columnLabels[key] || key,
+            label: columnLabels[key] ? t(columnLabels[key]) : key,
             width: columnWidths[key],
             minWidth: columnMinWidths[key],
             className: customRenderers[key] ? "" : "text-xs text-muted-foreground",

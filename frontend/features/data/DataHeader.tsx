@@ -71,7 +71,7 @@ export function DataHeader({
   const handleCreateFolder = async (folderName: string) => {
     const response = await createKbFolder(agentId, folderName, currentFolderId, databaseId);
     if (!response.success) {
-      throw new Error(response.message || t("data.error.moveFailed"));
+      throw new Error(response.message || t("data.error.createFolderFailed"));
     }
 
     window.dispatchEvent(new Event("kb-data-refresh"));

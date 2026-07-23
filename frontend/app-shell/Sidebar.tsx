@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Card, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";

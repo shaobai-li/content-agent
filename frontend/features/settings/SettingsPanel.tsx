@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useCallback } from "react";
 import { Check, Ellipsis, Loader2, Plus, Trash2 } from "lucide-react";
@@ -152,9 +152,9 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     [],
   );
 
-  // 鈹€鈹€ Header 鏆撮湶淇濆瓨/閲嶇疆鏂规硶 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-  // SettingsHeader 閫氳繃 DOM 浜嬩欢鎴栫埗绾у崗璋冿紱杩欓噷鐩存帴鐢ㄦ渶绠€鍗曠殑鏂规:
-  // 鏆撮湶鍒?window 渚?header 璋冪敤锛堟垨鏀逛负 context锛?
+  // ── Header 暴露保存/重置方法 ──────────────────────────────────
+  // SettingsHeader 通过 DOM 事件或父级协调；这里直接用最简单的方案:
+  // 暴露到 window 供 header 调用（或改为 context）
   const handleSave = useCallback(async () => {
     const modified = Object.keys(dirtyText);
     if (modified.length === 0) return;
@@ -282,12 +282,12 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
       {/* Application tab: skills */}
       {activeTab === "application" && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
-          {/* 闅愯棌鐨勬枃浠堕€夋嫨鍣紙鐢ㄤ簬涓婁紶鎶€鑳芥枃浠跺す锛?*/}
+          {/* 隐藏的文件选择器（用于上传技能文件夹） */}
           <input
             ref={fileInputRef}
             type="file"
             className="hidden"
-            /* @ts-expect-error webkitdirectory 鏄潪鏍囧噯灞炴€?*/
+            /* @ts-expect-error webkitdirectory 是非标准属性 */
             webkitdirectory=""
             onChange={handleFolderSelected}
           />
@@ -317,7 +317,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                       { name: skill.name },
                     )}
                   />
-                  {/* 鍐呭鍖猴細flex-grow 7锛屽崰 70% */}
+                  {/* 内容区：flex-grow 7，占 70% */}
                   <CardContent
                     className="flex min-h-0 flex-col gap-2 overflow-visible pb-0 pr-14 pt-6"
                     style={{ flex: "7 1 0%" }}
@@ -326,14 +326,14 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                     <p className="min-w-0 line-clamp-2 text-sm text-muted-foreground">{skill.description}</p>
                   </CardContent>
 
-                  {/* 搴曢儴鎿嶄綔鍖猴細flex-grow 3锛屽崰 30%锛屼笉鏀剁缉 */}
+                  {/* 底部操作区：flex-grow 3，占 30%，不收缩 */}
                   <div
                     className="flex min-h-0 flex-col overflow-visible px-6 pb-2"
                     style={{ flex: "3 0 0%" }}
                   >
                     <div className="w-full border-t border-border" />
                     <div className="flex items-center justify-between pt-1.5">
-                      {/* TODO: 鎺ュ叆瀹為檯鏁版嵁銆備笌 AgentInfoCard 鐨?"Token" 鏍囩瀵瑰簲锛屽悗缁渶灞曠ず鎶€鑳借瘝鏁?Token 鏁?*/}
+                      {/* TODO: 接入实际数据。与 AgentInfoCard 的 "Token" 标签对应，后续需展示技能词数/Token 数 */}
                       <span className="text-xs text-muted-foreground">{t("settingsPanel.skills.words")}</span>
                       {skill.source === "user" && (
                         <DropdownMenu>
@@ -450,7 +450,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
         </div>
       )}
 
-      {/* Capability tab: MCP 鏈嶅姟鍣?*/}
+      {/* Capability tab: MCP 服务器 */}
       {activeTab === "capability" && (
         <div
           className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto"

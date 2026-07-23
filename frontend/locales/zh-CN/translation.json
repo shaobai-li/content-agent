@@ -130,6 +130,7 @@
       "missingMoveIdentifier": "缺少可移动的节点标识",
       "renameFailed": "重命名失败",
       "moveFailed": "移动失败",
+      "createFolderFailed": "创建文件夹失败",
       "renameNotConfigured": "未配置重命名函数",
       "moveNotConfigured": "未配置移动函数"
     }

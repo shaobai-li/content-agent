@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState, Fragment } from "react";
 import { http } from "@/shared/api/http";
@@ -125,7 +125,7 @@ function ProviderSettings() {
         <p className="text-sm text-muted-foreground">{t("providers.empty")}</p>
       )}
 
-      {/* 渚涘簲鍟嗗垪琛?鈥?鍙姌鍙犲崱鐗?*/}
+      {/* 供应商列表 — 可折叠卡片 */}
       <div className="divide-y divide-border rounded-lg border border-border overflow-hidden bg-card">
         {providers.map((p) => {
           const isExpanded = expandedProvider === p.provider;
@@ -134,13 +134,13 @@ function ProviderSettings() {
 
           return (
             <Fragment key={p.provider}>
-              {/* 渚涘簲鍟嗚澶?*/}
+              {/* 供应商行头 */}
               <div
                 className={`flex items-center gap-3 px-5 py-4 w-full ${
                   isConnected ? "" : "cursor-pointer hover:bg-muted/50"
                 } transition-colors`}
               >
-                {/* 鐐瑰嚮鍖哄煙锛氭湭杩炴帴鏃舵暣琛岀偣鍑诲睍寮€锛屽凡杩炴帴鏃朵笉鍙偣鍑?*/}
+                {/* 点击区域：未连接时整行点击展开，已连接时不可点击 */}
                 <div
                   role={isConnected ? undefined : "button"}
                   tabIndex={isConnected ? undefined : 0}
@@ -159,7 +159,7 @@ function ProviderSettings() {
                   </div>
                 </div>
 
-                {/* 鐘舵€佹寚绀?*/}
+                {/* 状态指示 */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span
                     className={`size-1.5 rounded-full shrink-0 ${
@@ -179,7 +179,7 @@ function ProviderSettings() {
                   </span>
                 </div>
 
-                {/* 鎸夐挳鍖哄煙锛氬凡杩炴帴 鈫?娓呴櫎鍙夊彿 / 鏈繛鎺?鈫?灞曞紑/鎶樺彔绠ご */}
+                {/* 按钮区域：已连接 → 清除叉号 / 未连接 → 展开/折叠箭头 */}
                 {isConnected ? (
                   <button
                     type="button"
@@ -218,10 +218,10 @@ function ProviderSettings() {
                 )}
               </div>
 
-              {/* 灞曞紑鐨勯厤缃尯鍩?*/}
+              {/* 展开的配置区域 */}
               {isExpanded && (
                 <div className="px-5 py-4 bg-muted/30 space-y-3">
-                  {/* API Key + Save 鎸夐挳宓屽叆 */}
+                  {/* API Key + Save 按钮嵌入 */}
                   <div className="relative border border-input rounded-md bg-card overflow-hidden focus-within:border-ring transition-colors">
                     <input
                       id={`key-${p.provider}`}
