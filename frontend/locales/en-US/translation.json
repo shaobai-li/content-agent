@@ -1,0 +1,182 @@
+{
+  "common": {
+    "appName": "OmniAge",
+    "send": "Send",
+    "loading": "Loading...",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved!",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "error": {
+      "loadFailed": "Failed to load",
+      "saveFailed": "Failed to save",
+      "deleteFailed": "Failed to delete",
+      "uploadFailed": "Failed to upload"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "nav": {
+      "general": "General",
+      "providers": "Providers",
+      "account": "Account",
+      "about": "About"
+    },
+    "language": {
+      "label": "Language",
+      "desc": "Change the display language of OmniAge"
+    },
+    "userDataDir": {
+      "label": "User Data Directory",
+      "placeholder": "Leave blank to use default location"
+    }
+  },
+  "sidebar": {
+    "settings": "Settings",
+    "logout": "Logout",
+    "hide": "Hide",
+    "nav": {
+      "history": "Chat History",
+      "knowledgeBase": "Knowledge Base",
+      "document": "Canvas",
+      "settings": "Settings",
+      "management": "Management"
+    }
+  },
+  "settingsPanel": {
+    "tabs": {
+      "system": "System",
+      "application": "Application",
+      "personalization": "Personalization",
+      "capability": "Capability"
+    },
+    "skills": {
+      "loading": "Loading...",
+      "empty": "No skills yet",
+      "newSkill": "New Skill",
+      "uploading": "Uploading...",
+      "words": "Words",
+      "confirmDelete": {
+        "title": "Confirm Deletion",
+        "description": "Are you sure you want to delete skill \"{{name}}\"?",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "enableLabel": "Enable {{name}}",
+      "disableLabel": "Disable {{name}}"
+    },
+    "prompts": {
+      "save": "Save",
+      "saving": "Saving...",
+      "saved": "Saved!",
+      "cancel": "Cancel"
+    },
+    "header": {
+      "title": "SETTINGS"
+    }
+  },
+  "about": {
+    "section": {
+      "buildInfo": "Build Info",
+      "runtime": "Runtime",
+      "beta": "Internal Beta"
+    },
+    "buildInfo": {
+      "commit": "Commit",
+      "buildTime": "Build Time"
+    },
+    "runtime": {
+      "os": "Operating System"
+    },
+    "beta": {
+      "description": "Internal beta version for invited users only. If you encounter any issues or have feedback, please contact the development team."
+    },
+    "copyright": "© {{year}} OmniAge. All rights reserved."
+  },
+  "providers": {
+    "empty": "No API keys to configure",
+    "connectUsing": "Connect using {{name}} API key",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "clearTitle": "Clear API Key",
+    "inputPlaceholder": "Enter API Key",
+    "error": {
+      "clearFailed": "Failed to clear"
+    }
+  },
+  "data": {
+    "view": "View",
+    "move": "Move",
+    "rename": "Rename",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "empty": "No data",
+    "noResults": "No matching files or folders",
+    "folderEmpty": "This folder is empty",
+    "rootLabel": "DATA",
+    "breadcrumbEllipsis": "Expand hidden breadcrumb levels",
+    "confirmDelete": {
+      "title": "Confirm Deletion",
+      "description": "Are you sure you want to delete \"{{name}}\"?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "error": {
+      "deleteFailed": "Failed to delete, please retry",
+      "missingIdentifier": "Missing deletable node identifier",
+      "missingRenameIdentifier": "Missing renamable node identifier",
+      "missingMoveIdentifier": "Missing movable node identifier",
+      "renameFailed": "Failed to rename",
+      "moveFailed": "Failed to move",
+      "renameNotConfigured": "Rename function not configured",
+      "moveNotConfigured": "Move function not configured"
+    }
+  },
+  "kb": {
+    "title": "KNOWLEDGE BASE",
+    "search": "Search",
+    "newKnowledgeBase": "New Knowledge Base",
+    "newFolder": "New Folder",
+    "createNew": "Create new item",
+    "createFailed": "Failed to create knowledge base",
+    "empty": "No knowledge found",
+    "columnName": "文件名",
+    "columnType": "类型",
+    "columnSize": "大小",
+    "columnDate": "添加时间",
+    "folderLabel": "文件夹",
+    "backToList": "Back to database list"
+  },
+  "chat": {
+    "inputPlaceholder": "Type messages...",
+    "noModel": "Not configured"
+  },
+  "mcp": {
+    "title": "MCP Servers",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search servers...",
+    "addServer": "Add Server",
+    "loading": "Loading...",
+    "noResults": "No matching servers found",
+    "empty": "No MCP servers yet. Click \"Add Server\" above to configure.",
+    "editTitle": "Edit MCP Server",
+    "addTitle": "Add MCP Server",
+    "formatHint": "Format: { \"name\": \"server-name\", \"command\": \"python\", \"args\": [\"-m\", \"my_server\"], ... }",
+    "unconfigured": "No command or URL configured",
+    "edit": "Edit",
+    "remove": "Remove",
+    "confirmDelete": {
+      "title": "Confirm Deletion",
+      "description": "Are you sure you want to delete MCP server \"{{name}}\"?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "error": {
+      "nameRequired": "Server name is required",
+      "saveFailed": "Save failed, please retry",
+      "invalidJson": "Invalid JSON format, please check and retry"
+    }
+  }
+}
