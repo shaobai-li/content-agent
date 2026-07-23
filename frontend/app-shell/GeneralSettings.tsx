@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { http } from "@/shared/api/http";
@@ -44,7 +44,7 @@ function GeneralSettings() {
       await http.put("/api/settings/env", { user_data_dir: userDataDir });
       setUserDataDirOriginal(userDataDir);
       await refresh();
-      // 閫氱煡 ChatPage 绛夌粍浠?provider 閰嶇疆宸插彉鏇达紝閲嶆柊鎷夊彇妯″瀷鍒楄〃
+      // 通知 ChatPage 等组件 provider 配置已变更，重新拉取模型列表
       window.dispatchEvent(new CustomEvent("provider-config-changed"));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error.saveFailed"));
@@ -59,12 +59,12 @@ function GeneralSettings() {
     <div className="flex flex-col gap-4">
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {/* 璇█鍒囨崲 */}
+      {/* 语言切换 */}
       <LanguageSelector />
 
       <div className="border-t border-border" />
 
-      {/* 鐢ㄦ埛鏁版嵁瀛樺偍鐩綍 */}
+      {/* 用户数据存储目录 */}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="env-user-data-dir" className="text-sm font-medium text-foreground">
           {t("settings.userDataDir.label")}

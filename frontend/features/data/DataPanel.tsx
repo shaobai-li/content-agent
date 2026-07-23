@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Fragment, useState, useEffect, useCallback, useMemo } from "react";
 import { BookOpen } from "lucide-react";
@@ -49,7 +49,7 @@ export function DataPanel({
   deleteData: deleteDataFn,
   rowKeyField,
   dataKey = "nodes",
-  emptyMessage = "鏆傛棤鏁版嵁",
+  emptyMessage = "暂无数据",
   refreshEvent = "data-panel-refresh",
   columnLabels,
   customRenderers,
@@ -67,7 +67,7 @@ export function DataPanel({
   const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
   const [searchKeyword, setSearchKeyword] = useState("");
 
-  // 鏁版嵁鑾峰彇鍑芥暟
+  // 数据获取函数
   const loadData = useCallback(() => {
     setLoading(true);
     fetchDataFn()
@@ -76,7 +76,7 @@ export function DataPanel({
         setLoading(false);
       })
       .catch((err) => {
-        console.error("鑾峰彇鏁版嵁澶辫触:", err);
+        console.error("获取数据失败:", err);
         setLoading(false);
       });
   }, [fetchDataFn, dataKey]);
@@ -201,7 +201,7 @@ export function DataPanel({
     };
   }, [customRenderers]);
 
-  // 鍒犻櫎澶勭悊鍑芥暟
+  // 删除处理函数
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
 
   const handleRemove = useCallback(
@@ -240,7 +240,7 @@ export function DataPanel({
       toast.error(t("data.error.deleteFailed"));
     }
     setDeleteConfirm(null);
-  }, [deleteConfirm, deleteDataFn, onRemove, loadData]);
+  }, [deleteConfirm, deleteDataFn, onRemove, loadData, t]);
 
   const handleRename = useCallback(async (record: any, name: string) => {
     if (!renameDataFn) {
@@ -263,7 +263,7 @@ export function DataPanel({
     }
 
     loadData();
-  }, [renameDataFn, loadData]);
+  }, [renameDataFn, loadData, t]);
 
   const handleMove = useCallback(async (record: any, parentId: string) => {
     if (!moveDataFn) {
@@ -286,7 +286,7 @@ export function DataPanel({
     }
 
     loadData();
-  }, [moveDataFn, loadData]);
+  }, [moveDataFn, loadData, t]);
 
   const handleView = useCallback((record: any) => {
     if (record?.node_type === "folder" && typeof record.id === "string") {
@@ -297,7 +297,7 @@ export function DataPanel({
     onView?.(record);
   }, [onView]);
 
-  // 鍒濆鍔犺浇
+  // 初始加载
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -333,10 +333,10 @@ export function DataPanel({
     };
   }, []);
 
-  // 鐩戝惉鑷畾涔夊埛鏂颁簨浠?
+  // 监听自定义刷新事件
   useEffect(() => {
     const handleRefresh = () => {
-      console.log(`鏀跺埌鍒锋柊浜嬩欢: ${refreshEvent}`);
+      console.log(`收到刷新事件: ${refreshEvent}`);
       loadData();
     };
 
