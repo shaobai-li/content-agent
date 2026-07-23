@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState, Fragment } from "react";
 import { http } from "@/shared/api/http";
 import { Button } from "@/shared/ui/button";
 import { Loader2, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ProviderInfo {
   provider: string;
@@ -18,6 +19,7 @@ interface EnvResponse {
 }
 
 function ProviderSettings() {
+  const { t } = useTranslation();
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,11 +35,11 @@ function ProviderSettings() {
       const data = await http.get<EnvResponse>("/api/settings/env");
       setProviders(data.providers);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "加载失败");
+      setError(err instanceof Error ? err.message : t("common.error.loadFailed"));
     } finally {
       if (showLoading) setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     refresh();
@@ -74,12 +76,12 @@ function ProviderSettings() {
         await refresh(false);
         setExpandedProvider(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "保存失败");
+        setError(err instanceof Error ? err.message : t("common.error.saveFailed"));
       } finally {
         setSavingProvider(null);
       }
     },
-    [dirty, refresh],
+    [dirty, refresh, t],
   );
 
   const handleClearProvider = useCallback(async (providerName: string) => {
@@ -97,11 +99,11 @@ function ProviderSettings() {
         return next;
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "清除失败");
+      setError(err instanceof Error ? err.message : t("providers.error.clearFailed"));
     } finally {
       setClearingProvider(null);
     }
-  }, [refresh]);
+  }, [refresh, t]);
 
   const handleToggleProvider = useCallback((providerName: string) => {
     setExpandedProvider((prev) => (prev === providerName ? null : providerName));
@@ -120,10 +122,10 @@ function ProviderSettings() {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       {providers.length === 0 && !loading && (
-        <p className="text-sm text-muted-foreground">无可配置的 API Key</p>
+        <p className="text-sm text-muted-foreground">{t("providers.empty")}</p>
       )}
 
-      {/* 供应商列表 — 可折叠卡片 */}
+      {/* 渚涘簲鍟嗗垪琛?鈥?鍙姌鍙犲崱鐗?*/}
       <div className="divide-y divide-border rounded-lg border border-border overflow-hidden bg-card">
         {providers.map((p) => {
           const isExpanded = expandedProvider === p.provider;
@@ -132,13 +134,13 @@ function ProviderSettings() {
 
           return (
             <Fragment key={p.provider}>
-              {/* 供应商行头 */}
+              {/* 渚涘簲鍟嗚澶?*/}
               <div
                 className={`flex items-center gap-3 px-5 py-4 w-full ${
                   isConnected ? "" : "cursor-pointer hover:bg-muted/50"
                 } transition-colors`}
               >
-                {/* 点击区域：未连接时整行点击展开，已连接时不可点击 */}
+                {/* 鐐瑰嚮鍖哄煙锛氭湭杩炴帴鏃舵暣琛岀偣鍑诲睍寮€锛屽凡杩炴帴鏃朵笉鍙偣鍑?*/}
                 <div
                   role={isConnected ? undefined : "button"}
                   tabIndex={isConnected ? undefined : 0}
@@ -153,11 +155,11 @@ function ProviderSettings() {
                 >
                   <div className="text-sm font-semibold text-foreground">{p.display_name}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    使用 {p.display_name} API 密钥连接
+                    {t("providers.connectUsing", { name: p.display_name })}
                   </div>
                 </div>
 
-                {/* 状态指示 */}
+                {/* 鐘舵€佹寚绀?*/}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span
                     className={`size-1.5 rounded-full shrink-0 ${
@@ -173,18 +175,18 @@ function ProviderSettings() {
                         : "text-muted-foreground"
                     }`}
                   >
-                    {isConnected ? "已连接" : "未连接"}
+                    {isConnected ? t("providers.connected") : t("providers.disconnected")}
                   </span>
                 </div>
 
-                {/* 按钮区域：已连接 → 清除叉号 / 未连接 → 展开/折叠箭头 */}
+                {/* 鎸夐挳鍖哄煙锛氬凡杩炴帴 鈫?娓呴櫎鍙夊彿 / 鏈繛鎺?鈫?灞曞紑/鎶樺彔绠ご */}
                 {isConnected ? (
                   <button
                     type="button"
                     onClick={() => handleClearProvider(p.provider)}
                     disabled={clearingProvider === p.provider}
                     className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
-                    title="清除 API Key"
+                    title={t("providers.clearTitle")}
                   >
                     {clearingProvider === p.provider ? (
                       <Loader2 className="size-4 animate-spin" />
@@ -216,16 +218,16 @@ function ProviderSettings() {
                 )}
               </div>
 
-              {/* 展开的配置区域 */}
+              {/* 灞曞紑鐨勯厤缃尯鍩?*/}
               {isExpanded && (
                 <div className="px-5 py-4 bg-muted/30 space-y-3">
-                  {/* API Key + Save 按钮嵌入 */}
+                  {/* API Key + Save 鎸夐挳宓屽叆 */}
                   <div className="relative border border-input rounded-md bg-card overflow-hidden focus-within:border-ring transition-colors">
                     <input
                       id={`key-${p.provider}`}
                       type="password"
                       className="w-full px-3 py-2.5 pr-[70px] text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
-                      placeholder="输入 API Key"
+                      placeholder={t("providers.inputPlaceholder")}
                       value={getValue(p.provider)}
                       onChange={(e) => handleApiKeyChange(p.provider, e.target.value)}
                       autoComplete="new-password"
@@ -241,7 +243,7 @@ function ProviderSettings() {
                       {savingProvider === p.provider && (
                         <Loader2 className="size-3.5 animate-spin" />
                       )}
-                      Save
+                      {t("common.save")}
                     </Button>
                   </div>
                 </div>
@@ -255,3 +257,4 @@ function ProviderSettings() {
 }
 
 export { ProviderSettings };
+

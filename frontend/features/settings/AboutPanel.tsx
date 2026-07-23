@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "react-i18next";
+
 function getOsName(): string {
   const ua = navigator.userAgent;
   if (ua.includes("Windows")) return "Windows";
@@ -8,10 +10,10 @@ function getOsName(): string {
   return "Unknown";
 }
 
-function formatBuildTime(iso: string): string {
+function formatBuildTime(iso: string, locale: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleString("zh-CN", {
+    return d.toLocaleString(locale, {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -24,6 +26,7 @@ function formatBuildTime(iso: string): string {
 }
 
 export function AboutPanel() {
+  const { t, i18n } = useTranslation();
   const buildInfo = __BUILD_INFO__;
   const osName = getOsName();
 
@@ -38,19 +41,19 @@ export function AboutPanel() {
       {/* ── 构建信息 ── */}
       <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm shadow-sm">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          构建信息
+          {t("about.section.buildInfo")}
         </h4>
         <dl className="flex flex-col gap-1.5">
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Commit</dt>
+            <dt className="text-muted-foreground">{t("about.buildInfo.commit")}</dt>
             <dd className="font-mono text-foreground">
               <code>{buildInfo.commit}</code>
             </dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">构建时间</dt>
+            <dt className="text-muted-foreground">{t("about.buildInfo.buildTime")}</dt>
             <dd className="text-foreground">
-              {formatBuildTime(buildInfo.buildTime)}
+              {formatBuildTime(buildInfo.buildTime, i18n.language === "en-US" ? "en-US" : "zh-CN")}
             </dd>
           </div>
         </dl>
@@ -59,11 +62,11 @@ export function AboutPanel() {
       {/* ── 运行环境 ── */}
       <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm shadow-sm">
         <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          运行环境
+          {t("about.section.runtime")}
         </h4>
         <dl className="flex flex-col gap-1.5">
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">操作系统</dt>
+            <dt className="text-muted-foreground">{t("about.runtime.os")}</dt>
             <dd className="text-foreground">{osName}</dd>
           </div>
         </dl>
@@ -71,15 +74,15 @@ export function AboutPanel() {
 
       {/* ── Beta Notice ── */}
       <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm shadow-sm">
-        <p className="font-medium text-foreground">Internal Beta</p>
+        <p className="font-medium text-foreground">{t("about.section.beta")}</p>
         <p className="mt-1 text-muted-foreground">
-          内部测试版本，仅供受邀用户使用。如遇到问题或需要反馈，请联系开发团队。
+          {t("about.beta.description")}
         </p>
       </div>
 
       {/* ── 版权 ── */}
       <p className="text-center text-xs text-muted-foreground">
-        &copy; {new Date().getFullYear()} OmniAge. All rights reserved.
+        {t("about.copyright", { year: new Date().getFullYear() })}
       </p>
     </div>
   );

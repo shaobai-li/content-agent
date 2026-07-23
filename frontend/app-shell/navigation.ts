@@ -2,10 +2,11 @@ import type { MenuItem, RouteItem } from "@/app-shell/Sidebar";
 import { agentRegistry } from "@/entities/agent/agent.registry";
 import type { UIModule } from "@/entities/agent/model";
 
+// 左侧面板模块 → 翻译 key 映射
 const LEFT_MODULE_LABEL_MAP: Record<Exclude<UIModule, "chat" | "settings" | "management">, string> = {
-  history: "Chat History",
-  knowledgebase: "Knowledge Base",
-  document: "Canvas",
+  history: "history",
+  knowledgebase: "knowledgeBase",
+  document: "document",
 };
 
 export function getSidebarRoutes(): RouteItem[] {
@@ -16,20 +17,20 @@ export function getSidebarRoutes(): RouteItem[] {
           m !== "chat" && m !== "settings" && m !== "management",
       )
       .map((module) => ({
-        label: LEFT_MODULE_LABEL_MAP[module],
+        labelKey: `sidebar.nav.${LEFT_MODULE_LABEL_MAP[module]}`,
         href: `/agent/${agent.id}?left=${module}`,
         icon: module,
       }));
 
     menuItems.push({
-      label: "Settings",
+      labelKey: "sidebar.nav.settings",
       icon: "settings",
       href: `/agent/${agent.id}?left=settings`,
     });
 
     if (agent.id === "admin") {
       menuItems.push({
-        label: "Management",
+        labelKey: "sidebar.nav.management",
         icon: "management",
         href: `/agent/${agent.id}?left=management`,
       });

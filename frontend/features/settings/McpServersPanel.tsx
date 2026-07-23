@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import { Plus, RotateCw } from "lucide-react";
@@ -24,6 +24,7 @@ import { Input } from "@/shared/ui/input";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { useMcpSettings, type McpServerConfig } from "./useMcpSettings";
+import { useTranslation } from "react-i18next";
 
 // ── Component ─────────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ interface McpServersPanelProps {
 }
 
 export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
+  const { t } = useTranslation();
   const { servers, loading, error, load, save } = useMcpSettings();
 
   // Dialog state
@@ -77,7 +79,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
       setJsonError(null);
       const parsed = JSON.parse(jsonInput);
       if (!parsed.name?.trim()) {
-        setJsonError("服务器名称不能为空");
+        setJsonError(t("mcp.error.nameRequired"));
         return;
       }
 
@@ -87,10 +89,10 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
       if (ok) {
         setDialogOpen(false);
       } else {
-        setJsonError(error || "保存失败，请重试");
+        setJsonError(t("mcp.error.saveFailed"));
       }
     } catch {
-      setJsonError("JSON 格式错误，请检查后重试");
+      setJsonError(t("mcp.error.invalidJson"));
     }
   };
 
@@ -100,17 +102,17 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
     <div className="flex flex-col gap-5">
       {/* ── Header ──────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-foreground">MCP 服务器</h3>
+        <h3 className="text-base font-semibold text-foreground">{t("mcp.title")}</h3>
         <Button
           type="button"
           variant="ghost"
           size="sm"
           className="text-muted-foreground hover:text-foreground"
-          title="刷新"
+          title={t("mcp.refresh")}
           onClick={load}
         >
           <RotateCw className="size-3.5" />
-          刷新
+          {t("mcp.refresh")}
         </Button>
       </div>
 
@@ -120,7 +122,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
       {/* ── Toolbar ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <Input
-          placeholder="搜索服务器..."
+          placeholder={t("mcp.searchPlaceholder")}
           className="max-w-60 h-9 text-sm"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -132,19 +134,19 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
             size="sm"
           >
             <Plus className="size-3.5" />
-            添加服务器
+            {t("mcp.addServer")}
           </Button>
         </div>
       </div>
 
       {/* ── Server Card Grid ────────────────────────────────────── */}
       {loading ? (
-        <p className="py-12 text-center text-sm text-muted-foreground">加载中...</p>
+        <p className="py-12 text-center text-sm text-muted-foreground">{t("mcp.loading")}</p>
       ) : filteredNames.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">
           {searchQuery.trim()
-            ? "未找到匹配的服务器"
-            : "暂无 MCP 服务器，点击上方\"添加服务器\"开始配置"}
+            ? t("mcp.noResults")
+            : t("mcp.empty")}
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -165,13 +167,13 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingName ? "编辑 MCP 服务器" : "添加 MCP 服务器"}
+              {editingName ? t("mcp.editTitle") : t("mcp.addTitle")}
             </DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-4 py-2">
             <p className="text-xs text-muted-foreground">
-              格式：{"{ \"name\": \"server-name\", \"command\": \"python\", \"args\": [\"-m\", \"my_server\"], ... }"}
+              {t("mcp.formatHint")}
             </p>
             <div className="flex flex-col gap-1.5">
               <textarea
@@ -197,13 +199,13 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
               variant="outline"
               onClick={() => setDialogOpen(false)}
             >
-              取消
+              {t("common.cancel")}
             </Button>
             <Button
               type="button"
               onClick={handleSave}
             >
-              保存
+              {t("common.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -218,13 +220,13 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogTitle>{t("mcp.confirmDelete.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除 MCP 服务器「{deleteConfirm ?? ""}」吗？
+              {t("mcp.confirmDelete.description", { name: deleteConfirm ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t("mcp.confirmDelete.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() => {
@@ -235,7 +237,7 @@ export function McpServersPanel({ agentId: _agentId }: McpServersPanelProps) {
                 setDeleteConfirm(null);
               }}
             >
-              删除
+              {t("mcp.confirmDelete.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -257,6 +259,7 @@ function ServerCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const transport: string =
     config.transport ||
     (config.command
@@ -285,7 +288,7 @@ function ServerCard({
             ? `command: ${config.command} ${(config.args || []).join(" ")}`
             : config.url
               ? `url: ${config.url}`
-              : "未配置 command 或 url"}
+              : t("mcp.unconfigured")}
         </span>
       </CardContent>
 
@@ -293,9 +296,9 @@ function ServerCard({
       <CardContent className="flex shrink-0 flex-col gap-0 px-4 pb-0">
         <div className="w-full border-t border-border" />
         <div className="flex items-center gap-4 pt-3">
-          <Button variant="ghost" size="sm" onClick={onEdit}>编辑</Button>
+          <Button variant="ghost" size="sm" onClick={onEdit}>{t("mcp.edit")}</Button>
           <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive hover:text-white" onClick={onDelete}>
-            移除
+            {t("mcp.remove")}
           </Button>
         </div>
       </CardContent>
