@@ -121,7 +121,7 @@ def _resolve_agent_base_dir(agent_id: str, user_id: str) -> Path:
     user_config = _load_user_config(user_id)
     user_data_dir = (user_config.get("user_data_dir") or "").strip()
     if user_data_dir:
-        return (Path(user_data_dir).resolve() / agent_id).resolve()
+        return (Path(user_data_dir).resolve() / f"u_{user_id}" / agent_id).resolve()
     else:
         return (default_base / agent_id).resolve()
 
@@ -182,7 +182,7 @@ def _resolve_base_dir_with_override(agent_id: str, user_id: str, user_data_dir: 
 
     udd = user_data_dir.strip() if user_data_dir else ""
     if udd:
-        return (Path(udd).resolve() / agent_id).resolve()
+        return (Path(udd).resolve() / f"u_{user_id}" / agent_id).resolve()
     else:
         return (default_base / agent_id).resolve()
 

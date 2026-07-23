@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 from fastapi import HTTPException, Request
 
-from app.core.config import DEFAULT_DATA_DIR, parse_system_md_frontmatter
+from app.core.config import DEFAULT_DATA_DIR, _load_user_config, parse_system_md_frontmatter
 
 _user_id_var: ContextVar[str] = ContextVar("user_id")
 _user_agents_var: ContextVar[Dict[str, Dict[str, Any]]] = ContextVar("user_agents")
@@ -20,8 +20,17 @@ def get_current_user_id() -> str:
 
 
 def _load_user_agent_configs(user_id: str) -> Dict[str, Dict[str, Any]]:
-    """扫描 DEFAULT_DATA_DIR/u_{user_id}/*/SYSTEM.md，目录名即 agent_id。"""
-    user_dir = DEFAULT_DATA_DIR / f"u_{user_id}"
+    """扫描用户数据目录下的 SYSTEM.md，目录名即 agent_id。
+
+    数据根目录根据 user_data_dir 设置决定：
+    - 设置了 user_data_dir → {user_data_dir}/u_{user_id}/
+    - 未设置 → DEFAULT_DATA_DIR/u_{user_id}/
+    """
+    user_config = _load_user_config(user_id)
+    user_data_dir = (user_config.get("user_data_dir") or "").strip()
+    data_root = Path(user_data_dir).resolve() if user_data_dir else DEFAULT_DATA_DIR
+    user_dir = data_root / f"u_{user_id}"
+
     result: Dict[str, Dict[str, Any]] = {}
     if not user_dir.is_dir():
         return result
