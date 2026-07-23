@@ -888,4 +888,64 @@ mod tests {
         copy_dir_all(&old_std, &new_std).unwrap();
         assert_eq!(std::fs::read_to_string(new_std.join("SYSTEM.md")).unwrap(), "old-prompt");
     }
+
+    // ── check_and_migrate_old_user_data_dir_format ────────────────────
+
+    #[test]
+    fn test_check_and_migrate_old_format_copies_to_new() {
+        let tmp = tempfile::tempdir().unwrap();
+        let udd = tmp.path().join("user_data");
+
+        std::fs::create_dir_all(udd.join("std")).unwrap();
+        std::fs::write(udd.join("std").join("SYSTEM.md"), "old-prompt").unwrap();
+        std::fs::create_dir_all(udd.join("custom_agent")).unwrap();
+        std::fs::write(udd.join("custom_agent").join("SYSTEM.md"), "custom").unwrap();
+
+        check_and_migrate_old_user_data_dir_format("u1", udd.to_str().unwrap());
+
+        assert_eq!(std::fs::read_to_string(udd.join("u_u1").join("std").join("SYSTEM.md")).unwrap(), "old-prompt");
+        assert_eq!(std::fs::read_to_string(udd.join("u_u1").join("custom_agent").join("SYSTEM.md")).unwrap(), "custom");
+        // 旧格式数据应保留
+        assert!(udd.join("std").join("SYSTEM.md").exists());
+    }
+
+    #[test]
+    fn test_check_and_migrate_old_format_skips_admin() {
+        let tmp = tempfile::tempdir().unwrap();
+        let udd = tmp.path().join("user_data");
+
+        std::fs::create_dir_all(udd.join("admin")).unwrap();
+        std::fs::write(udd.join("admin").join("SYSTEM.md"), "admin-prompt").unwrap();
+        std::fs::create_dir_all(udd.join("std")).unwrap();
+        std::fs::write(udd.join("std").join("SYSTEM.md"), "std-prompt").unwrap();
+
+        check_and_migrate_old_user_data_dir_format("u1", udd.to_str().unwrap());
+
+        // admin 不应迁移
+        assert!(!udd.join("u_u1").join("admin").exists());
+        // std 应迁移
+        assert_eq!(std::fs::read_to_string(udd.join("u_u1").join("std").join("SYSTEM.md")).unwrap(), "std-prompt");
+    }
+
+    #[test]
+    fn test_check_and_migrate_old_format_skips_if_new_exists() {
+        let tmp = tempfile::tempdir().unwrap();
+        let udd = tmp.path().join("user_data");
+
+        std::fs::create_dir_all(udd.join("std")).unwrap();
+        std::fs::write(udd.join("std").join("SYSTEM.md"), "old-prompt").unwrap();
+        std::fs::create_dir_all(udd.join("u_u1").join("std")).unwrap();
+        std::fs::write(udd.join("u_u1").join("std").join("SYSTEM.md"), "existing").unwrap();
+
+        check_and_migrate_old_user_data_dir_format("u1", udd.to_str().unwrap());
+
+        // 不应覆盖
+        assert_eq!(std::fs::read_to_string(udd.join("u_u1").join("std").join("SYSTEM.md")).unwrap(), "existing");
+    }
+
+    #[test]
+    fn test_check_and_migrate_old_format_skips_empty_udd() {
+        // user_data_dir 为空时跳过（不崩溃）
+        check_and_migrate_old_user_data_dir_format("u1", "");
+    }
 }
