@@ -226,7 +226,7 @@ fn resolve_agent_base_dir_with_udd(agent_id: &str, user_id: &str, user_data_dir:
 
     let trimmed = user_data_dir.trim();
     if !trimmed.is_empty() {
-        PathBuf::from(trimmed).join(agent_id)
+        PathBuf::from(trimmed).join(format!("u_{}", user_id)).join(agent_id)
     } else {
         default_base.join(agent_id)
     }
