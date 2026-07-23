@@ -28,4 +28,15 @@ i18n
     returnNull: false,
   });
 
+// 同步 <html lang> 属性以支持 a11y（屏幕阅读器等辅助技术）
+i18n.on("languageChanged", (lng) => {
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = lng;
+  }
+});
+// 初始化时设置
+if (typeof document !== "undefined") {
+  document.documentElement.lang = i18n.language;
+}
+
 export default i18n;
