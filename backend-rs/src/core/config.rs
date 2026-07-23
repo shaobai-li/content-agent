@@ -371,6 +371,45 @@ fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+/// 检测并迁移旧格式的 user_data_dir 数据。
+///
+/// 旧格式：{user_data_dir}/<agent_id>/（无 u_{user_id}）
+/// 新格式：{user_data_dir}/u_{user_id}/<agent_id>/
+/// 在新路径不存在、旧路径存在时执行一次迁移。
+pub(crate) fn check_and_migrate_old_user_data_dir_format(user_id: &str, user_data_dir: &str) {
+    let trimmed = user_data_dir.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+    let old_root = PathBuf::from(trimmed);
+    if !old_root.is_dir() {
+        return;
+    }
+    let new_root = old_root.join(format!("u_{}", user_id));
+    if new_root.exists() {
+        return;
+    }
+    if let Ok(entries) = std::fs::read_dir(&old_root) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            if !path.join("SYSTEM.md").exists() {
+                continue;
+            }
+            let agent_id = entry.file_name().to_string_lossy().to_string();
+            if agent_id == "admin" {
+                continue;
+            }
+            let dst = new_root.join(&agent_id);
+            if !dst.exists() {
+                copy_dir_all(&path, &dst).ok();
+            }
+        }
+    }
+}
+
 /// 当 user_data_dir 变化时，将所有非 admin agent 的 workspace 从旧路径迁移到新路径。
 ///
 /// 在 settings API 写入新 user_data_dir 后调用。
@@ -386,6 +425,9 @@ pub fn migrate_workspace_if_needed(
     if old_user_data_dir == new_user_data_dir {
         return;
     }
+
+    // 先确保旧格式数据迁移到新格式，再执行路径变更迁移
+    check_and_migrate_old_user_data_dir_format(user_id, old_user_data_dir);
 
     let cfg = get_config();
     let data_dir = &cfg.data_dir;

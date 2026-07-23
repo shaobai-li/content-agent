@@ -115,8 +115,37 @@ fn get_effective_user_data_root(user_id: &str, data_dir: &Path) -> PathBuf {
 /// 从 user_data_dir/u_{user_id}/*/SYSTEM.md 加载 custom agent（与 Python 后端一致）。
 fn load_user_agents(user_id: &str) -> HashMap<String, Value> {
     let cfg = get_config();
-    let effective_root = get_effective_user_data_root(user_id, &cfg.data_dir);
+    let data_dir = &cfg.data_dir;
+
+    // 获取 user_data_dir（用于旧格式迁移和计算有效根目录）
+    let user_data_dir = get_user_data_dir(user_id, data_dir);
+
+    // 检测并迁移旧格式数据
+    if let Some(ref udd) = user_data_dir {
+        crate::core::config::check_and_migrate_old_user_data_dir_format(user_id, udd);
+    }
+
+    let effective_root = match &user_data_dir {
+        Some(udd) => PathBuf::from(udd),
+        None => data_dir.clone(),
+    };
     load_user_agents_from(&effective_root, user_id)
+}
+
+/// 从 config.json 读取 user_data_dir（与 get_effective_user_data_root 逻辑一致，返回 Option）。
+fn get_user_data_dir(user_id: &str, data_dir: &Path) -> Option<String> {
+    let config_path = data_dir.join(format!("u_{}", user_id)).join("admin").join("config.json");
+    if let Ok(content) = std::fs::read_to_string(&config_path) {
+        if let Ok(cfg) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(udd) = cfg.get("user_data_dir").and_then(|v| v.as_str()) {
+                let trimmed = udd.trim().to_string();
+                if !trimmed.is_empty() {
+                    return Some(trimmed);
+                }
+            }
+        }
+    }
+    None
 }
 
 /// 内部实现：扫描指定用户目录下的 SYSTEM.md 文件，目录名即 agent_id。
