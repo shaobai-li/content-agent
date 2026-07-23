@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import {
@@ -15,6 +15,7 @@ import { MoveToFolderDialog } from "./MoveToFolderDialog";
 import { RenameModal } from "./RenameModal";
 import type { KnowledgeBaseDragData } from "@/shared/lib/dragData";
 import { writeKnowledgeBaseDragData } from "@/shared/lib/dragData";
+import { useTranslation } from "react-i18next";
 
 interface InferredColumn {
     key: string;
@@ -56,12 +57,13 @@ export function DataTable({
     columnOrder,
     getDragData,
     loading = false,
-    emptyMessage = "暂无数据",
+    emptyMessage = "鏆傛棤鏁版嵁",
     onView,
     onMove,
     onRename,
     onRemove,
 }: DataTableProps) {
+    const { t } = useTranslation();
     const [moveDialogOpen, setMoveDialogOpen] = useState(false);
     const [renameModalOpen, setRenameModalOpen] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
@@ -114,12 +116,12 @@ export function DataTable({
             render: customRenderers[key] || ((row: any) => {
                 const value = row[key];
                 if (Array.isArray(value)) {
-                    return value.length > 0 ? value.join(", ") : "无";
+                    return value.length > 0 ? value.join(", ") : t("data.empty");
                 }
                 return String(value || "");
             }),
         }));
-    }, [data, rowKeyField, columnLabels, customRenderers, columnWidths, columnMinWidths, columnOrder]);
+    }, [data, rowKeyField, columnLabels, customRenderers, columnWidths, columnMinWidths, columnOrder, t]);
 
     const finalColumns: InferredColumn[] = [
         ...columns,
@@ -133,12 +135,12 @@ export function DataTable({
                     <RowActions
                         actions={[
                             {
-                                label: "View",
+                                label: t("data.view"),
                                 icon: <Eye className="size-4" />,
                                 onClick: () => onView?.(record),
                             },
                             {
-                                label: "Move",
+                                label: t("data.move"),
                                 icon: <FolderInput className="size-4" />,
                                 onClick: () => {
                                     setMoveTargetRecord(record);
@@ -146,12 +148,12 @@ export function DataTable({
                                 },
                             },
                             {
-                                label: "Rename",
+                                label: t("data.rename"),
                                 icon: <Pencil className="size-4" />,
                                 onClick: () => handleRenameOpen(record),
                             },
                             {
-                                label: "Delete",
+                                label: t("data.delete"),
                                 icon: <Trash2 className="size-4 text-red-600" />,
                                 destructive: true,
                                 onClick: () => onRemove?.(record),
@@ -166,7 +168,7 @@ export function DataTable({
     if (loading) {
         return (
             <div className="h-full flex items-center justify-center">
-                加载中...
+                {t("data.loading")}
             </div>
         );
     }
@@ -251,3 +253,4 @@ export function DataTable({
         </>
     );
 }
+
