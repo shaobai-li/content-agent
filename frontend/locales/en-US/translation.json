@@ -130,6 +130,7 @@
       "missingMoveIdentifier": "Missing movable node identifier",
       "renameFailed": "Failed to rename",
       "moveFailed": "Failed to move",
+      "createFolderFailed": "Failed to create folder",
       "renameNotConfigured": "Rename function not configured",
       "moveNotConfigured": "Move function not configured"
     }
@@ -142,10 +143,10 @@
     "createNew": "Create new item",
     "createFailed": "Failed to create knowledge base",
     "empty": "No knowledge found",
-    "columnName": "文件名",
-    "columnType": "类型",
-    "columnSize": "大小",
-    "columnDate": "添加时间",
+    "columnName": "Name",
+    "columnType": "Type",
+    "columnSize": "Size",
+    "columnDate": "Date Added",
     "folderLabel": "文件夹",
     "backToList": "Back to database list"
   },

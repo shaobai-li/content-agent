@@ -28,12 +28,8 @@ const COLUMN_LABEL_KEYS: Record<string, string> = {
     created_at: "kb.columnDate",
 };
 
-// 运行时从字典解析列标签（在 DataPanel/DataTable 的渲染上下文中，label 会通过 columnLabels 传给 DataTable，
-// DataTable 用 columnLabels[key] 展示。这里用翻译 key 作为 label，组件内不额外处理，
-// 但为了让列标签也支持 i18n，我们在 DataTable 中用 t() 解析 columnLabels 的值）
-//
-// 注意：当前 DataTable 直接将 columnLabels[key] 作为文本渲染，未做 i18n 转换。
-// 因此这里保持原有中文硬编码，等待 DataTable 的 columnLabels 支持翻译 key 机制。
+// 运行时从 COLUMN_LABEL_KEYS 取翻译 key，DataTable 内通过 t() 解析为最终文本。
+// 如果某个列需要覆盖显示文本（而非翻译 key），直接传入字符串即可。
 
 export const createKnowledgeBasePanelConfig = (agentId: AgentId, databaseId: string): DataPanelConfig => ({
     fetchData: () => fetchKbRecords(agentId, databaseId),
@@ -45,12 +41,7 @@ export const createKnowledgeBasePanelConfig = (agentId: AgentId, databaseId: str
     emptyMessage: "No knowledge found",
     refreshEvent: "kb-data-refresh",
     columnOrder: ["name", "file_ext", "size_bytes", "created_at"],
-    columnLabels: {
-        name: "文件名",
-        file_ext: "类型",
-        size_bytes: "大小",
-        created_at: "添加时间",
-    },
+    columnLabels: COLUMN_LABEL_KEYS,
     columnMinWidths: {
         name: "120px",
         file_ext: "60px",
