@@ -375,7 +375,7 @@ fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
 ///
 /// 旧格式：{user_data_dir}/<agent_id>/（无 u_{user_id}）
 /// 新格式：{user_data_dir}/u_{user_id}/<agent_id>/
-/// 在新路径不存在、旧路径存在时执行一次迁移。
+/// 在新路径不存在、旧路径存在时执行一次迁移（含旧格式至新格式）。
 pub(crate) fn check_and_migrate_old_user_data_dir_format(user_id: &str, user_data_dir: &str) {
     let trimmed = user_data_dir.trim();
     if trimmed.is_empty() {
