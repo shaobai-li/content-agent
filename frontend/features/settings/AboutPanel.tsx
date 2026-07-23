@@ -53,7 +53,7 @@ export function AboutPanel() {
           <div className="flex justify-between">
             <dt className="text-muted-foreground">{t("about.buildInfo.buildTime")}</dt>
             <dd className="text-foreground">
-              {formatBuildTime(buildInfo.buildTime, i18n.language === "en-US" ? "en-US" : "zh-CN")}
+              {formatBuildTime(buildInfo.buildTime, i18n.language)}
             </dd>
           </div>
         </dl>
