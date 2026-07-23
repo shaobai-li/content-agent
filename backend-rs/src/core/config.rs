@@ -665,7 +665,7 @@ mod tests {
         std::fs::write(admin_dir.join("config.json"), &config_content).unwrap();
 
         let result = resolve_agent_base_dir_for("my-agent", "u1", &data_dir);
-        assert_eq!(result, custom_dir.join("my-agent"));
+        assert_eq!(result, custom_dir.join("u_u1").join("my-agent"));
     }
 
     #[test]
@@ -845,7 +845,7 @@ mod tests {
         let data_dir = tmp.path().join("data");
         let custom = tmp.path().join("custom_storage");
         let result = resolve_agent_base_dir_with_udd("my-agent", "u1", custom.to_str().unwrap(), &data_dir);
-        assert_eq!(result, custom.join("my-agent"));
+        assert_eq!(result, custom.join("u_u1").join("my-agent"));
     }
 
     // ── copy_dir_all ───────────────────────────────────────────────
@@ -875,13 +875,12 @@ mod tests {
         let old_root = tmp.path().join("old_data");
         let new_root = tmp.path().join("new_data");
 
-        // Create old workspace for std
-        std::fs::create_dir_all(old_root.join("std")).unwrap();
-        std::fs::write(old_root.join("std").join("SYSTEM.md"), "old-prompt").unwrap();
-
-        // Simulate: old_std path = old_root/std, new_std path = new_root/std
+        // 路径格式：{user_data_dir}/u_{user_id}/<agent_id>/
         let old_std = resolve_agent_base_dir_with_udd("std", "u1", old_root.to_str().unwrap(), &data_dir);
         let new_std = resolve_agent_base_dir_with_udd("std", "u1", new_root.to_str().unwrap(), &data_dir);
+
+        std::fs::create_dir_all(&old_std).unwrap();
+        std::fs::write(old_std.join("SYSTEM.md"), "old-prompt").unwrap();
 
         assert!(old_std.exists());
         assert!(!new_std.exists());
