@@ -1,0 +1,182 @@
+{
+  "common": {
+    "appName": "OmniAge",
+    "send": "发送",
+    "loading": "加载中...",
+    "save": "保存",
+    "saving": "保存中...",
+    "saved": "已保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "confirm": "确认",
+    "error": {
+      "loadFailed": "加载失败",
+      "saveFailed": "保存失败",
+      "deleteFailed": "删除失败",
+      "uploadFailed": "上传失败"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "nav": {
+      "general": "通用",
+      "providers": "Provider",
+      "account": "账户",
+      "about": "关于"
+    },
+    "language": {
+      "label": "语言",
+      "desc": "更改 OmniAge 的显示语言"
+    },
+    "userDataDir": {
+      "label": "用户数据存储目录",
+      "placeholder": "留空则使用默认位置"
+    }
+  },
+  "sidebar": {
+    "settings": "设置",
+    "logout": "退出登录",
+    "hide": "隐藏",
+    "nav": {
+      "history": "聊天记录",
+      "knowledgeBase": "知识库",
+      "document": "画布",
+      "settings": "设置",
+      "management": "管理"
+    }
+  },
+  "settingsPanel": {
+    "tabs": {
+      "system": "系统",
+      "application": "技能",
+      "personalization": "个性化",
+      "capability": "服务器"
+    },
+    "skills": {
+      "loading": "加载中...",
+      "empty": "暂无技能",
+      "newSkill": "New Skill",
+      "uploading": "上传中...",
+      "words": "Words",
+      "confirmDelete": {
+        "title": "确认删除",
+        "description": "确定要删除 skill「{{name}}」吗？",
+        "cancel": "取消",
+        "confirm": "删除"
+      },
+      "enableLabel": "启用 {{name}}",
+      "disableLabel": "禁用 {{name}}"
+    },
+    "prompts": {
+      "save": "保存",
+      "saving": "保存中...",
+      "saved": "已保存",
+      "cancel": "取消"
+    },
+    "header": {
+      "title": "SETTINGS"
+    }
+  },
+  "about": {
+    "section": {
+      "buildInfo": "构建信息",
+      "runtime": "运行环境",
+      "beta": "Internal Beta"
+    },
+    "buildInfo": {
+      "commit": "Commit",
+      "buildTime": "构建时间"
+    },
+    "runtime": {
+      "os": "操作系统"
+    },
+    "beta": {
+      "description": "内部测试版本，仅供受邀用户使用。如遇到问题或需要反馈，请联系开发团队。"
+    },
+    "copyright": "© {{year}} OmniAge. All rights reserved."
+  },
+  "providers": {
+    "empty": "无可配置的 API Key",
+    "connectUsing": "使用 {{name}} API 密钥连接",
+    "connected": "已连接",
+    "disconnected": "未连接",
+    "clearTitle": "清除 API Key",
+    "inputPlaceholder": "输入 API Key",
+    "error": {
+      "clearFailed": "清除失败"
+    }
+  },
+  "data": {
+    "view": "查看",
+    "move": "移动",
+    "rename": "重命名",
+    "delete": "删除",
+    "loading": "加载中...",
+    "empty": "暂无数据",
+    "noResults": "未找到匹配的文件或文件夹",
+    "folderEmpty": "该文件夹为空",
+    "rootLabel": "DATA",
+    "breadcrumbEllipsis": "展开隐藏的面包屑层级",
+    "confirmDelete": {
+      "title": "确认删除",
+      "description": "确定要删除 \"{{name}}\" 吗？",
+      "cancel": "取消",
+      "confirm": "删除"
+    },
+    "error": {
+      "deleteFailed": "删除失败，请重试",
+      "missingIdentifier": "缺少可删除的节点标识",
+      "missingRenameIdentifier": "缺少可重命名的节点标识",
+      "missingMoveIdentifier": "缺少可移动的节点标识",
+      "renameFailed": "重命名失败",
+      "moveFailed": "移动失败",
+      "renameNotConfigured": "未配置重命名函数",
+      "moveNotConfigured": "未配置移动函数"
+    }
+  },
+  "kb": {
+    "title": "KNOWLEDGE BASE",
+    "search": "搜索",
+    "newKnowledgeBase": "新建知识库",
+    "newFolder": "新建文件夹",
+    "createNew": "创建新项目",
+    "createFailed": "创建知识库失败",
+    "empty": "暂无知识",
+    "columnName": "文件名",
+    "columnType": "类型",
+    "columnSize": "大小",
+    "columnDate": "添加时间",
+    "folderLabel": "文件夹",
+    "backToList": "返回数据库列表"
+  },
+  "chat": {
+    "inputPlaceholder": "输入消息...",
+    "noModel": "未配置"
+  },
+  "mcp": {
+    "title": "MCP 服务器",
+    "refresh": "刷新",
+    "searchPlaceholder": "搜索服务器...",
+    "addServer": "添加服务器",
+    "loading": "加载中...",
+    "noResults": "未找到匹配的服务器",
+    "empty": "暂无 MCP 服务器，点击上方\"添加服务器\"开始配置",
+    "editTitle": "编辑 MCP 服务器",
+    "addTitle": "添加 MCP 服务器",
+    "formatHint": "格式：{ \"name\": \"server-name\", \"command\": \"python\", \"args\": [\"-m\", \"my_server\"], ... }",
+    "unconfigured": "未配置 command 或 url",
+    "edit": "编辑",
+    "remove": "移除",
+    "confirmDelete": {
+      "title": "确认删除",
+      "description": "确定要删除 MCP 服务器「{{name}}」吗？",
+      "cancel": "取消",
+      "confirm": "删除"
+    },
+    "error": {
+      "nameRequired": "服务器名称不能为空",
+      "saveFailed": "保存失败，请重试",
+      "invalidJson": "JSON 格式错误，请检查后重试"
+    }
+  }
+}
