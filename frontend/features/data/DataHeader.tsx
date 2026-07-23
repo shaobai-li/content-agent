@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +14,7 @@ import {
 import { NewFolderModal } from "./NewFolderModal";
 import { NewDataModal } from "./NewDataModal";
 import { AgentId } from "@/entities/agent/model";
+import { useTranslation } from "react-i18next";
 
 const ROOT_FOLDER_ID = "fld_root";
 const CURRENT_FOLDER_CHANGE_EVENT = "kb-current-folder-change";
@@ -34,6 +35,7 @@ export function DataHeader({
   databaseId,
   onCreateData,
 }: DataHeaderProps) {
+  const { t } = useTranslation();
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [isNewDataModalOpen, setIsNewDataModalOpen] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState(ROOT_FOLDER_ID);
@@ -69,7 +71,7 @@ export function DataHeader({
   const handleCreateFolder = async (folderName: string) => {
     const response = await createKbFolder(agentId, folderName, currentFolderId, databaseId);
     if (!response.success) {
-      throw new Error(response.message || "创建文件夹失败");
+      throw new Error(response.message || t("data.error.moveFailed"));
     }
 
     window.dispatchEvent(new Event("kb-data-refresh"));
@@ -86,7 +88,7 @@ export function DataHeader({
           <div className="flex items-center bg-muted rounded-md focus-visible:ring-2 px-4 py-0 text-xs">
             <Search className="w-4 h-4 shrink-0 text-muted-foreground" />
             <Input
-              placeholder="Search"
+              placeholder={t("kb.search")}
               className="h-8 text-xs w-full border-none focus-visible:ring-0 placeholder:text-muted-foreground shadow-none"
               value={searchKeyword}
               onChange={(event) => setSearchKeyword(event.target.value)}
@@ -97,7 +99,7 @@ export function DataHeader({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Create new item"
+                aria-label={t("kb.createNew")}
                 className="border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <Plus className="size-4" strokeWidth={3} />
@@ -110,7 +112,7 @@ export function DataHeader({
                   onSelect={() => setIsNewDataModalOpen(true)}
                 >
                   <BookOpen className="size-4" strokeWidth={3} />
-                  <span>New Knowledge Base</span>
+                  <span>{t("kb.newKnowledgeBase")}</span>
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuItem
@@ -118,7 +120,7 @@ export function DataHeader({
                 onSelect={() => setIsNewFolderModalOpen(true)}
               >
                 <FolderPlus className="size-4" strokeWidth={3} />
-                <span>New Folder</span>
+                <span>{t("kb.newFolder")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -127,7 +129,7 @@ export function DataHeader({
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label="Back to database list"
+              aria-label={t("kb.backToList")}
               className="border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
               onClick={onBack}
             >
@@ -151,3 +153,4 @@ export function DataHeader({
     </>
   );
 }
+

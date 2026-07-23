@@ -20,6 +20,21 @@ function formatLocalDateTime(value: unknown) {
     ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+// 列标签翻译 key
+const COLUMN_LABEL_KEYS: Record<string, string> = {
+    name: "kb.columnName",
+    file_ext: "kb.columnType",
+    size_bytes: "kb.columnSize",
+    created_at: "kb.columnDate",
+};
+
+// 运行时从字典解析列标签（在 DataPanel/DataTable 的渲染上下文中，label 会通过 columnLabels 传给 DataTable，
+// DataTable 用 columnLabels[key] 展示。这里用翻译 key 作为 label，组件内不额外处理，
+// 但为了让列标签也支持 i18n，我们在 DataTable 中用 t() 解析 columnLabels 的值）
+//
+// 注意：当前 DataTable 直接将 columnLabels[key] 作为文本渲染，未做 i18n 转换。
+// 因此这里保持原有中文硬编码，等待 DataTable 的 columnLabels 支持翻译 key 机制。
+
 export const createKnowledgeBasePanelConfig = (agentId: AgentId, databaseId: string): DataPanelConfig => ({
     fetchData: () => fetchKbRecords(agentId, databaseId),
     renameData: (nodeId: string, name: string) => renameKbRecord(agentId, nodeId, name, databaseId),
