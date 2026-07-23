@@ -197,6 +197,35 @@ def _copy_workspace(src: Path, dst: Path) -> None:
     shutil.copytree(src, dst, dirs_exist_ok=False)
 
 
+def _check_and_migrate_old_user_data_dir_format(user_id: str, user_data_dir: str) -> None:
+    """检测并迁移旧格式的 user_data_dir 数据。
+
+    旧格式：{user_data_dir}/<agent_id>/（无 u_{user_id}）
+    新格式：{user_data_dir}/u_{user_id}/<agent_id>/
+
+    在新路径不存在、旧路径存在时执行一次迁移。
+    """
+    if not user_data_dir:
+        return
+    old_root = Path(user_data_dir).resolve()
+    if not old_root.is_dir():
+        return
+    new_root = old_root / f"u_{user_id}"
+    if new_root.exists():
+        return  # 新格式已存在，无需迁移
+    for entry in sorted(old_root.iterdir()):
+        if not entry.is_dir():
+            continue
+        if not (entry / "SYSTEM.md").is_file():
+            continue
+        agent_id = entry.name
+        if agent_id == "admin":
+            continue  # admin 始终在 DEFAULT_DATA_DIR
+        new_path = new_root / agent_id
+        if not new_path.exists():
+            _copy_workspace(entry, new_path)
+
+
 def migrate_workspace_if_needed(
     user_id: str,
     old_user_data_dir: str,
@@ -212,6 +241,9 @@ def migrate_workspace_if_needed(
     """
     if old_user_data_dir == new_user_data_dir:
         return
+
+    # 先确保旧格式数据迁移到新格式，再执行路径变更迁移
+    _check_and_migrate_old_user_data_dir_format(user_id, old_user_data_dir)
 
     all_ids: set[str] = set(AGENTS_CONFIG.keys())
     if user_agent_ids:

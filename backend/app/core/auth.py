@@ -29,8 +29,12 @@ def _load_user_agent_configs(user_id: str) -> Dict[str, Dict[str, Any]]:
     user_config = _load_user_config(user_id)
     user_data_dir = (user_config.get("user_data_dir") or "").strip()
     data_root = Path(user_data_dir).resolve() if user_data_dir else DEFAULT_DATA_DIR
-    user_dir = data_root / f"u_{user_id}"
 
+    # 检测并迁移旧格式数据（{user_data_dir}/<agent_id>/ → {user_data_dir}/u_{user_id}/<agent_id>/）
+    from app.core.config import _check_and_migrate_old_user_data_dir_format
+    _check_and_migrate_old_user_data_dir_format(user_id, user_data_dir)
+
+    user_dir = data_root / f"u_{user_id}"
     result: Dict[str, Dict[str, Any]] = {}
     if not user_dir.is_dir():
         return result
