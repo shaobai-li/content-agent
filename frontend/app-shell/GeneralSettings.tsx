@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { http } from "@/shared/api/http";
 import { Button } from "@/shared/ui/button";
 import { Loader2 } from "lucide-react";
 import { LanguageSelector } from "./LanguageSelector";
+import { useTranslation } from "react-i18next";
 
 interface EnvResponse {
   providers: { provider: string; display_name: string; set: boolean; masked: string }[];
@@ -12,6 +13,7 @@ interface EnvResponse {
 }
 
 function GeneralSettings() {
+  const { t } = useTranslation();
   const DEFAULT_USER_DATA_DIR = "";
   const [userDataDir, setUserDataDir] = useState(DEFAULT_USER_DATA_DIR);
   const [userDataDirOriginal, setUserDataDirOriginal] = useState(DEFAULT_USER_DATA_DIR);
@@ -27,9 +29,9 @@ function GeneralSettings() {
         setUserDataDirOriginal(data.user_data_dir);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "加载失败");
+      setError(err instanceof Error ? err.message : t("common.error.loadFailed"));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     refresh();
@@ -42,14 +44,14 @@ function GeneralSettings() {
       await http.put("/api/settings/env", { user_data_dir: userDataDir });
       setUserDataDirOriginal(userDataDir);
       await refresh();
-      // 通知 ChatPage 等组件 provider 配置已变更，重新拉取模型列表
+      // 閫氱煡 ChatPage 绛夌粍浠?provider 閰嶇疆宸插彉鏇达紝閲嶆柊鎷夊彇妯″瀷鍒楄〃
       window.dispatchEvent(new CustomEvent("provider-config-changed"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "保存失败");
+      setError(err instanceof Error ? err.message : t("common.error.saveFailed"));
     } finally {
       setSavingUserDataDir(false);
     }
-  }, [userDataDir, refresh]);
+  }, [userDataDir, refresh, t]);
 
   const userDataDirChanged = userDataDir !== userDataDirOriginal;
 
@@ -57,22 +59,22 @@ function GeneralSettings() {
     <div className="flex flex-col gap-4">
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {/* 语言切换 — UI 骨架，功能待后续实现 */}
+      {/* 璇█鍒囨崲 */}
       <LanguageSelector />
 
       <div className="border-t border-border" />
 
-      {/* 用户数据存储目录 */}
+      {/* 鐢ㄦ埛鏁版嵁瀛樺偍鐩綍 */}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="env-user-data-dir" className="text-sm font-medium text-foreground">
-          用户数据存储目录
+          {t("settings.userDataDir.label")}
         </label>
         <div className="flex items-center border border-input rounded-md bg-card overflow-hidden transition-colors focus-within:border-ring">
           <input
             id="env-user-data-dir"
             type="text"
             className="flex-1 min-w-0 px-3 py-1.5 text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
-            placeholder="留空则使用默认位置"
+            placeholder={t("settings.userDataDir.placeholder")}
             value={userDataDir}
             onChange={(e) => setUserDataDir(e.target.value)}
           />
@@ -84,7 +86,7 @@ function GeneralSettings() {
             className="mr-1 text-xs font-normal px-2 min-h-0 h-6"
           >
             {savingUserDataDir && <Loader2 className="size-3.5 animate-spin" />}
-            Save
+            {t("common.save")}
           </Button>
         </div>
       </div>
@@ -93,3 +95,4 @@ function GeneralSettings() {
 }
 
 export { GeneralSettings };
+

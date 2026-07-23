@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useCallback } from "react";
 import { Check, Ellipsis, Loader2, Plus, Trash2 } from "lucide-react";
@@ -23,12 +23,13 @@ import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
 import { usePrompts, useSkills } from "./useSettingsApi";
 import { McpServersPanel } from "./McpServersPanel";
+import { useTranslation } from "react-i18next";
 
 const settingsTabs = [
-  { id: "system" as const, label: "System" },
-  { id: "application" as const, label: "Application" },
-  { id: "personalization" as const, label: "Personalization" },
-  { id: "capability" as const, label: "Capability" },
+  { id: "system" as const, labelKey: "settingsPanel.tabs.system" as const },
+  { id: "application" as const, labelKey: "settingsPanel.tabs.application" as const },
+  { id: "personalization" as const, labelKey: "settingsPanel.tabs.personalization" as const },
+  { id: "capability" as const, labelKey: "settingsPanel.tabs.capability" as const },
 ];
 
 type SettingsTabId = (typeof settingsTabs)[number]["id"];
@@ -53,6 +54,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ agentId }: SettingsPanelProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingsTabId>("system");
   const { skills, loading: skillsLoading, error: skillsError, toggleDisable, upload, remove } = useSkills(agentId);
 
@@ -97,7 +99,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
       await Promise.all(readers);
       await upload(folderName, fileMap);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "上传失败");
+      setUploadError(err instanceof Error ? err.message : t("common.error.uploadFailed"));
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -116,12 +118,12 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     try {
       await remove(deleteConfirm.id);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "删除失败");
+      setUploadError(err instanceof Error ? err.message : t("common.error.deleteFailed"));
     }
     setDeleteConfirm(null);
   };
 
-  // ── Prompts ────────────────────────────────────────────────────
+  // 鈹€鈹€ Prompts 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   const {
     files: serverFiles,
     loading: promptsLoading,
@@ -130,7 +132,6 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     load: reloadPrompts,
   } = usePrompts(agentId);
 
-  // 本地编辑状态（未保存的修改）
   const [dirtyText, setDirtyText] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -151,10 +152,9 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     [],
   );
 
-  // ── Header 暴露保存/重置方法 ──────────────────────────────────
-  // SettingsHeader 通过 DOM 事件或父级协调；这里直接用最简单的方案:
-  // 暴露到 window 供 header 调用（或改为 context）
-
+  // 鈹€鈹€ Header 鏆撮湶淇濆瓨/閲嶇疆鏂规硶 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // SettingsHeader 閫氳繃 DOM 浜嬩欢鎴栫埗绾у崗璋冿紱杩欓噷鐩存帴鐢ㄦ渶绠€鍗曠殑鏂规:
+  // 鏆撮湶鍒?window 渚?header 璋冪敤锛堟垨鏀逛负 context锛?
   const handleSave = useCallback(async () => {
     const modified = Object.keys(dirtyText);
     if (modified.length === 0) return;
@@ -171,11 +171,11 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 1500);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "保存失败");
+      setSaveError(err instanceof Error ? err.message : t("common.error.saveFailed"));
     } finally {
       setSaving(false);
     }
-  }, [dirtyText, savePrompt]);
+  }, [dirtyText, savePrompt, t]);
 
   const handleCancel = useCallback(() => {
     setDirtyText({});
@@ -209,7 +209,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                   : "border-transparent font-medium text-muted-foreground hover:text-foreground/80",
               )}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </button>
           );
         })}
@@ -247,7 +247,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
               ))}
             </CardContent>
           </Card>
-          {/* 行内保存/取消 */}
+          {/* 琛屽唴淇濆瓨/鍙栨秷 */}
           <div className="flex flex-col gap-2">
             {saveError && (
               <p className="text-sm text-destructive text-right">{saveError}</p>
@@ -259,7 +259,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                 disabled={saving}
                 className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
               >
-                Cancel
+                {t("settingsPanel.prompts.cancel")}
               </button>
               <button
                 type="button"
@@ -272,7 +272,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                 ) : saveSuccess ? (
                   <Check className="size-3.5" />
                 ) : null}
-                {saving ? "Saving..." : saveSuccess ? "Saved!" : "Save"}
+                {saving ? t("settingsPanel.prompts.saving") : saveSuccess ? t("settingsPanel.prompts.saved") : t("settingsPanel.prompts.save")}
               </button>
             </div>
           </div>
@@ -282,12 +282,12 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
       {/* Application tab: skills */}
       {activeTab === "application" && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto" role="tabpanel">
-          {/* 隐藏的文件选择器（用于上传技能文件夹） */}
+          {/* 闅愯棌鐨勬枃浠堕€夋嫨鍣紙鐢ㄤ簬涓婁紶鎶€鑳芥枃浠跺す锛?*/}
           <input
             ref={fileInputRef}
             type="file"
             className="hidden"
-            /* @ts-expect-error webkitdirectory 是非标准属性 */
+            /* @ts-expect-error webkitdirectory 鏄潪鏍囧噯灞炴€?*/
             webkitdirectory=""
             onChange={handleFolderSelected}
           />
@@ -301,7 +301,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {skillsLoading ? (
-              <p className="col-span-full text-sm text-muted-foreground">加载中...</p>
+              <p className="col-span-full text-sm text-muted-foreground">{t("settingsPanel.skills.loading")}</p>
             ) : skills && skills.length > 0 ? (
               skills.map((skill) => (
                 <Card
@@ -312,9 +312,12 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                     className="absolute right-4 top-4"
                     checked={!skill.disabled}
                     onCheckedChange={(checked) => toggleDisable(skill.id, !checked)}
-                    aria-label={`${skill.disabled ? "启用" : "禁用"} ${skill.name}`}
+                    aria-label={t(
+                      skill.disabled ? "settingsPanel.skills.enableLabel" : "settingsPanel.skills.disableLabel",
+                      { name: skill.name },
+                    )}
                   />
-                  {/* 内容区：flex-grow 7，占 70% */}
+                  {/* 鍐呭鍖猴細flex-grow 7锛屽崰 70% */}
                   <CardContent
                     className="flex min-h-0 flex-col gap-2 overflow-visible pb-0 pr-14 pt-6"
                     style={{ flex: "7 1 0%" }}
@@ -323,15 +326,15 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                     <p className="min-w-0 line-clamp-2 text-sm text-muted-foreground">{skill.description}</p>
                   </CardContent>
 
-                  {/* 底部操作区：flex-grow 3，占 30%，不收缩 */}
+                  {/* 搴曢儴鎿嶄綔鍖猴細flex-grow 3锛屽崰 30%锛屼笉鏀剁缉 */}
                   <div
                     className="flex min-h-0 flex-col overflow-visible px-6 pb-2"
                     style={{ flex: "3 0 0%" }}
                   >
                     <div className="w-full border-t border-border" />
                     <div className="flex items-center justify-between pt-1.5">
-                      {/* TODO: 接入实际数据。与 AgentInfoCard 的 "Token" 标签对应，后续需展示技能词数/Token 数 */}
-                      <span className="text-xs text-muted-foreground">Words</span>
+                      {/* TODO: 鎺ュ叆瀹為檯鏁版嵁銆備笌 AgentInfoCard 鐨?"Token" 鏍囩瀵瑰簲锛屽悗缁渶灞曠ず鎶€鑳借瘝鏁?Token 鏁?*/}
+                      <span className="text-xs text-muted-foreground">{t("settingsPanel.skills.words")}</span>
                       {skill.source === "user" && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -349,7 +352,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                               onClick={() => handleDelete(skill.id, skill.name)}
                             >
                               <Trash2 className="size-4" />
-                              删除
+                              {t("common.delete")}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -359,7 +362,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                 </Card>
               ))
             ) : (
-              <p className="col-span-full text-sm text-muted-foreground">暂无技能</p>
+              <p className="col-span-full text-sm text-muted-foreground">{t("settingsPanel.skills.empty")}</p>
             )}
             <button
               type="button"
@@ -376,7 +379,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                 <Plus className="size-5" aria-hidden />
               </span>
               <span className="text-sm font-medium text-muted-foreground">
-                {uploading ? "上传中..." : "New Skill"}
+                {uploading ? t("settingsPanel.skills.uploading") : t("settingsPanel.skills.newSkill")}
               </span>
             </button>
           </div>
@@ -415,7 +418,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
               ))}
             </CardContent>
           </Card>
-          {/* 行内保存/取消 */}
+          {/* 琛屽唴淇濆瓨/鍙栨秷 */}
           <div className="flex flex-col gap-2">
             {saveError && (
               <p className="text-sm text-destructive text-right">{saveError}</p>
@@ -427,7 +430,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                 disabled={saving}
                 className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
               >
-                Cancel
+                {t("settingsPanel.prompts.cancel")}
               </button>
               <button
                 type="button"
@@ -440,14 +443,14 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                 ) : saveSuccess ? (
                   <Check className="size-3.5" />
                 ) : null}
-                {saving ? "Saving..." : saveSuccess ? "Saved!" : "Save"}
+                {saving ? t("settingsPanel.prompts.saving") : saveSuccess ? t("settingsPanel.prompts.saved") : t("settingsPanel.prompts.save")}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Capability tab: MCP 服务器 */}
+      {/* Capability tab: MCP 鏈嶅姟鍣?*/}
       {activeTab === "capability" && (
         <div
           className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto"
@@ -460,15 +463,15 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
       <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogTitle>{t("settingsPanel.skills.confirmDelete.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除 skill「{deleteConfirm?.name ?? ""}」吗？
+              {t("settingsPanel.skills.confirmDelete.description", { name: deleteConfirm?.name ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t("settingsPanel.skills.confirmDelete.cancel")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={handleDeleteConfirmed}>
-              删除
+              {t("settingsPanel.skills.confirmDelete.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -476,3 +479,4 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     </div>
   );
 }
+
