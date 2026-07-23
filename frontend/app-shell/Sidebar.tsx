@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Card, CardContent } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
@@ -37,17 +37,11 @@ import { CSS } from "@dnd-kit/utilities";
 import { hideAgent, getHiddenAgentIds, isAgentVisible } from "@/entities/agent/visibility";
 import { agentRegistry } from "@/entities/agent/agent.registry";
 import { useAuth } from "@/entities/auth/store";
+import { useTranslation } from "react-i18next";
 
 const STORAGE_KEY = "agent-order";
 
-const SETTINGS_NAV = [
-  { id: "general", label: "General", icon: SlidersHorizontal },
-  { id: "providers", label: "Providers", icon: Cpu },
-  { id: "account", label: "Account", icon: User },
-  { id: "about", label: "About", icon: Info },
-] as const;
-
-type SettingId = (typeof SETTINGS_NAV)[number]["id"];
+type SettingId = "general" | "providers" | "account" | "about";
 
 function loadOrder(): string[] {
   if (typeof window === "undefined") return [];
@@ -65,7 +59,10 @@ function saveOrder(order: string[]): void {
 
 // 菜单项接口
 export interface MenuItem {
-  label: string;
+  /** 直接显示的文本（无国际化时使用） */
+  label?: string;
+  /** 国际化翻译 key（优先于 label） */
+  labelKey?: string;
   href?: string;
   icon?: "history" | "knowledgebase" | "document" | "settings" | "management";
   onClick?: () => void;
@@ -111,11 +108,19 @@ function SortableRoute({ route, isActive, children }: { route: RouteItem; isActi
 }
 
 export function Sidebar({ routes }: SidebarProps) {
+  const { t } = useTranslation();
   const currentPath = useLocation().pathname;
   const [hiddenIds, setHiddenIds] = useState<string[]>(() => getHiddenAgentIds());
   const { user, logout, enabled: authEnabled } = useAuth();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedSetting, setSelectedSetting] = useState<SettingId>("general");
+
+  const SETTINGS_NAV = useMemo(() => [
+    { id: "general" as const, label: t("settings.nav.general"), icon: SlidersHorizontal },
+    { id: "providers" as const, label: t("settings.nav.providers"), icon: Cpu },
+    { id: "account" as const, label: t("settings.nav.account"), icon: User },
+    { id: "about" as const, label: t("settings.nav.about"), icon: Info },
+  ], [t]);
 
   const handleHide = useCallback((agentId: string) => {
     hideAgent(agentId);
@@ -241,12 +246,12 @@ export function Sidebar({ routes }: SidebarProps) {
                               {item.href ? (
                                 <Link to={item.href} className="flex items-center gap-2">
                                   {Icon && <Icon className="size-4" />}
-                                  {item.label}
+                                  {item.labelKey ? t(item.labelKey) : item.label}
                                 </Link>
                               ) : (
                                 <span className="flex items-center gap-2 cursor-pointer">
                                   {Icon && <Icon className="size-4" />}
-                                  {item.label}
+                                  {item.labelKey ? t(item.labelKey) : item.label}
                                 </span>
                               )}
                             </DropdownMenuItem>
@@ -258,7 +263,7 @@ export function Sidebar({ routes }: SidebarProps) {
                             <DropdownMenuItem onClick={() => handleHide(route.agentId!)}>
                               <span className="flex items-center gap-2 cursor-pointer">
                                 <EyeOff className="size-4" />
-                                隐藏
+                                {t("sidebar.hide")}
                               </span>
                             </DropdownMenuItem>
                           </>
@@ -308,7 +313,7 @@ export function Sidebar({ routes }: SidebarProps) {
           <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
             <span className="flex items-center gap-2 cursor-pointer">
               <Settings className="size-4" />
-              设置
+              {t("sidebar.settings")}
             </span>
           </DropdownMenuItem>
           {authEnabled && (
@@ -317,7 +322,7 @@ export function Sidebar({ routes }: SidebarProps) {
               <DropdownMenuItem onClick={logout}>
                 <span className="flex items-center gap-2 cursor-pointer">
                   <LogOut className="size-4" />
-                  退出登录
+                  {t("sidebar.logout")}
                 </span>
               </DropdownMenuItem>
             </>
@@ -328,7 +333,7 @@ export function Sidebar({ routes }: SidebarProps) {
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="!max-w-none w-[660px] max-h-[85vh] p-0 flex flex-row gap-0 overflow-hidden">
           <div className="w-1/3 shrink-0 flex flex-col border-r border-border p-6 overflow-y-auto">
-            <DialogTitle className="text-sm font-semibold text-muted-foreground mb-4">Settings</DialogTitle>
+            <DialogTitle className="text-sm font-semibold text-muted-foreground mb-4">{t("settings.title")}</DialogTitle>
             <nav className="flex flex-col gap-1">
               {SETTINGS_NAV.map((item) => {
                 const Icon = item.icon;
