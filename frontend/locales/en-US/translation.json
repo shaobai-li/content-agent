@@ -9,6 +9,10 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "confirm": "Confirm",
+    "select": "Select...",
+    "search": "Search...",
+    "noMatch": "No matched items",
+    "startChat": "Start a conversation",
     "error": {
       "loadFailed": "Failed to load",
       "saveFailed": "Failed to save",
@@ -117,6 +121,9 @@
     "folderEmpty": "This folder is empty",
     "rootLabel": "DATA",
     "breadcrumbEllipsis": "Expand hidden breadcrumb levels",
+    "backToRoot": "Back to root",
+    "noMovableFolder": "No movable folders available",
+    "createKnowledgeBaseFailed": "Failed to create knowledge base",
     "confirmDelete": {
       "title": "Confirm Deletion",
       "description": "Are you sure you want to delete \"{{name}}\"?",
@@ -129,8 +136,10 @@
       "missingRenameIdentifier": "Missing renamable node identifier",
       "missingMoveIdentifier": "Missing movable node identifier",
       "renameFailed": "Failed to rename",
+      "renameFailedRetry": "Failed to rename, please retry",
       "moveFailed": "Failed to move",
       "createFolderFailed": "Failed to create folder",
+      "createFolderFailedRetry": "Failed to create folder, please retry",
       "renameNotConfigured": "Rename function not configured",
       "moveNotConfigured": "Move function not configured"
     }
@@ -148,11 +157,80 @@
     "columnSize": "Size",
     "columnDate": "Date Added",
     "folderLabel": "Folder",
-    "backToList": "Back to database list"
+    "backToList": "Back to database list",
+    "loading": "Loading database...",
+    "noMatch": "No matching databases found",
+    "confirmDeleteTitle": "Confirm Deletion",
+    "confirmDeleteDesc": "Are you sure you want to delete \"{{name}}\"?",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "renameFailed": "Failed to rename",
+    "deleteFailed": "Failed to delete knowledge base",
+    "deleteFailedRetry": "Failed to delete knowledge base, please retry",
+    "recordLoading": "Loading...",
+    "recordLoadFailed": "Failed to load file content",
+    "recordEmpty": "(Empty file)"
   },
   "chat": {
     "inputPlaceholder": "Type messages...",
-    "noModel": "Not configured"
+    "noModel": "Not configured",
+    "openSidebar": "Open sidebar",
+    "expandDocument": "Expand document area",
+    "collapseDocument": "Collapse document area",
+    "wechatConnected": "WeChat connected",
+    "bindWechat": "Bind WeChat",
+    "newChat": "New chat",
+    "title": "CHAT",
+    "copyCode": "Copy code",
+    "copyMessage": "Copy message",
+    "thinking": "Thinking⋯",
+    "uploading": "Uploading...",
+    "uploadFailed": "Upload failed",
+    "saved": "Saved!",
+    "processing": "Processing...",
+    "completed": "Completed",
+    "loading": "Loading...",
+    "dropToReference": "Release to reference",
+    "dropToUpload": "Release to upload files",
+    "errorServerNotStarted": "An error occurred. Please check if the backend service is running.",
+    "removeMention": "Remove {{name}}"
+  },
+  "wechat": {
+    "bindTitle": "Bind WeChat",
+    "loading": "Loading...",
+    "scanPrompt": "Scan the QR code with WeChat",
+    "scanned": "Scanned, please confirm on your phone",
+    "confirmed": "Bound successfully",
+    "expired": "QR code expired",
+    "error": "Failed to load",
+    "qrCodeError": "Failed to load QR code",
+    "refresh": "Refresh QR code"
+  },
+  "login": {
+    "username": "Username",
+    "password": "Password",
+    "emptyError": "Username and password are required",
+    "failed": "Login failed",
+    "loggingIn": "Logging in...",
+    "login": "Login",
+    "welcome": "Welcome to login",
+    "subtitle": "Build the intelligence and just use it."
+  },
+  "agent": {
+    "noReply": "No reply yet",
+    "noSession": "No session yet",
+    "deleteFailed": "Failed to delete",
+    "delete": "Delete",
+    "creating": "Creating...",
+    "create": "Create"
+  },
+  "history": {
+    "loading": "Loading...",
+    "confirmDeleteTitle": "Confirm Deletion",
+    "confirmDeleteDesc": "Are you sure you want to delete \"{{title}}\"?",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleteFailed": "Failed to delete, please retry"
   },
   "mcp": {
     "title": "MCP Servers",
@@ -179,5 +257,10 @@
       "saveFailed": "Save failed, please retry",
       "invalidJson": "Invalid JSON format, please check and retry"
     }
+  },
+  "canvas": {
+    "deleteCard": "Delete this card",
+    "clickToExpand": "🔍 Click to expand",
+    "htmlPreview": "HTML Preview"
   }
 }

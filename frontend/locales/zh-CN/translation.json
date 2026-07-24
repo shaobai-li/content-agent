@@ -9,6 +9,10 @@
     "cancel": "取消",
     "delete": "删除",
     "confirm": "确认",
+    "select": "选择…",
+    "search": "搜索…",
+    "noMatch": "无匹配项",
+    "startChat": "请开始对话",
     "error": {
       "loadFailed": "加载失败",
       "saveFailed": "保存失败",
@@ -117,6 +121,9 @@
     "folderEmpty": "该文件夹为空",
     "rootLabel": "DATA",
     "breadcrumbEllipsis": "展开隐藏的面包屑层级",
+    "backToRoot": "返回根目录",
+    "noMovableFolder": "暂无可移动到的文件夹",
+    "createKnowledgeBaseFailed": "创建知识库失败",
     "confirmDelete": {
       "title": "确认删除",
       "description": "确定要删除 \"{{name}}\" 吗？",
@@ -129,8 +136,10 @@
       "missingRenameIdentifier": "缺少可重命名的节点标识",
       "missingMoveIdentifier": "缺少可移动的节点标识",
       "renameFailed": "重命名失败",
+      "renameFailedRetry": "重命名失败，请重试",
       "moveFailed": "移动失败",
       "createFolderFailed": "创建文件夹失败",
+      "createFolderFailedRetry": "创建文件夹失败，请重试",
       "renameNotConfigured": "未配置重命名函数",
       "moveNotConfigured": "未配置移动函数"
     }
@@ -148,11 +157,80 @@
     "columnSize": "大小",
     "columnDate": "添加时间",
     "folderLabel": "文件夹",
-    "backToList": "返回数据库列表"
+    "backToList": "返回数据库列表",
+    "loading": "正在加载数据库...",
+    "noMatch": "未找到匹配的数据库",
+    "confirmDeleteTitle": "确认删除",
+    "confirmDeleteDesc": "确定要删除 \"{{name}}\" 吗？",
+    "cancel": "取消",
+    "delete": "删除",
+    "renameFailed": "重命名失败",
+    "deleteFailed": "删除知识库失败",
+    "deleteFailedRetry": "删除知识库失败，请重试",
+    "recordLoading": "加载中...",
+    "recordLoadFailed": "无法加载文件内容",
+    "recordEmpty": "(空文件)"
   },
   "chat": {
     "inputPlaceholder": "输入消息...",
-    "noModel": "未配置"
+    "noModel": "未配置",
+    "openSidebar": "打开侧边栏",
+    "expandDocument": "展开文档区",
+    "collapseDocument": "收起文档区",
+    "wechatConnected": "微信已连接",
+    "bindWechat": "绑定微信",
+    "newChat": "新建对话",
+    "title": "CHAT",
+    "copyCode": "复制代码",
+    "copyMessage": "复制消息",
+    "thinking": "思考中⋯",
+    "uploading": "上传中…",
+    "uploadFailed": "上传失败",
+    "saved": "已保存",
+    "processing": "处理中…",
+    "completed": "已完成",
+    "loading": "加载中…",
+    "dropToReference": "释放以引用",
+    "dropToUpload": "释放以上传文件",
+    "errorServerNotStarted": "出错了，请检查后端服务是否启动。",
+    "removeMention": "移除 {{name}}"
+  },
+  "wechat": {
+    "bindTitle": "绑定微信",
+    "loading": "加载中...",
+    "scanPrompt": "请使用微信扫一扫扫描二维码",
+    "scanned": "已扫码，请在手机上确认登录",
+    "confirmed": "绑定成功",
+    "expired": "二维码已过期",
+    "error": "加载失败",
+    "qrCodeError": "二维码加载失败",
+    "refresh": "重新获取二维码"
+  },
+  "login": {
+    "username": "用户名",
+    "password": "密码",
+    "emptyError": "用户名和密码不能为空",
+    "failed": "登录失败",
+    "loggingIn": "登录中...",
+    "login": "登录",
+    "welcome": "Welcome to login",
+    "subtitle": "Build the intelligence and just use it."
+  },
+  "agent": {
+    "noReply": "暂无回复",
+    "noSession": "暂无会话",
+    "deleteFailed": "删除失败",
+    "delete": "删除",
+    "creating": "创建中...",
+    "create": "创建"
+  },
+  "history": {
+    "loading": "加载中...",
+    "confirmDeleteTitle": "确认删除",
+    "confirmDeleteDesc": "确定要删除 \"{{title}}\" 吗？",
+    "cancel": "取消",
+    "delete": "删除",
+    "deleteFailed": "删除失败，请重试"
   },
   "mcp": {
     "title": "MCP 服务器",
@@ -179,5 +257,10 @@
       "saveFailed": "保存失败，请重试",
       "invalidJson": "JSON 格式错误，请检查后重试"
     }
+  },
+  "canvas": {
+    "deleteCard": "删除此卡片",
+    "clickToExpand": "🔍 点击展开",
+    "htmlPreview": "HTML 预览"
   }
 }
