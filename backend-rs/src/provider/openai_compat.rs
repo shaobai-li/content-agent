@@ -115,7 +115,7 @@ impl OpenAICompatProvider {
         Self {
             api_key: api_key.unwrap_or_default(),
             api_base: effective_base,
-            default_model: default_model.unwrap_or_else(|| "deepseek-chat".to_string()),
+            default_model: default_model.unwrap_or_else(|| "deepseek-v4-flash".to_string()),
             extra_headers: headers,
             client,
             spec,

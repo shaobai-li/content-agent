@@ -18,7 +18,7 @@ def _resolve_model(cfg: dict) -> str:
     优先级：
       1. cfg.model（YAML 中显式指定）
       2. cfg.provider → factory 默认映射
-      3. 兜底 "deepseek-chat"
+      3. 兜底 "deepseek-v4-flash"
     """
     explicit = cfg.get("model")
     if explicit:

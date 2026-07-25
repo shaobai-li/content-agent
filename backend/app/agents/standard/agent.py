@@ -27,7 +27,7 @@ def _get_provider(provider_name: str | None = None, model: str | None = None):
     Args:
         provider_name: Provider name, e.g. "deepseek", "openai", "moonshot".
                        Defaults to "deepseek" when None.
-        model: Model name, e.g. "deepseek-chat", "gpt-4o", "kimi-k2.5".
+        model: Model name, e.g. "deepseek-v4-flash", "gpt-4o", "kimi-k2.5".
                Uses provider default when None.
     """
     from app.core.auth import get_current_user_id

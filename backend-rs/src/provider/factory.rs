@@ -4,7 +4,7 @@ use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
 
 /// 单个模型元信息，对应 Python `registry.py` 的 ModelSpec
 pub struct ModelSpec {
-    pub name: &'static str,         // e.g. "deepseek-chat"
+    pub name: &'static str,         // e.g. "deepseek-v4-flash"
     pub display_name: &'static str,  // e.g. "DeepSeek Chat"
 }
 
@@ -26,10 +26,10 @@ pub static PROVIDERS: Lazy<Vec<ProviderSpec>> = Lazy::new(|| {
             display_name: "DeepSeek",
             env_key: "DEEPSEEK_API_KEY",
             default_api_base: "https://api.deepseek.com",
-            default_model: "deepseek-chat",
+            default_model: "deepseek-v4-flash",
             models: &[
-                ModelSpec { name: "deepseek-chat", display_name: "DeepSeek Chat" },
-                ModelSpec { name: "deepseek-reasoner", display_name: "DeepSeek Reasoner" },
+                ModelSpec { name: "deepseek-v4-flash", display_name: "DeepSeek V4 Flash" },
+                ModelSpec { name: "deepseek-v4-pro", display_name: "DeepSeek V4 Pro" },
             ],
         },
         ProviderSpec {
@@ -84,7 +84,7 @@ pub fn find_provider_spec(name: &str) -> Option<&'static ProviderSpec> {
 pub fn default_model_for(provider_name: &str) -> &'static str {
     find_provider_spec(provider_name)
         .map(|s| s.default_model)
-        .unwrap_or("deepseek-chat")
+        .unwrap_or("deepseek-v4-flash")
 }
 
 /// 从 provider 名称创建 OpenAICompatProvider 实例
@@ -143,15 +143,15 @@ mod tests {
 
     #[test]
     fn test_default_model_for_known() {
-        assert_eq!(default_model_for("deepseek"), "deepseek-chat");
+        assert_eq!(default_model_for("deepseek"), "deepseek-v4-flash");
         assert_eq!(default_model_for("openai"), "gpt-4o");
         assert_eq!(default_model_for("moonshot"), "kimi-k2.5");
     }
 
     #[test]
     fn test_default_model_for_unknown() {
-        // 未知 provider 返回 deepseek-chat 作为兜底
-        assert_eq!(default_model_for("nonexistent"), "deepseek-chat");
+        // 未知 provider 返回 deepseek-v4-flash 作为兜底
+        assert_eq!(default_model_for("nonexistent"), "deepseek-v4-flash");
     }
 
     #[test]

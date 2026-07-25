@@ -22,7 +22,7 @@ from pydantic.alias_generators import to_snake
 class ModelSpec:
     """One model under a provider. Lightweight — extend as needed."""
 
-    name: str  # e.g. "deepseek-chat"
+    name: str  # e.g. "deepseek-v4-flash"
     display_name: str  # e.g. "DeepSeek Chat"
 
 
@@ -102,8 +102,8 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         default_api_base="https://api.deepseek.com",
         thinking_style="thinking_type",
         models=(
-            ModelSpec("deepseek-chat", "DeepSeek Chat"),
-            ModelSpec("deepseek-reasoner", "DeepSeek Reasoner"),
+            ModelSpec("deepseek-v4-flash", "DeepSeek V4 Flash"),
+            ModelSpec("deepseek-v4-pro", "DeepSeek V4 Pro"),
         ),
     ),
     # OpenAI: standard OpenAI API
