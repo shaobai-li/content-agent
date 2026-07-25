@@ -67,7 +67,7 @@ class TestNormalizeToolCallArguments:
 
 class TestSupportsTemperature:
     def test_standard_model_supports_temperature(self):
-        assert OpenAICompatProvider._supports_temperature("deepseek-chat") is True
+        assert OpenAICompatProvider._supports_temperature("deepseek-v4-flash") is True
 
     def test_o1_model_does_not_support_temperature(self):
         assert OpenAICompatProvider._supports_temperature("o1-mini") is False
@@ -76,10 +76,10 @@ class TestSupportsTemperature:
         assert OpenAICompatProvider._supports_temperature("o3") is False
 
     def test_non_none_reasoning_effort_disables_temperature(self):
-        assert OpenAICompatProvider._supports_temperature("deepseek-chat", "medium") is False
+        assert OpenAICompatProvider._supports_temperature("deepseek-v4-flash", "medium") is False
 
     def test_reasoning_effort_none_keeps_temperature(self):
-        assert OpenAICompatProvider._supports_temperature("deepseek-chat", "none") is True
+        assert OpenAICompatProvider._supports_temperature("deepseek-v4-flash", "none") is True
 
 
 class TestExtractTextContent:

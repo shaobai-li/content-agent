@@ -98,7 +98,7 @@ impl BaseAgent for WriteAgent {
             Err(e) => {
                 tracing::warn!("创建 provider {provider_name} 失败: {e}，降级到 deepseek");
                 let api_key = std::env::var("DEEPSEEK_API_KEY").ok();
-                Arc::new(OpenAICompatProvider::new(api_key, None, Some("deepseek-chat".to_string()), None, Some(ProviderConfig::default())))
+                Arc::new(OpenAICompatProvider::new(api_key, None, Some("deepseek-v4-flash".to_string()), None, Some(ProviderConfig::default())))
                     as Arc<dyn crate::provider::base::LLMProvider>
             }
         };

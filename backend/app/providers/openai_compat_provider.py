@@ -126,7 +126,7 @@ class OpenAICompatProvider(LLMProvider):
         self,
         api_key: str | None = None,
         api_base: str | None = None,
-        default_model: str = "deepseek-chat",
+        default_model: str = "deepseek-v4-flash",
         extra_headers: dict[str, str] | None = None,
         spec: ProviderSpec | None = None,
     ):

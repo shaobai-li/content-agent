@@ -78,7 +78,7 @@ def _log_last_user_message_sent_to_llm(messages: List[Dict[str, Any]]) -> None:
     logger.debug("user message sent to LLM: full_len={}{}\n{}\n---", len(last), extra, last)
 
 
-def deepseek_chat(messages: List[Dict[str, Any]], model: str = "deepseek-chat") -> str:
+def deepseek_chat(messages: List[Dict[str, Any]], model: str = "deepseek-v4-flash") -> str:
     """同步、无 tools：底层统一走流式接口，聚合为完整正文。"""
     _log_system_prompt_sent_to_llm(messages)
     _log_last_user_message_sent_to_llm(messages)
@@ -125,7 +125,7 @@ def _assistant_message_from_stream_parts(
 async def deepseek_chat_stream(
     messages: List[Dict[str, Any]],
     *,
-    model: str = "deepseek-chat",
+    model: str = "deepseek-v4-flash",
     tools: Optional[List[Dict[str, Any]]] = None,
 ) -> AsyncGenerator[Union[str, ChatCompletionMessage], None]:
     """

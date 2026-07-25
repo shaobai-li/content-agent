@@ -17,7 +17,7 @@ class TestBuildAgentSummary:
         assert result["id"] == "std"
         assert result["name"] == "标准"
         assert result["locked"] is False
-        assert result["model"] == "deepseek-chat"
+        assert result["model"] == "deepseek-v4-flash"
         assert result["session_count"] == 0
         assert result["last_reply_time"] is None
         assert result["last_session_title"] is None
@@ -102,10 +102,10 @@ class TestBuildAgentSummary:
     # ── model 解析 ────────────────────────────────────────────────────
 
     def test_model_default_deepseek_chat(self):
-        """无 provider/model 时兜底 deepseek-chat。"""
+        """无 provider/model 时兜底 deepseek-v4-flash。"""
         with patch("app.api.management.load_sessions", return_value=[]):
             result = _build_agent_summary("std", {"name": "标准"})
-        assert result["model"] == "deepseek-chat"
+        assert result["model"] == "deepseek-v4-flash"
 
     def test_model_explicit_from_config(self):
         """YAML 中显式指定 model 则直接使用。"""

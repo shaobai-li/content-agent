@@ -136,7 +136,7 @@ impl BaseAgent for StandardAgent {
                 Arc::new(OpenAICompatProvider::new(
                     fallback_key,
                     None,
-                    Some("deepseek-chat".to_string()),
+                    Some("deepseek-v4-flash".to_string()),
                     None,
                     Some(ProviderConfig::default()),
                 )) as Arc<dyn crate::provider::base::LLMProvider>

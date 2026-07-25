@@ -43,7 +43,7 @@ class AgentTurnContext:
     resolved_attachment_paths: Tuple[str, ...]  # 已校验的 cache 绝对路径，已并入 user_text 附件块
     history_messages: List[Dict[str, Any]]
     provider: Optional[str] = None  # LLM 供应商名称，如 "deepseek", "openai", "moonshot"
-    model: Optional[str] = None  # LLM 模型名称，如 "deepseek-chat", "gpt-4o", "kimi-k2.5"
+    model: Optional[str] = None  # LLM 模型名称，如 "deepseek-v4-flash", "gpt-4o", "kimi-k2.5"
 
 
 def _parse_attachment_paths_json(raw: Optional[str]) -> List[str]:

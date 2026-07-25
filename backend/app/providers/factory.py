@@ -46,7 +46,7 @@ def create_provider(
 def _default_model_for(provider_name: str) -> str:
     """Return a sensible default model for the given provider."""
     defaults = {
-        "deepseek": "deepseek-chat",
+        "deepseek": "deepseek-v4-flash",
         "openai": "gpt-4o",
         "moonshot": "kimi-k2.5",
         "zhipu": "GLM-Z1-Air",

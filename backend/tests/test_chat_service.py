@@ -16,7 +16,7 @@ class TestBuildChatResponse:
 
 
     def test_preserves_nested_extra_info(self):
-        metadata = {"tokens": 12, "model": "deepseek-chat"}
+        metadata = {"tokens": 12, "model": "deepseek-v4-flash"}
         result = build_chat_response("hello", metadata=metadata)
 
         assert result["metadata"] is metadata
