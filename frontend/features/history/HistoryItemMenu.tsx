@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { useTranslation } from "react-i18next";
 
 interface HistoryItemMenuProps {
   onRename?: () => void;
@@ -14,6 +15,7 @@ interface HistoryItemMenuProps {
 }
 
 export function HistoryItemMenu({ onRename, onDelete }: HistoryItemMenuProps) {
+  const { t } = useTranslation();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -38,7 +40,7 @@ export function HistoryItemMenu({ onRename, onDelete }: HistoryItemMenuProps) {
           }}
         >
           <Pencil className="size-4" />
-          Rename
+          {t("data.rename")}
         </DropdownMenuItem>
         <DropdownMenuItem
           className="gap-2 text-red-600 focus:bg-red-50 focus:text-red-600"
@@ -49,7 +51,7 @@ export function HistoryItemMenu({ onRename, onDelete }: HistoryItemMenuProps) {
           }}
         >
           <Trash2 className="size-4 text-red-600" />
-          Delete
+          {t("data.delete")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

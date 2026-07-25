@@ -9,6 +9,8 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "confirm": "Confirm",
+    "prev": "Prev",
+    "next": "Next",
     "error": {
       "loadFailed": "Failed to load",
       "saveFailed": "Failed to save",
@@ -151,6 +153,7 @@
     "backToList": "Back to database list"
   },
   "chat": {
+    "title": "Chat",
     "inputPlaceholder": "Type messages...",
     "noModel": "Not configured"
   },

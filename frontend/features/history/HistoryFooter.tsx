@@ -2,6 +2,7 @@
 
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import { useTranslation } from "react-i18next";
 
 interface HistoryFooterProps {
   canGoPrev?: boolean;
@@ -16,6 +17,7 @@ export function HistoryFooter({
   onPrev,
   onNext,
 }: HistoryFooterProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center gap-2">
       <Button
@@ -27,7 +29,7 @@ export function HistoryFooter({
         className="text-xs font-semibold text-neutral-500 hover:bg-transparent hover:text-foreground"
       >
         <ChevronLeftIcon className="size-4" />
-        PREV
+        {t("common.prev")}
       </Button>
       <Button
         type="button"
@@ -37,7 +39,7 @@ export function HistoryFooter({
         onClick={onNext}
         className="text-xs font-semibold text-neutral-500 hover:bg-transparent hover:text-foreground"
       >
-        NEXT
+        {t("common.next")}
         <ChevronRightIcon className="size-4" />
       </Button>
     </div>
