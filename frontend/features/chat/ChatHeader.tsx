@@ -3,10 +3,12 @@ import { ChevronsLeft, ChevronsRight, Menu, MessageSquarePlus, Smartphone } from
 import { useDocumentCollapse } from "@/app-shell/DocumentCollapseContext";
 import { useSidebarToggle } from "@/app-shell/SidebarContext";
 import { WeChatBindDialog } from "./WeChatBindDialog";
+import { useTranslation } from "react-i18next";
 
 const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || "http://localhost:8001";
 
 export function ChatHeader() {
+  const { t } = useTranslation();
   const { isCollapsed, toggle } = useDocumentCollapse();
   const toggleSidebar = useSidebarToggle();
   const [wechatDialogOpen, setWechatDialogOpen] = useState(false);
@@ -35,7 +37,7 @@ export function ChatHeader() {
             <Menu className="size-5" />
           </button>
         )}
-        <h2 className="text-sm font-semibold text-foreground">CHAT</h2>
+        <h2 className="text-sm font-semibold text-foreground">{t("chat.title")}</h2>
         <button
           onClick={toggle}
           className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
