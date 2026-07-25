@@ -5,7 +5,7 @@ use crate::provider::openai_compat::{OpenAICompatProvider, ProviderConfig};
 /// 单个模型元信息，对应 Python `registry.py` 的 ModelSpec
 pub struct ModelSpec {
     pub name: &'static str,         // e.g. "deepseek-v4-flash"
-    pub display_name: &'static str,  // e.g. "DeepSeek Chat"
+    pub display_name: &'static str,  // e.g. "DeepSeek V4 Flash"
 }
 
 /// 内置 provider 规格定义

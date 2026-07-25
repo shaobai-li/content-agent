@@ -23,7 +23,7 @@ class ModelSpec:
     """One model under a provider. Lightweight — extend as needed."""
 
     name: str  # e.g. "deepseek-v4-flash"
-    display_name: str  # e.g. "DeepSeek Chat"
+    display_name: str  # e.g. "DeepSeek V4 Flash"
 
 
 @dataclass(frozen=True)
