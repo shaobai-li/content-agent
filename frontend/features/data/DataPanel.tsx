@@ -350,7 +350,7 @@ export function DataPanel({
   const resolvedEmptyMessage = normalizedSearchKeyword
     ? t("data.noResults")
     : currentFolderId === ROOT_FOLDER_ID
-      ? emptyMessage
+      ? t(emptyMessage)
       : t("data.folderEmpty");
 
   return (
