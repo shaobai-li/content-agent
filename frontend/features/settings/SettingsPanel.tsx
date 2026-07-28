@@ -123,7 +123,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     setDeleteConfirm(null);
   };
 
-  // 鈹€鈹€ Prompts 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  // ── Prompts ────────────────────────────────────────────────────
   const {
     files: serverFiles,
     loading: promptsLoading,
@@ -247,7 +247,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
               ))}
             </CardContent>
           </Card>
-          {/* 琛屽唴淇濆瓨/鍙栨秷 */}
+          {/* 行内保存/取消 */}
           <div className="flex flex-col gap-2">
             {saveError && (
               <p className="text-sm text-destructive text-right">{saveError}</p>
@@ -418,7 +418,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
               ))}
             </CardContent>
           </Card>
-          {/* 琛屽唴淇濆瓨/鍙栨秷 */}
+          {/* 行内保存/取消 */}
           <div className="flex flex-col gap-2">
             {saveError && (
               <p className="text-sm text-destructive text-right">{saveError}</p>
