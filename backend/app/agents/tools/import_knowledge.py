@@ -21,13 +21,6 @@ from app.agents.tools.base import Tool
 # ── 可选依赖 ──────────────────────────────────────────────────────────
 
 try:
-    import fitz  # pymupdf
-
-    _HAS_PDF = True
-except ImportError:
-    _HAS_PDF = False
-
-try:
     import mammoth
 
     _HAS_DOCX = True
@@ -298,20 +291,6 @@ def _content_paths(src: Path, parsed: dict[str, Any] | None) -> dict[str, str]:
 # ── 解析器（PDF / DOCX / PPTX → markdown） ──────────────────────────
 
 
-class _PdfParser:
-    def parse(self, src_path: Path, output_dir: Path) -> dict[str, str]:
-        if not _HAS_PDF:
-            raise ImportError("PDF 解析需要 pymupdf 库：pip install pymupdf")
-        output_dir.mkdir(parents=True, exist_ok=True)
-        parts: list[str] = []
-        with fitz.open(src_path) as doc:
-            for page in doc:
-                parts.append(page.get_text("text"))
-        markdown_path = output_dir / "parsed.md"
-        markdown_path.write_text("\n\n".join(parts), encoding="utf-8")
-        return {"markdown_path": str(markdown_path)}
-
-
 class _DocxParser:
     def parse(self, src_path: Path, output_dir: Path) -> dict[str, str]:
         if not _HAS_DOCX:
@@ -343,7 +322,6 @@ class _PptxParser:
 
 
 _PARSER_BY_SUFFIX: dict[str, type] = {
-    ".pdf": _PdfParser,
     ".docx": _DocxParser,
     ".pptx": _PptxParser,
 }
@@ -474,8 +452,9 @@ class ImportKnowledgeTool(Tool):
     @property
     def description(self) -> str:
         return (
-            "将文件批量导入到指定知识库中。支持 PDF、DOCX、PPTX、MD、TXT 等格式。"
-            "PDF/DOCX/PPTX 会自动解析为 Markdown 文本。"
+            "将文件批量导入到指定知识库中。支持 DOCX、PPTX、MD、TXT 等格式。"
+            "DOCX/PPTX 会自动解析为 Markdown 文本。"
+            "注意：PDF 文件请先使用 pdf2md 工具转换为 Markdown 后再导入。"
             "自动基于 SHA256 指纹去重，避免重复导入同一文件。"
             "会同步更新 knowledge_base 目录下的 metadata.json 和 view/nodes.json"
             "供前端知识库面板展示。"
