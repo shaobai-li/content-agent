@@ -10,6 +10,7 @@ import {
   DialogFooter,
 } from "@/shared/ui/dialog";
 import { createAgent } from "@/shared/api/management";
+import { useTranslation } from "react-i18next";
 
 interface NewAgentDialogProps {
   open: boolean;
@@ -22,6 +23,7 @@ export function NewAgentDialog({
   onOpenChange,
   onCreated,
 }: NewAgentDialogProps) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
@@ -37,14 +39,14 @@ export function NewAgentDialog({
     try {
       const res = await createAgent(trimmed, description.trim());
       if (!res.ok) {
-        setError(res.error ?? "创建失败");
+        setError(res.error ?? t("agentManagement.createFailed"));
         return;
       }
       setTitle("");
       setDescription("");
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "创建失败，请稍后重试");
+      setError(err instanceof Error ? err.message : t("agentManagement.createFailedRetry"));
     } finally {
       setCreating(false);
     }
@@ -63,20 +65,20 @@ export function NewAgentDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>新建智能体</DialogTitle>
+          <DialogTitle>{t("agentManagement.newAgent")}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
           <label
             htmlFor="new-agent-title"
             className="text-sm font-medium text-foreground"
           >
-            标题
+            {t("agentManagement.title")}
           </label>
           <input
             id="new-agent-title"
             type="text"
             className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0"
-            placeholder="输入智能体标题"
+            placeholder={t("agentManagement.titlePlaceholder")}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => {
@@ -93,13 +95,13 @@ export function NewAgentDialog({
             htmlFor="new-agent-description"
             className="text-sm font-medium text-foreground"
           >
-            描述
+            {t("agentManagement.description")}
           </label>
           <textarea
             id="new-agent-description"
             rows={3}
             className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 resize-none"
-            placeholder="描述这个智能体的用途…"
+            placeholder={t("agentManagement.descriptionPlaceholder")}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             disabled={creating}
@@ -116,7 +118,7 @@ export function NewAgentDialog({
             disabled={creating}
             className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
           >
-            取消
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -125,7 +127,7 @@ export function NewAgentDialog({
             className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {creating && <Loader2 className="size-3.5 animate-spin" />}
-            {creating ? "创建中..." : "创建"}
+            {creating ? t("agentManagement.creating") : t("agentManagement.create")}
           </button>
         </DialogFooter>
       </DialogContent>
