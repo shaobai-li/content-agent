@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -18,6 +19,7 @@ interface NewDataModalProps {
 }
 
 export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalProps) {
+  const { t } = useTranslation();
   const [dataName, setDataName] = useState("");
   const [dataDescription, setDataDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,7 +47,7 @@ export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalP
       onOpenChange(false);
     } catch (error) {
       console.error("创建知识库失败:", error);
-      setErrorMsg(error instanceof Error ? error.message : "创建知识库失败，请重试");
+      setErrorMsg(error instanceof Error ? error.message : t("kb.createFailedRetry"));
     } finally {
       setIsSubmitting(false);
     }
@@ -58,19 +60,19 @@ export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalP
         className="sm:max-w-sm min-h-[220px] p-4 flex flex-col"
       >
         <DialogHeader className="text-left">
-          <DialogTitle>New Knowledge Base</DialogTitle>
+          <DialogTitle>{t("kb.newKnowledgeBase")}</DialogTitle>
         </DialogHeader>
         <Input
           value={dataName}
           onChange={(event) => setDataName(event.target.value)}
-          placeholder="knowledge name"
+          placeholder={t("kb.namePlaceholder")}
           className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
           autoFocus
         />
         <Input
           value={dataDescription}
           onChange={(event) => setDataDescription(event.target.value)}
-          placeholder="description"
+          placeholder={t("kb.descriptionPlaceholder")}
           className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
         />
         {errorMsg && (
@@ -80,10 +82,10 @@ export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalP
         )}
         <DialogFooter className="mt-auto flex-row justify-end">
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleCreate} disabled={!dataName.trim() || isSubmitting}>
-            Enter
+            {t("kb.create")}
           </Button>
         </DialogFooter>
       </DialogContent>
