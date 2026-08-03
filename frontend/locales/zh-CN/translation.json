@@ -182,5 +182,19 @@
       "saveFailed": "保存失败，请重试",
       "invalidJson": "JSON 格式错误，请检查后重试"
     }
+  },
+  "agentManagement": {
+    "newAgent": "新建智能体",
+    "newAgentButton": "新建智能体",
+    "title": "标题",
+    "titlePlaceholder": "输入智能体标题",
+    "description": "描述",
+    "descriptionPlaceholder": "描述这个智能体的用途…",
+    "create": "创建",
+    "creating": "创建中...",
+    "createFailed": "创建失败",
+    "createFailedRetry": "创建失败，请稍后重试",
+    "loadFailedRetry": "加载失败，请稍后重试",
+    "empty": "暂无智能体"
   }
 }

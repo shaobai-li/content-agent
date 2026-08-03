@@ -182,5 +182,19 @@
       "saveFailed": "Save failed, please retry",
       "invalidJson": "Invalid JSON format, please check and retry"
     }
+  },
+  "agentManagement": {
+    "newAgent": "New Agent",
+    "newAgentButton": "New Agent",
+    "title": "Title",
+    "titlePlaceholder": "Enter agent title",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe what this agent does…",
+    "create": "Create",
+    "creating": "Creating...",
+    "createFailed": "Failed to create",
+    "createFailedRetry": "Failed to create, please retry later",
+    "loadFailedRetry": "Failed to load, please retry later",
+    "empty": "No agents yet"
   }
 }

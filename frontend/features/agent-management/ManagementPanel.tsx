@@ -10,6 +10,7 @@ import {
 } from "@/shared/api/management";
 import { getHiddenAgentIds } from "@/entities/agent/visibility";
 import { loadAgents } from "@/entities/agent/agent.registry";
+import { useTranslation } from "react-i18next";
 
 interface ManagementPanelProps {
   agentId: string;
@@ -18,6 +19,7 @@ interface ManagementPanelProps {
 type LoadingState = "loading" | "loaded" | "error";
 
 export function ManagementPanel({ agentId }: ManagementPanelProps) {
+  const { t } = useTranslation();
   const [agents, setAgents] = useState<AgentSummary[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>("loading");
   const [hiddenIds, setHiddenIds] = useState<string[]>(() =>
@@ -81,7 +83,7 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
   if (loadingState === "loading") {
     return (
       <div className="flex min-h-0 min-w-0 w-full flex-1 items-center justify-center">
-        <p className="text-sm text-muted-foreground">加载中...</p>
+        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       </div>
     );
   }
@@ -89,7 +91,7 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
   if (loadingState === "error") {
     return (
       <div className="flex min-h-0 min-w-0 w-full flex-1 items-center justify-center">
-        <p className="text-sm text-destructive">加载失败，请稍后重试</p>
+        <p className="text-sm text-destructive">{t("agentManagement.loadFailedRetry")}</p>
       </div>
     );
   }
@@ -97,7 +99,7 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
   if (agents.length === 0) {
     return (
       <div className="flex min-h-0 min-w-0 w-full flex-1 items-center justify-center">
-        <p className="text-sm text-muted-foreground">暂无智能体</p>
+        <p className="text-sm text-muted-foreground">{t("agentManagement.empty")}</p>
       </div>
     );
   }
@@ -128,7 +130,7 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
             <Plus className="size-5" aria-hidden />
           </span>
           <span className="text-sm font-medium text-muted-foreground">
-            New Agent
+            {t("agentManagement.newAgentButton")}
           </span>
         </button>
       </div>
