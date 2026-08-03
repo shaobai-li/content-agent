@@ -33,8 +33,14 @@ export interface CreateAgentResponse {
 }
 
 /** 创建自定义智能体 */
-export async function createAgent(name: string): Promise<CreateAgentResponse> {
-  return http.post<CreateAgentResponse>("/api/agents", { name });
+export async function createAgent(
+  name: string,
+  description?: string,
+): Promise<CreateAgentResponse> {
+  return http.post<CreateAgentResponse>("/api/agents", {
+    name,
+    description: description?.trim() || undefined,
+  });
 }
 
 export interface DeleteAgentResponse {

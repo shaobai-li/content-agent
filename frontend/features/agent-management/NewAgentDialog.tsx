@@ -22,24 +22,26 @@ export function NewAgentDialog({
   onOpenChange,
   onCreated,
 }: NewAgentDialogProps) {
-  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    const trimmed = name.trim();
+    const trimmed = title.trim();
     if (!trimmed) return;
 
     setCreating(true);
     setError(null);
 
     try {
-      const res = await createAgent(trimmed);
+      const res = await createAgent(trimmed, description.trim());
       if (!res.ok) {
         setError(res.error ?? "创建失败");
         return;
       }
-      setName("");
+      setTitle("");
+      setDescription("");
       onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "创建失败，请稍后重试");
@@ -50,7 +52,8 @@ export function NewAgentDialog({
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      setName("");
+      setTitle("");
+      setDescription("");
       setError(null);
     }
     onOpenChange(open);
@@ -64,20 +67,20 @@ export function NewAgentDialog({
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
           <label
-            htmlFor="new-agent-name"
+            htmlFor="new-agent-title"
             className="text-sm font-medium text-foreground"
           >
-            智能体名称
+            标题
           </label>
           <input
-            id="new-agent-name"
+            id="new-agent-title"
             type="text"
             className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0"
-            placeholder="输入智能体名称"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            placeholder="输入智能体标题"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !creating && name.trim()) {
+              if (e.key === "Enter" && !creating && title.trim()) {
                 handleSubmit();
               }
             }}
@@ -85,6 +88,22 @@ export function NewAgentDialog({
             autoFocus
             autoComplete="off"
             maxLength={20}
+          />
+          <label
+            htmlFor="new-agent-description"
+            className="text-sm font-medium text-foreground"
+          >
+            描述
+          </label>
+          <textarea
+            id="new-agent-description"
+            rows={3}
+            className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 resize-none"
+            placeholder="描述这个智能体的用途…"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={creating}
+            maxLength={200}
           />
           {error && (
             <p className="text-sm text-destructive">{error}</p>
@@ -102,7 +121,7 @@ export function NewAgentDialog({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={creating || !name.trim()}
+            disabled={creating || !title.trim()}
             className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {creating && <Loader2 className="size-3.5 animate-spin" />}
