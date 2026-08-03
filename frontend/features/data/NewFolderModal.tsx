@@ -50,7 +50,7 @@ export function NewFolderModal({
       onOpenChange(false);
     } catch (error) {
       console.error("创建文件夹失败:", error);
-      setErrorMsg(t("kb.createFolderFailedRetry"));
+      setErrorMsg(error instanceof Error ? error.message : t("kb.createFolderFailedRetry"));
     } finally {
       setIsSubmitting(false);
     }
