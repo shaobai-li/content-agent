@@ -39,6 +39,7 @@ async fn list_agents(Extension(ctx): Extension<UserContext>) -> Json<Value> {
 #[derive(Deserialize)]
 struct CreateAgentBody {
     name: String,
+    description: Option<String>,
 }
 
 /// POST /api/agents — 创建自定义智能体
@@ -55,6 +56,18 @@ async fn create_agent(
     if name.len() > 20 {
         return Json(serde_json::json!({
             "ok": false, "error": "智能体名称不能超过20个字符"
+        }));
+    }
+
+    let description = body
+        .description
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or("")
+        .to_string();
+    if description.chars().count() > 200 {
+        return Json(serde_json::json!({
+            "ok": false, "error": "智能体描述不能超过200个字符"
         }));
     }
 
@@ -81,7 +94,12 @@ async fn create_agent(
     }
 
     // 写入 SYSTEM.md（frontmatter + body，使用 YAML 序列化防止注入）
-    let frontmatter = serde_yaml::to_string(&serde_json::json!({"name": name}))
+    let mut meta = serde_json::Map::new();
+    meta.insert("name".into(), serde_json::json!(name));
+    if !description.is_empty() {
+        meta.insert("description".into(), serde_json::json!(description));
+    }
+    let frontmatter = serde_yaml::to_string(&serde_json::Value::Object(meta))
         .expect("serialize static JSON to YAML cannot fail");
     let system_content = format!("---\n{}---\n", frontmatter);
 
