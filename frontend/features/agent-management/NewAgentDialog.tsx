@@ -18,6 +18,14 @@ interface NewAgentDialogProps {
   onCreated: () => void;
 }
 
+/** 后端 create_agent 错误码 → i18n key 映射 */
+const AGENT_ERROR_MESSAGES: Record<string, string> = {
+  AGENT_NAME_REQUIRED: "agentManagement.errors.nameRequired",
+  AGENT_NAME_TOO_LONG: "agentManagement.errors.nameTooLong",
+  AGENT_DESCRIPTION_TOO_LONG: "agentManagement.errors.descriptionTooLong",
+  AGENT_NOT_LOGGED_IN: "agentManagement.errors.notLoggedIn",
+};
+
 export function NewAgentDialog({
   open,
   onOpenChange,
@@ -39,7 +47,10 @@ export function NewAgentDialog({
     try {
       const res = await createAgent(trimmed, description.trim());
       if (!res.ok) {
-        setError(res.error ?? t("agentManagement.createFailed"));
+        const errorKey = res.error_code
+          ? AGENT_ERROR_MESSAGES[res.error_code]
+          : undefined;
+        setError(errorKey ? t(errorKey) : (res.error ?? t("agentManagement.createFailed")));
         return;
       }
       setTitle("");

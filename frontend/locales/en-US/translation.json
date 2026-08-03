@@ -195,6 +195,12 @@
     "createFailed": "Failed to create",
     "createFailedRetry": "Failed to create, please retry later",
     "loadFailedRetry": "Failed to load, please retry later",
-    "empty": "No agents yet"
+    "empty": "No agents yet",
+    "errors": {
+      "nameRequired": "Agent title is required",
+      "nameTooLong": "Agent title must be 20 characters or fewer",
+      "descriptionTooLong": "Description must be 200 characters or fewer",
+      "notLoggedIn": "Please log in to create agents"
+    }
   }
 }
