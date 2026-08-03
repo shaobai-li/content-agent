@@ -26,6 +26,10 @@ async fn list_agents(Extension(ctx): Extension<UserContext>) -> Json<Value> {
                     .and_then(|v| v.as_str())
                     .unwrap_or(agent_id)
                     .to_string(),
+                description: cfg
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_string),
                 visible: true,
                 locked: false,
                 layout: None,
@@ -53,7 +57,7 @@ async fn create_agent(
             "ok": false, "error": "智能体名称不能为空"
         }));
     }
-    if name.len() > 20 {
+    if name.chars().count() > 20 {
         return Json(serde_json::json!({
             "ok": false, "error": "智能体名称不能超过20个字符"
         }));
