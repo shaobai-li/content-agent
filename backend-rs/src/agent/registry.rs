@@ -9,6 +9,8 @@ use crate::agent::base::BaseAgent;
 pub struct AgentMeta {
     pub id: String,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     pub visible: bool,
     pub locked: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -34,6 +36,11 @@ pub fn init_registry() {
             AgentMeta {
                 id: id.clone(),
                 name: cfg.name.clone().unwrap_or_else(|| id.clone()),
+                description: cfg
+                    .extra
+                    .get("description")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_string),
                 visible,
                 locked: cfg.locked.unwrap_or(false),
                 layout,
