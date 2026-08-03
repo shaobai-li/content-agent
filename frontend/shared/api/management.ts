@@ -30,6 +30,7 @@ export interface CreateAgentResponse {
   ok: boolean;
   agent?: { id: string; name: string };
   error?: string;
+  error_code?: string;
 }
 
 /** 创建自定义智能体 */

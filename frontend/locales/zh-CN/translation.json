@@ -195,6 +195,12 @@
     "createFailed": "创建失败",
     "createFailedRetry": "创建失败，请稍后重试",
     "loadFailedRetry": "加载失败，请稍后重试",
-    "empty": "暂无智能体"
+    "empty": "暂无智能体",
+    "errors": {
+      "nameRequired": "请输入智能体标题",
+      "nameTooLong": "智能体标题不能超过20个字符",
+      "descriptionTooLong": "智能体描述不能超过200个字符",
+      "notLoggedIn": "未登录用户无法创建智能体"
+    }
   }
 }

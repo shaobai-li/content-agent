@@ -54,12 +54,12 @@ async fn create_agent(
     let name = body.name.trim().to_string();
     if name.is_empty() {
         return Json(serde_json::json!({
-            "ok": false, "error": "智能体名称不能为空"
+            "ok": false, "error_code": "AGENT_NAME_REQUIRED", "error": "智能体名称不能为空"
         }));
     }
     if name.chars().count() > 20 {
         return Json(serde_json::json!({
-            "ok": false, "error": "智能体名称不能超过20个字符"
+            "ok": false, "error_code": "AGENT_NAME_TOO_LONG", "error": "智能体名称不能超过20个字符"
         }));
     }
 
@@ -71,7 +71,7 @@ async fn create_agent(
         .to_string();
     if description.chars().count() > 200 {
         return Json(serde_json::json!({
-            "ok": false, "error": "智能体描述不能超过200个字符"
+            "ok": false, "error_code": "AGENT_DESCRIPTION_TOO_LONG", "error": "智能体描述不能超过200个字符"
         }));
     }
 
@@ -79,7 +79,7 @@ async fn create_agent(
         Some(uid) => uid.clone(),
         None => {
             return Json(serde_json::json!({
-                "ok": false, "error": "未登录用户无法创建智能体"
+                "ok": false, "error_code": "AGENT_NOT_LOGGED_IN", "error": "未登录用户无法创建智能体"
             }));
         }
     };

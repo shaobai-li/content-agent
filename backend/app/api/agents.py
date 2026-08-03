@@ -74,13 +74,13 @@ async def create_agent(payload: dict = Body(...)):
     """创建自定义智能体，返回 agent_id。"""
     name = (payload.get("name") or "").strip()
     if not name:
-        return {"ok": False, "error": "智能体名称不能为空"}
+        return {"ok": False, "error_code": "AGENT_NAME_REQUIRED", "error": "智能体名称不能为空"}
     if len(name) > 20:
-        return {"ok": False, "error": "智能体名称不能超过20个字符"}
+        return {"ok": False, "error_code": "AGENT_NAME_TOO_LONG", "error": "智能体名称不能超过20个字符"}
 
     description = (payload.get("description") or "").strip()
     if len(description) > 200:
-        return {"ok": False, "error": "智能体描述不能超过200个字符"}
+        return {"ok": False, "error_code": "AGENT_DESCRIPTION_TOO_LONG", "error": "智能体描述不能超过200个字符"}
 
     user_id = get_current_user_id()
 
