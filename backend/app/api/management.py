@@ -51,6 +51,7 @@ def _build_agent_summary(agent_id: str, cfg: dict) -> dict:
     return {
         "id": agent_id,
         "name": name,
+        "description": cfg.get("description", ""),
         "locked": locked,
         "model": model,
         "session_count": session_count,

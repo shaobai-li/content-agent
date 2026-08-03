@@ -36,6 +36,7 @@ async def list_agents():
         result.append({
             "id": agent_id,
             "name": cfg.get("name", agent_id),
+            "description": cfg.get("description", ""),
             "locked": cfg.get("locked", False),
             "layout": cfg.get("layout", {
                 "left": ["history", "knowledgebase", "document"],
@@ -53,6 +54,7 @@ async def list_agents():
                 result.append({
                     "id": agent_id,
                     "name": cfg.get("name", agent_id),
+                    "description": cfg.get("description", ""),
                     "locked": False,
                     "layout": cfg.get("layout", {
                         "left": ["history", "knowledgebase", "document"],
@@ -76,6 +78,10 @@ async def create_agent(payload: dict = Body(...)):
     if len(name) > 20:
         return {"ok": False, "error": "智能体名称不能超过20个字符"}
 
+    description = (payload.get("description") or "").strip()
+    if len(description) > 200:
+        return {"ok": False, "error": "智能体描述不能超过200个字符"}
+
     user_id = get_current_user_id()
 
     # 生成 agent_id: a_ + UUID 前 8 位 hex
@@ -83,7 +89,10 @@ async def create_agent(payload: dict = Body(...)):
 
     # 构造 SYSTEM.md 并写入（使用 YAML 序列化防止注入）
     import yaml as _yaml
-    frontmatter = _yaml.dump({"name": name}, allow_unicode=True)
+    meta = {"name": name}
+    if description:
+        meta["description"] = description
+    frontmatter = _yaml.dump(meta, allow_unicode=True)
     system_content = f"---\n{frontmatter}---\n"
     system_path = get_agent_base_dir(agent_id) / "SYSTEM.md"
     system_path.parent.mkdir(parents=True, exist_ok=True)
