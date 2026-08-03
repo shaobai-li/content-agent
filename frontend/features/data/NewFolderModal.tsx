@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -22,6 +23,7 @@ export function NewFolderModal({
   onOpenChange,
   onCreateFolder,
 }: NewFolderModalProps) {
+  const { t } = useTranslation();
   const [folderName, setFolderName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function NewFolderModal({
       onOpenChange(false);
     } catch (error) {
       console.error("创建文件夹失败:", error);
-      setErrorMsg("创建文件夹失败，请重试");
+      setErrorMsg(t("kb.createFolderFailedRetry"));
     } finally {
       setIsSubmitting(false);
     }
@@ -61,12 +63,12 @@ export function NewFolderModal({
         className="sm:max-w-sm min-h-[180px] p-4 flex flex-col"
       >
         <DialogHeader className="text-left">
-          <DialogTitle>New Folder</DialogTitle>
+          <DialogTitle>{t("kb.newFolder")}</DialogTitle>
         </DialogHeader>
         <Input
           value={folderName}
           onChange={(event) => setFolderName(event.target.value)}
-          placeholder="folder name"
+          placeholder={t("kb.folderNamePlaceholder")}
           className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
           autoFocus
           disabled={isSubmitting}
@@ -78,10 +80,10 @@ export function NewFolderModal({
         )}
         <DialogFooter className="mt-auto flex-row justify-end">
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleCreate} disabled={!folderName.trim() || isSubmitting}>
-            Enter
+            {t("kb.create")}
           </Button>
         </DialogFooter>
       </DialogContent>

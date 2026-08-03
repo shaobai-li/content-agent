@@ -148,6 +148,8 @@
     "namePlaceholder": "知识库名称",
     "descriptionPlaceholder": "描述",
     "create": "创建",
+    "folderNamePlaceholder": "文件夹名称",
+    "createFolderFailedRetry": "创建文件夹失败，请重试",
     "empty": "暂无知识",
     "columnName": "文件名",
     "columnType": "类型",
