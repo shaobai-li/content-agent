@@ -121,24 +121,16 @@ export function NewAgentDialog({
             >
               {t("agentManagement.description")}
             </label>
-            <div className="relative">
-              <textarea
-                id="new-agent-description"
-                rows={3}
-                className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-white px-3 pr-14 py-2 pb-6 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 resize-none"
-                placeholder={t("agentManagement.descriptionPlaceholder")}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={creating}
-                maxLength={200}
-              />
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute bottom-2 right-3 text-xs text-muted-foreground tabular-nums"
-              >
-                {description.length}/200
-              </span>
-            </div>
+            <textarea
+              id="new-agent-description"
+              rows={3}
+              className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-white px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 resize-none"
+              placeholder={t("agentManagement.descriptionPlaceholder")}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={creating}
+              maxLength={200}
+            />
           </div>
           {error && (
             <p className="text-sm text-destructive">{error}</p>
