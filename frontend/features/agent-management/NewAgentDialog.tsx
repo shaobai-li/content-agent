@@ -75,7 +75,7 @@ export function NewAgentDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+        <DialogHeader className="-mt-2.5">
           <DialogTitle className="font-normal">
             {t("agentManagement.newAgent")}
           </DialogTitle>
