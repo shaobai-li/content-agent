@@ -164,7 +164,12 @@
     "columnSize": "Size",
     "columnDate": "Date Added",
     "folderLabel": "Folder",
-    "backToList": "Back to database list"
+    "backToList": "Back to database list",
+    "loading": "Loading databases...",
+    "noKnowledgeBase": "No Knowledge Base",
+    "noResults": "No matching databases found",
+    "deleteFailed": "Failed to delete knowledge base",
+    "deleteFailedRetry": "Failed to delete knowledge base, please retry"
   },
   "chat": {
     "title": "Chat",

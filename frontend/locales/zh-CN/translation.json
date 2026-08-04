@@ -164,7 +164,12 @@
     "columnSize": "大小",
     "columnDate": "添加时间",
     "folderLabel": "文件夹",
-    "backToList": "返回数据库列表"
+    "backToList": "返回数据库列表",
+    "loading": "正在加载数据库...",
+    "noKnowledgeBase": "暂无知识库",
+    "noResults": "未找到匹配的数据库",
+    "deleteFailed": "删除知识库失败",
+    "deleteFailedRetry": "删除知识库失败，请重试"
   },
   "chat": {
     "title": "对话",
