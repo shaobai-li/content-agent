@@ -195,7 +195,7 @@
     "title": "标题",
     "titlePlaceholder": "输入智能体标题",
     "description": "描述",
-    "descriptionPlaceholder": "描述这个智能体的用途…",
+    "descriptionPlaceholder": "描述这个智能体的用途",
     "create": "创建",
     "creating": "创建中...",
     "createFailed": "创建失败",
