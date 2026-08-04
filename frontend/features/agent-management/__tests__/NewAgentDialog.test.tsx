@@ -73,6 +73,22 @@ describe("NewAgentDialog i18n 与错误处理", () => {
     expect(screen.getByRole("button", { name: "取消" })).toBeInTheDocument();
   });
 
+  it("标题与描述输入框显示字数统计并随输入更新", () => {
+    renderDialog();
+    expect(screen.getByText("0/20")).toBeInTheDocument();
+    expect(screen.getByText("0/200")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("标题"), {
+      target: { value: "测试智能体" },
+    });
+    fireEvent.change(screen.getByLabelText("描述"), {
+      target: { value: "测试描述" },
+    });
+
+    expect(screen.getByText("5/20")).toBeInTheDocument();
+    expect(screen.getByText("4/200")).toBeInTheDocument();
+  });
+
   it("后端返回 error_code 时展示本地化错误消息", async () => {
     mockedCreateAgent.mockResolvedValue({
       ok: false,
