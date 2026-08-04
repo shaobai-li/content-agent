@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { AgentId } from "@/entities/agent/model";
 import { deleteKnowledgeBase } from "@/shared/api/records";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ interface KnowledgeBaseListPanelProps {
 }
 
 export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps) {
+  const { t } = useTranslation();
   const { databases, loading } = useKnowledgeBases(agentId);
   const { databaseId, selectDatabase, clearDatabase } = useKnowledgeBaseSelection();
   const [searchKeyword, setSearchKeyword] = useState("");
@@ -82,7 +84,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
   const handleRename = async (record: { id: string; name: string }, newName: string) => {
     const response = await renameKnowledgeBase(agentId, record.id, newName);
     if (!response.success) {
-      throw new Error(response.message || "重命名失败");
+      throw new Error(response.message || t("data.renameDialog.error.renameFailed"));
     }
     window.dispatchEvent(new Event(KNOWLEDGE_BASES_REFRESH_EVENT));
   };
@@ -93,7 +95,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
     try {
       const response = await deleteKnowledgeBase(agentId, deleteConfirm.id);
       if (!response.success) {
-        throw new Error(response.message || "删除知识库失败");
+        throw new Error(response.message || t("kb.deleteFailed"));
       }
 
       if (databaseId === deleteConfirm.id) {
@@ -103,7 +105,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
       window.dispatchEvent(new Event(KNOWLEDGE_BASES_REFRESH_EVENT));
     } catch (error) {
       console.error("删除知识库失败:", error);
-      toast.error(error instanceof Error ? error.message : "删除知识库失败，请重试");
+      toast.error(error instanceof Error ? error.message : t("kb.deleteFailedRetry"));
     }
     setDeleteConfirm(null);
   };
@@ -111,7 +113,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
   if (loading) {
     return (
       <div className="px-3 py-4 text-sm text-muted-foreground">
-        正在加载数据库...
+        {t("kb.loading")}
       </div>
     );
   }
@@ -119,7 +121,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
   if (databases.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-gray-400">
-        No Knowledge Base
+        {t("kb.noKnowledgeBase")}
       </div>
     );
   }
@@ -127,7 +129,7 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
   if (visibleDatabases.length === 0) {
     return (
       <div className="px-3 py-4 text-sm text-muted-foreground">
-        未找到匹配的数据库
+        {t("kb.noResults")}
       </div>
     );
   }
@@ -193,15 +195,15 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
       <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogTitle>{t("data.confirmDelete.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除 "{deleteConfirm?.name ?? ""}" 吗？
+              {t("data.confirmDelete.description", { name: deleteConfirm?.name ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={handleDeleteConfirmed}>
-              删除
+              {t("data.confirmDelete.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
