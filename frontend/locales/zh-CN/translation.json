@@ -215,6 +215,21 @@
     "createFailedRetry": "创建失败，请稍后重试",
     "loadFailedRetry": "加载失败，请稍后重试",
     "empty": "暂无智能体",
+    "menu": {
+      "hide": "隐藏",
+      "show": "显示",
+      "configure": "配置",
+      "delete": "删除"
+    },
+    "deleteConfirm": {
+      "title": "确认删除",
+      "description": "确定要删除「{{name}}」吗？删除后智能体将从列表中移除，相关数据不会被清除。",
+      "cancel": "取消",
+      "confirm": "删除"
+    },
+    "deleting": "删除中...",
+    "deleteFailed": "删除失败",
+    "deleteFailedRetry": "删除失败，请稍后重试",
     "errors": {
       "nameRequired": "请输入智能体标题",
       "nameTooLong": "智能体标题不能超过20个字符",

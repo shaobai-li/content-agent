@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   BadgeCheck,
   Bot,
@@ -73,6 +74,7 @@ export function AgentInfoCard({
   lastSessionTitle,
   onDeleted,
 }: AgentInfoCardProps) {
+  const { t } = useTranslation();
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -98,13 +100,13 @@ export function AgentInfoCard({
     try {
       const res = await deleteAgent(agentId);
       if (!res.ok) {
-        toast.error(res.error ?? "删除失败");
+        toast.error(res.error ?? t("agentManagement.deleteFailed"));
         return;
       }
       setDeleteConfirm(false);
       onDeleted?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "删除失败，请稍后重试");
+      toast.error(err instanceof Error ? err.message : t("agentManagement.deleteFailedRetry"));
     } finally {
       setDeleting(false);
     }
@@ -164,14 +166,14 @@ export function AgentInfoCard({
                 <DropdownMenuItem onClick={handleToggleVisibility}>
                   <span className="flex items-center gap-2 cursor-pointer">
                     <EyeOff className="size-4" />
-                    {visible ? "Hide" : "Show"}
+                    {visible ? t("agentManagement.menu.hide") : t("agentManagement.menu.show")}
                   </span>
                 </DropdownMenuItem>
                 <div className="h-px bg-border mx-1 my-1" />
                 <DropdownMenuItem onClick={() => {}}>
                   <span className="flex items-center gap-2 cursor-pointer">
                     <Settings className="size-4" />
-                    Configure
+                    {t("agentManagement.menu.configure")}
                   </span>
                 </DropdownMenuItem>
                 {canDelete && (
@@ -183,7 +185,7 @@ export function AgentInfoCard({
                     >
                       <span className="flex items-center gap-2 cursor-pointer">
                         <Trash2 className="size-4" />
-                        删除
+                        {t("agentManagement.menu.delete")}
                       </span>
                     </DropdownMenuItem>
                   </>
@@ -197,19 +199,19 @@ export function AgentInfoCard({
       <AlertDialog open={deleteConfirm} onOpenChange={(open) => { if (!open) setDeleteConfirm(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogTitle>{t("agentManagement.deleteConfirm.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定要删除「{name}」吗？删除后智能体将从列表中移除，相关数据不会被清除。
+              {t("agentManagement.deleteConfirm.description", { name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>{t("agentManagement.deleteConfirm.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               disabled={deleting}
               onClick={handleDelete}
             >
-              {deleting ? "删除中..." : "删除"}
+              {deleting ? t("agentManagement.deleting") : t("agentManagement.deleteConfirm.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

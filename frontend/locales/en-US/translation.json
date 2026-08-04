@@ -215,6 +215,21 @@
     "createFailedRetry": "Failed to create, please retry later",
     "loadFailedRetry": "Failed to load, please retry later",
     "empty": "No agents yet",
+    "menu": {
+      "hide": "Hide",
+      "show": "Show",
+      "configure": "Configure",
+      "delete": "Delete"
+    },
+    "deleteConfirm": {
+      "title": "Confirm Deletion",
+      "description": "Are you sure you want to delete agent \"{{name}}\"? The agent will be removed from the list, but its data will not be cleared.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "deleting": "Deleting...",
+    "deleteFailed": "Failed to delete",
+    "deleteFailedRetry": "Failed to delete, please retry later",
     "errors": {
       "nameRequired": "Agent title is required",
       "nameTooLong": "Agent title must be 20 characters or fewer",
