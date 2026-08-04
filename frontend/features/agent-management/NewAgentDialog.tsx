@@ -76,48 +76,54 @@ export function NewAgentDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("agentManagement.newAgent")}</DialogTitle>
+          <DialogTitle className="font-normal">
+            {t("agentManagement.newAgent")}
+          </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
-          <label
-            htmlFor="new-agent-title"
-            className="text-sm font-medium text-foreground"
-          >
-            {t("agentManagement.title")}
-          </label>
-          <input
-            id="new-agent-title"
-            type="text"
-            className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0"
-            placeholder={t("agentManagement.titlePlaceholder")}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !creating && title.trim()) {
-                handleSubmit();
-              }
-            }}
-            disabled={creating}
-            autoFocus
-            autoComplete="off"
-            maxLength={20}
-          />
-          <label
-            htmlFor="new-agent-description"
-            className="text-sm font-medium text-foreground"
-          >
-            {t("agentManagement.description")}
-          </label>
-          <textarea
-            id="new-agent-description"
-            rows={3}
-            className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 resize-none"
-            placeholder={t("agentManagement.descriptionPlaceholder")}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            disabled={creating}
-            maxLength={200}
-          />
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="new-agent-title"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("agentManagement.title")}
+            </label>
+            <input
+              id="new-agent-title"
+              type="text"
+              className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0"
+              placeholder={t("agentManagement.titlePlaceholder")}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !creating && title.trim()) {
+                  handleSubmit();
+                }
+              }}
+              disabled={creating}
+              autoFocus
+              autoComplete="off"
+              maxLength={20}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="new-agent-description"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("agentManagement.description")}
+            </label>
+            <textarea
+              id="new-agent-description"
+              rows={3}
+              className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-muted px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 resize-none"
+              placeholder={t("agentManagement.descriptionPlaceholder")}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={creating}
+              maxLength={200}
+            />
+          </div>
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
