@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -19,6 +20,7 @@ interface RenameModalProps {
 }
 
 export function RenameModal({ open, onOpenChange, record, onRename }: RenameModalProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export function RenameModal({ open, onOpenChange, record, onRename }: RenameModa
       onOpenChange(false);
     } catch (error) {
       console.error("重命名失败:", error);
-      setErrorMsg("重命名失败，请重试");
+      setErrorMsg(t("data.renameDialog.error.renameFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -70,12 +72,12 @@ export function RenameModal({ open, onOpenChange, record, onRename }: RenameModa
         className="sm:max-w-sm min-h-[180px] p-4 flex flex-col"
       >
         <DialogHeader className="text-left">
-          <DialogTitle>Rename</DialogTitle>
+          <DialogTitle>{t("data.renameDialog.title")}</DialogTitle>
         </DialogHeader>
         <Input
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="New name"
+          placeholder={t("data.renameDialog.namePlaceholder")}
           className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
           autoFocus
           disabled={isSubmitting}
@@ -87,10 +89,10 @@ export function RenameModal({ open, onOpenChange, record, onRename }: RenameModa
         )}
         <DialogFooter className="mt-auto flex-row justify-end">
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleRename} disabled={!name.trim() || isSubmitting}>
-            Enter
+            {t("data.renameDialog.confirm")}
           </Button>
         </DialogFooter>
       </DialogContent>

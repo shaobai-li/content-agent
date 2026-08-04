@@ -125,6 +125,14 @@
       "cancel": "Cancel",
       "confirm": "Delete"
     },
+    "renameDialog": {
+      "title": "Rename",
+      "namePlaceholder": "New name",
+      "confirm": "Enter",
+      "error": {
+        "renameFailed": "Failed to rename, please retry"
+      }
+    },
     "error": {
       "deleteFailed": "Failed to delete, please retry",
       "missingIdentifier": "Missing deletable node identifier",

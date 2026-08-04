@@ -125,6 +125,14 @@
       "cancel": "取消",
       "confirm": "删除"
     },
+    "renameDialog": {
+      "title": "重命名",
+      "namePlaceholder": "新名称",
+      "confirm": "确定",
+      "error": {
+        "renameFailed": "重命名失败，请重试"
+      }
+    },
     "error": {
       "deleteFailed": "删除失败，请重试",
       "missingIdentifier": "缺少可删除的节点标识",
