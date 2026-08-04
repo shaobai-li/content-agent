@@ -195,7 +195,7 @@
     "title": "Title",
     "titlePlaceholder": "Enter agent title",
     "description": "Description",
-    "descriptionPlaceholder": "Describe what this agent does…",
+    "descriptionPlaceholder": "Describe what this agent does",
     "create": "Create",
     "creating": "Creating...",
     "createFailed": "Failed to create",

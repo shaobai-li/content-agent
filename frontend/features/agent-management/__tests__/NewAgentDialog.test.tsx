@@ -10,7 +10,7 @@ vi.mock("react-i18next", () => {
     "agentManagement.title": "标题",
     "agentManagement.titlePlaceholder": "输入智能体标题",
     "agentManagement.description": "描述",
-    "agentManagement.descriptionPlaceholder": "描述这个智能体的用途…",
+    "agentManagement.descriptionPlaceholder": "描述这个智能体的用途",
     "agentManagement.create": "创建",
     "agentManagement.creating": "创建中...",
     "agentManagement.createFailed": "创建失败",
