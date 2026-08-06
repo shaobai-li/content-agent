@@ -132,6 +132,18 @@ describe("AgentInfoCard i18n 与删除流程", () => {
     await waitFor(() => expect(mockedToastError).toHaveBeenCalledWith("后端错误"));
   });
 
+  it("删除失败且无错误消息时 toast 回退到本地化兜底文案", async () => {
+    mockedDeleteAgent.mockRejectedValue(new Error(""));
+    renderCard();
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
+    fireEvent.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "删除" }),
+    );
+    await waitFor(() =>
+      expect(mockedToastError).toHaveBeenCalledWith("删除失败，请稍后重试"),
+    );
+  });
+
   it("删除成功后关闭弹窗并调用 onDeleted", async () => {
     mockedDeleteAgent.mockResolvedValue({ ok: true });
     const { onDeleted } = renderCard();
