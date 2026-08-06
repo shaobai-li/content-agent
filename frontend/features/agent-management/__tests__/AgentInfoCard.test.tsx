@@ -15,7 +15,6 @@ vi.mock("react-i18next", () => {
     "agentManagement.deleteConfirm.title": "确认删除",
     "agentManagement.deleteConfirm.description":
       "确定要删除「{{name}}」吗？删除后智能体将从列表中移除，相关数据不会被清除。",
-    "agentManagement.deleteConfirm.cancel": "取消",
     "agentManagement.deleteConfirm.confirm": "删除",
     "agentManagement.deleting": "删除中...",
     "agentManagement.deleteFailed": "删除失败",
