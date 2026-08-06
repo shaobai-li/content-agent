@@ -105,9 +105,11 @@ export function NewAgentDialog({
                 autoFocus
                 autoComplete="off"
                 maxLength={20}
+                aria-describedby="new-agent-title-count"
               />
               <span
-                aria-hidden="true"
+                id="new-agent-title-count"
+                role="status"
                 className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground tabular-nums"
               >
                 {title.length}/20
