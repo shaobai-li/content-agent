@@ -59,7 +59,11 @@ export function RenameModal({ open, onOpenChange, record, onRename }: RenameModa
       onOpenChange(false);
     } catch (error) {
       console.error("重命名失败:", error);
-      setErrorMsg(t("data.renameDialog.error.renameFailed"));
+      setErrorMsg(
+        error instanceof Error && error.message
+          ? error.message
+          : t("data.renameDialog.error.renameFailed"),
+      );
     } finally {
       setIsSubmitting(false);
     }
