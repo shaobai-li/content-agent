@@ -11,6 +11,7 @@ import {
 } from "@/shared/ui/dialog";
 import { createAgent } from "@/shared/api/management";
 import { useTranslation } from "react-i18next";
+import { Input } from "@/shared/ui/input";
 
 interface NewAgentDialogProps {
   open: boolean;
@@ -89,10 +90,10 @@ export function NewAgentDialog({
               {t("agentManagement.title")}
             </label>
             <div className="relative">
-              <input
+              <Input
                 id="new-agent-title"
                 type="text"
-                className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-white dark:bg-input/30 px-3 pr-14 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0"
+                className="bg-white pr-14 text-sm"
                 placeholder={t("agentManagement.titlePlaceholder")}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
