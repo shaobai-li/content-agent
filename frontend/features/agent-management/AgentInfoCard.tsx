@@ -106,7 +106,11 @@ export function AgentInfoCard({
       setDeleteConfirm(false);
       onDeleted?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("agentManagement.deleteFailedRetry"));
+      toast.error(
+        err instanceof Error && err.message
+          ? err.message
+          : t("agentManagement.deleteFailedRetry"),
+      );
     } finally {
       setDeleting(false);
     }
