@@ -92,7 +92,7 @@ export function NewAgentDialog({
               <input
                 id="new-agent-title"
                 type="text"
-                className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-white px-3 pr-14 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0"
+                className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-white dark:bg-input/30 px-3 pr-14 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0"
                 placeholder={t("agentManagement.titlePlaceholder")}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -124,7 +124,7 @@ export function NewAgentDialog({
             <textarea
               id="new-agent-description"
               rows={3}
-              className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-white px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 resize-none"
+              className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-white dark:bg-input/30 px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 resize-none"
               placeholder={t("agentManagement.descriptionPlaceholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
