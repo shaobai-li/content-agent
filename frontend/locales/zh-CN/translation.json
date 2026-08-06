@@ -224,7 +224,6 @@
     "deleteConfirm": {
       "title": "确认删除",
       "description": "确定要删除「{{name}}」吗？删除后智能体将从列表中移除，相关数据不会被清除。",
-      "cancel": "取消",
       "confirm": "删除"
     },
     "deleting": "删除中...",

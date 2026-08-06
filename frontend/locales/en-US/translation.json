@@ -224,7 +224,6 @@
     "deleteConfirm": {
       "title": "Confirm Deletion",
       "description": "Are you sure you want to delete agent \"{{name}}\"? The agent will be removed from the list, but its data will not be cleared.",
-      "cancel": "Cancel",
       "confirm": "Delete"
     },
     "deleting": "Deleting...",
