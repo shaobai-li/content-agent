@@ -105,7 +105,11 @@ export function KnowledgeBaseListPanel({ agentId }: KnowledgeBaseListPanelProps)
       window.dispatchEvent(new Event(KNOWLEDGE_BASES_REFRESH_EVENT));
     } catch (error) {
       console.error("删除知识库失败:", error);
-      toast.error(error instanceof Error ? error.message : t("kb.deleteFailedRetry"));
+      toast.error(
+        error instanceof Error && error.message
+          ? error.message
+          : t("kb.deleteFailedRetry"),
+      );
     }
     setDeleteConfirm(null);
   };
