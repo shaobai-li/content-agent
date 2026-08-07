@@ -21,8 +21,8 @@ interface NewAgentDialogProps {
 
 /** 后端 create_agent 错误码 → i18n key 映射 */
 const AGENT_ERROR_MESSAGES: Record<string, string> = {
-  AGENT_NAME_REQUIRED: "agentManagement.errors.nameRequired",
-  AGENT_NAME_TOO_LONG: "agentManagement.errors.nameTooLong",
+  AGENT_TITLE_REQUIRED: "agentManagement.errors.titleRequired",
+  AGENT_TITLE_TOO_LONG: "agentManagement.errors.titleTooLong",
   AGENT_DESCRIPTION_TOO_LONG: "agentManagement.errors.descriptionTooLong",
   AGENT_NOT_LOGGED_IN: "agentManagement.errors.notLoggedIn",
 };

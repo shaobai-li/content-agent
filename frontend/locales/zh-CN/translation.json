@@ -230,8 +230,8 @@
     "deleteFailed": "删除失败",
     "deleteFailedRetry": "删除失败，请稍后重试",
     "errors": {
-      "nameRequired": "请输入智能体标题",
-      "nameTooLong": "智能体标题不能超过20个字符",
+      "titleRequired": "请输入智能体标题",
+      "titleTooLong": "智能体标题不能超过20个字符",
       "descriptionTooLong": "智能体描述不能超过200个字符",
       "notLoggedIn": "未登录用户无法创建智能体"
     }
