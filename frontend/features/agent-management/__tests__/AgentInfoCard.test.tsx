@@ -74,7 +74,7 @@ describe("AgentInfoCard i18n 与删除流程", () => {
   function renderCard(overrides: Partial<AgentInfoCardProps> = {}) {
     const props: AgentInfoCardProps = {
       agentId: "a_1",
-      name: "测试智能体",
+      title: "测试智能体",
       visible: true,
       model: "gpt-4",
       sessionCount: 3,

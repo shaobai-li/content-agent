@@ -22,9 +22,9 @@ export async function loadAgents(): Promise<void> {
       delete agentRegistry[key];
     }
     for (const item of data.agents) {
-      agentRegistry[item.id] = {
-        id: item.id,
-        name: item.name ?? item.id,
+      agentRegistry[item.name] = {
+        name: item.name,
+        title: item.title ?? item.name,
         visible: item.visible ?? true,
         locked: item.locked ?? false,
         layout: item.layout ?? DEFAULT_LAYOUT,

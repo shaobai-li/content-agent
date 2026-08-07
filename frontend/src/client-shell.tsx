@@ -46,14 +46,14 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
     const isRoot = location.pathname === "/" || location.pathname === "";
     if (!isRoot) return;
 
-    const adminExists = Object.values(agentRegistry).some((a) => a.id === "admin");
+    const adminExists = Object.values(agentRegistry).some((a) => a.name === "admin");
     if (adminExists) {
       navigate("/agent/admin", { replace: true });
     } else {
       // 回退：导航到第一个可用的 agent
       const firstAgent = Object.values(agentRegistry)[0];
       if (firstAgent) {
-        navigate(`/agent/${firstAgent.id}`, { replace: true });
+        navigate(`/agent/${firstAgent.name}`, { replace: true });
       }
     }
   }, [ready, location.pathname, navigate]);

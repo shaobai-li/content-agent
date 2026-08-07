@@ -18,28 +18,28 @@ export function getSidebarRoutes(): RouteItem[] {
       )
       .map((module) => ({
         labelKey: `sidebar.nav.${LEFT_MODULE_LABEL_MAP[module]}`,
-        href: `/agent/${agent.id}?left=${module}`,
+        href: `/agent/${agent.name}?left=${module}`,
         icon: module,
       }));
 
     menuItems.push({
       labelKey: "sidebar.nav.settings",
       icon: "settings",
-      href: `/agent/${agent.id}?left=settings`,
+      href: `/agent/${agent.name}?left=settings`,
     });
 
-    if (agent.id === "admin") {
+    if (agent.name === "admin") {
       menuItems.push({
         labelKey: "sidebar.nav.management",
         icon: "management",
-        href: `/agent/${agent.id}?left=management`,
+        href: `/agent/${agent.name}?left=management`,
       });
     }
 
     return {
-      href: `/agent/${agent.id}`,
-      label: agent.name,
-      agentId: agent.id,
+      href: `/agent/${agent.name}`,
+      label: agent.title,
+      agentId: agent.name,
       menuItems,
     };
   });

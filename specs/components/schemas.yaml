@@ -2,12 +2,12 @@
 
 AgentSummary:
   type: object
-  required: [id, name]
+  required: [name, title]
   properties:
-    id:
-      type: string
-      description: Agent 标识符
     name:
+      type: string
+      description: Agent 标识符（目录名）
+    title:
       type: string
       description: Agent 显示名称
     description:
@@ -103,11 +103,11 @@ KnowledgeBase:
 
 AgentManagementSummary:
   type: object
-  required: [id, name, model, session_count]
+  required: [name, title, model, session_count]
   properties:
-    id:
-      type: string
     name:
+      type: string
+    title:
       type: string
     locked:
       type: boolean

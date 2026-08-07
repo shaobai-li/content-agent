@@ -109,11 +109,11 @@ export function ManagementPanel({ agentId }: ManagementPanelProps) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {agents.map((agent) => (
           <AgentInfoCard
-            key={agent.id}
-            agentId={agent.id}
-            name={agent.name}
+            key={agent.name}
+            agentId={agent.name}
+            title={agent.title}
             locked={agent.locked}
-            visible={!hiddenIds.includes(agent.id)}
+            visible={!hiddenIds.includes(agent.name)}
             model={agent.model}
             sessionCount={agent.session_count}
             lastReplyTime={agent.last_reply_time}

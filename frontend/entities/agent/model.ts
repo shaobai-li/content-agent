@@ -3,8 +3,8 @@
 export type AgentId = string;
 
 export interface Agent {
-    id: AgentId;
-    name: string;
+    name: AgentId;     // agent 标识（目录名）
+    title: string;     // 显示名
     visible: boolean;
     locked?: boolean;
     layout: LayoutType;

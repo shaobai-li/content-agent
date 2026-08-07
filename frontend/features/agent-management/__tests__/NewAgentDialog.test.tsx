@@ -114,7 +114,7 @@ describe("NewAgentDialog i18n 与错误处理", () => {
   it("创建成功后清空表单并调用 onCreated", async () => {
     mockedCreateAgent.mockResolvedValue({
       ok: true,
-      agent: { id: "a_1234", name: "测试" },
+      agent: { name: "a_1234", title: "测试" },
     });
     const { onCreated } = renderDialog();
     fillAndSubmit("测试");

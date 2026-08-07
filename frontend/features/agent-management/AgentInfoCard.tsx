@@ -33,7 +33,7 @@ import { toast } from "sonner";
 
 export interface AgentInfoCardProps {
   agentId: string;
-  name: string;
+  title: string;
   locked?: boolean;
   visible: boolean;
   model: string;
@@ -65,7 +65,7 @@ function formatRelativeTime(iso: string): string {
 
 export function AgentInfoCard({
   agentId,
-  name,
+  title,
   locked,
   visible,
   model,
@@ -125,7 +125,7 @@ export function AgentInfoCard({
         <CardContent className="flex flex-col gap-2 px-4">
           {/* ── Zone 1: Name + Status Badge ── */}
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">{name}</h3>
+            <h3 className="text-sm font-semibold text-foreground">{title}</h3>
             <span
               className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${statusStyle}`}
             >
@@ -205,7 +205,7 @@ export function AgentInfoCard({
           <AlertDialogHeader>
             <AlertDialogTitle>{t("agentManagement.deleteConfirm.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("agentManagement.deleteConfirm.description", { name })}
+              {t("agentManagement.deleteConfirm.description", { name: title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
