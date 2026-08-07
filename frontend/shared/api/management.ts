@@ -5,8 +5,8 @@
 import { http } from "./http";
 
 export interface AgentSummary {
-  id: string;
   name: string;
+  title: string;
   locked: boolean;
   model: string;
   session_count: number;
@@ -28,18 +28,18 @@ export async function fetchAgentsSummary(): Promise<AgentSummary[]> {
 
 export interface CreateAgentResponse {
   ok: boolean;
-  agent?: { id: string; name: string };
+  agent?: { name: string; title: string };
   error?: string;
   error_code?: string;
 }
 
 /** 创建自定义智能体 */
 export async function createAgent(
-  name: string,
+  title: string,
   description?: string,
 ): Promise<CreateAgentResponse> {
   return http.post<CreateAgentResponse>("/api/agents", {
-    name,
+    title,
     description: description?.trim() || undefined,
   });
 }
