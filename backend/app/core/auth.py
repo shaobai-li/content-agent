@@ -49,6 +49,7 @@ def _load_user_agent_configs(user_id: str) -> Dict[str, Dict[str, Any]]:
         if not isinstance(meta, dict):
             continue
         meta.pop("agent_id", None)
+        meta["name"] = agent_id      # name 恒等于目录名（以文件名为准）
         result[agent_id] = meta
     return result
 

@@ -12,10 +12,10 @@ class TestBuildAgentSummary:
     def test_no_sessions(self):
         """无会话时：session_count=0, last_reply_time=None, last_session_title=None。"""
         with patch("app.api.management.load_sessions", return_value=[]):
-            result = _build_agent_summary("std", {"name": "标准"})
+            result = _build_agent_summary("std", {"title": "标准"})
 
-        assert result["id"] == "std"
-        assert result["name"] == "标准"
+        assert result["name"] == "std"
+        assert result["title"] == "标准"
         assert result["locked"] is False
         assert result["model"] == "deepseek-v4-flash"
         assert result["session_count"] == 0
@@ -30,7 +30,7 @@ class TestBuildAgentSummary:
         ]
         with patch("app.api.management.load_sessions", return_value=sessions), \
              patch("app.api.management.load_messages", return_value=[]):
-            result = _build_agent_summary("std", {"name": "标准"})
+            result = _build_agent_summary("std", {"title": "标准"})
 
         assert result["session_count"] == 2
         assert result["last_session_title"] == "第一个会话"
@@ -49,7 +49,7 @@ class TestBuildAgentSummary:
         ]
         with patch("app.api.management.load_sessions", return_value=sessions), \
              patch("app.api.management.load_messages", return_value=messages):
-            result = _build_agent_summary("std", {"name": "标准"})
+            result = _build_agent_summary("std", {"title": "标准"})
 
         assert result["last_reply_time"] == "2026-05-31T10:00:30"
         assert result["last_session_title"] == "会话"
@@ -65,7 +65,7 @@ class TestBuildAgentSummary:
         ]
         with patch("app.api.management.load_sessions", return_value=sessions), \
              patch("app.api.management.load_messages", return_value=messages):
-            result = _build_agent_summary("std", {"name": "标准"})
+            result = _build_agent_summary("std", {"title": "标准"})
 
         assert result["last_reply_time"] is None
         assert result["last_session_title"] == "会话"
@@ -73,16 +73,17 @@ class TestBuildAgentSummary:
     def test_locked_agent(self):
         """locked=True 从配置透传。"""
         with patch("app.api.management.load_sessions", return_value=[]):
-            result = _build_agent_summary("admin", {"name": "管理员", "locked": True})
+            result = _build_agent_summary("admin", {"title": "管理员", "locked": True})
 
         assert result["locked"] is True
 
-    def test_name_fallback_to_agent_id(self):
-        """cfg 无 name 字段时以 agent_id 作为 name。"""
+    def test_title_fallback_to_agent_id(self):
+        """cfg 无 title 字段时以 agent_id 作为 title，name 恒等于 agent_id。"""
         with patch("app.api.management.load_sessions", return_value=[]):
             result = _build_agent_summary("std", {})
 
         assert result["name"] == "std"
+        assert result["title"] == "std"
 
     def test_uses_first_session_for_reply_and_title(self):
         """仅用第一个会话（sessions[0]）计算 last_reply_time 和 last_session_title。"""
@@ -94,7 +95,7 @@ class TestBuildAgentSummary:
         ]
         with patch("app.api.management.load_sessions", return_value=sessions), \
              patch("app.api.management.load_messages", return_value=messages):
-            result = _build_agent_summary("std", {"name": "标准"})
+            result = _build_agent_summary("std", {"title": "标准"})
 
         assert result["last_session_title"] == "最新会话"
         assert result["last_reply_time"] == "2026-05-01T12:00:00"
@@ -104,23 +105,23 @@ class TestBuildAgentSummary:
     def test_model_default_deepseek_chat(self):
         """无 provider/model 时兜底 deepseek-v4-flash。"""
         with patch("app.api.management.load_sessions", return_value=[]):
-            result = _build_agent_summary("std", {"name": "标准"})
+            result = _build_agent_summary("std", {"title": "标准"})
         assert result["model"] == "deepseek-v4-flash"
 
     def test_model_explicit_from_config(self):
         """YAML 中显式指定 model 则直接使用。"""
         with patch("app.api.management.load_sessions", return_value=[]):
-            result = _build_agent_summary("std", {"name": "测试", "model": "gpt-4o"})
+            result = _build_agent_summary("std", {"title": "测试", "model": "gpt-4o"})
         assert result["model"] == "gpt-4o"
 
     def test_model_resolved_from_provider(self):
         """配置 provider=openai → 解析为 gpt-4o。"""
         with patch("app.api.management.load_sessions", return_value=[]):
-            result = _build_agent_summary("std", {"name": "测试", "provider": "openai"})
+            result = _build_agent_summary("std", {"title": "测试", "provider": "openai"})
         assert result["model"] == "gpt-4o"
 
     def test_model_unknown_provider_fallback(self):
         """未识别的 provider → {provider}-chat 格式。"""
         with patch("app.api.management.load_sessions", return_value=[]):
-            result = _build_agent_summary("std", {"name": "测试", "provider": "custom-llm"})
+            result = _build_agent_summary("std", {"title": "测试", "provider": "custom-llm"})
         assert result["model"] == "custom-llm-chat"

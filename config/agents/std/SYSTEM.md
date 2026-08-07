@@ -1,5 +1,6 @@
 ---
-name: 标准个人助手
+title: 标准个人助手
+name: std
 skills: []
 layout:
   left:
