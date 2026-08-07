@@ -112,6 +112,23 @@ def test_load_agent_configs_strips_agent_id_key():
     assert result["std"]["name"] == "std"  # name 恒等于目录名
 
 
+def test_load_agent_configs_default_title_when_missing():
+    """SYSTEM.md 无 title 字段时（旧格式），加载后 title 兜底为默认显示名。"""
+    agent_dir = MagicMock(spec=Path)
+    agent_dir.is_dir.return_value = True
+    agent_dir.name = "std"
+
+    system_md = _mock_system_md("---\nname: 标准助手\n---\n\nbody")
+    agent_dir.__truediv__.return_value = system_md
+
+    with patch.object(Path, "is_dir", return_value=True), \
+         patch.object(Path, "iterdir", return_value=[agent_dir]):
+        result = _load_agent_configs()
+    assert "std" in result
+    assert result["std"]["title"] == "未命名智能体"  # 旧格式无 title → 默认名
+    assert result["std"]["name"] == "std"            # name 恒等于目录名
+
+
 # ── parse_system_md_frontmatter ────────────────────────────────────────────
 
 def test_parse_system_md_frontmatter_valid(tmp_path):

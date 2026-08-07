@@ -15,6 +15,9 @@ load_dotenv(dotenv_path=ENV_PATH)
 # 默认数据根目录：固定为 OMNIAGE_ROOT/data，不可被外部修改
 DEFAULT_DATA_DIR = (OMNIAGE_ROOT / "data").resolve()
 
+# 智能体显示名兜底：SYSTEM.md frontmatter 未声明 title 时使用的默认显示名
+DEFAULT_AGENT_TITLE = "未命名智能体"
+
 # ── 全局 config.yaml（顶级全局配置） ──────────────────────────────
 CONFIG_PATH = OMNIAGE_ROOT / "config.yaml"
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -54,6 +57,8 @@ def _load_agent_configs() -> Dict[str, Dict[str, Any]]:
             continue
         meta.pop("agent_id", None)   # 以文件名为准
         meta["name"] = agent_id      # name 恒等于目录名（以文件名为准）
+        if "title" not in meta:
+            meta["title"] = DEFAULT_AGENT_TITLE  # title 缺失时兜底默认显示名
         result[agent_id] = meta
     return result
 

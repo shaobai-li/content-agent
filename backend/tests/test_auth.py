@@ -70,6 +70,26 @@ class TestLoadUserAgentConfigs:
         finally:
             m.DEFAULT_DATA_DIR = original
 
+    def test_loads_user_agent_configs_default_title(self, tmp_path):
+        """SYSTEM.md 无 title 字段时（旧格式），用户 agent 加载后 title 兜底默认名。"""
+        from app.core.auth import _load_user_agent_configs
+        import app.core.auth as m
+        original = m.DEFAULT_DATA_DIR
+        try:
+            m.DEFAULT_DATA_DIR = tmp_path
+            agent_dir = tmp_path / "u_1" / "my-agent"
+            agent_dir.mkdir(parents=True)
+            (agent_dir / "SYSTEM.md").write_text(
+                "---\nname: 旧显示名\n---\n\nbody text",
+                encoding="utf-8",
+            )
+            result = _load_user_agent_configs("1")
+            assert "my-agent" in result
+            assert result["my-agent"]["title"] == "未命名智能体"
+            assert result["my-agent"]["name"] == "my-agent"
+        finally:
+            m.DEFAULT_DATA_DIR = original
+
 
 def _mock_request(headers: dict):
     """构造一个伪 FastAPI Request 对象（仅含 .headers 属性）。"""

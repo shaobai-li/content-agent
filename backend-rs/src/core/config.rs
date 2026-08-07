@@ -9,6 +9,9 @@ use tracing::warn;
 static CONFIG: OnceLock<AppConfig> = OnceLock::new();
 static CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
 
+/// SYSTEM.md frontmatter 未声明 title 时的默认显示名
+pub const DEFAULT_AGENT_TITLE: &str = "未命名智能体";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentLayout {
@@ -105,7 +108,10 @@ fn load_agent_configs(config_dir: &Path) -> HashMap<String, AgentConfig> {
 
         if let Ok(content) = std::fs::read_to_string(&system_md) {
             if let Some(frontmatter) = extract_yaml_frontmatter(&content) {
-                if let Ok(cfg) = serde_yaml::from_str::<AgentConfig>(frontmatter) {
+                if let Ok(mut cfg) = serde_yaml::from_str::<AgentConfig>(frontmatter) {
+                    if cfg.title.is_none() {
+                        cfg.title = Some(DEFAULT_AGENT_TITLE.to_string());
+                    }
                     agents.insert(agent_id, cfg);
                 }
             }
@@ -599,6 +605,27 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert!(result.contains_key("std"));
         assert_eq!(result.get("std").and_then(|c| c.title.clone()), Some("标准助手".to_string()));
+    }
+
+    #[test]
+    fn test_load_agent_configs_default_title_when_missing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let agent_dir = tmp.path().join("agents").join("std");
+        std::fs::create_dir_all(&agent_dir).unwrap();
+        // 旧格式：frontmatter 无 title 字段
+        std::fs::write(
+            agent_dir.join("SYSTEM.md"),
+            "---\nname: 标准助手\n---\n\n提示词正文",
+        )
+        .unwrap();
+
+        let result = load_agent_configs(tmp.path());
+        assert_eq!(result.len(), 1);
+        assert!(result.contains_key("std"));
+        assert_eq!(
+            result.get("std").and_then(|c| c.title.clone()),
+            Some(DEFAULT_AGENT_TITLE.to_string())
+        );
     }
 
     #[test]
