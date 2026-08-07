@@ -24,7 +24,7 @@ async fn list_agents(Extension(ctx): Extension<UserContext>) -> Json<Value> {
                 title: cfg
                     .get("title")
                     .and_then(|v| v.as_str())
-                    .unwrap_or(agent_id)
+                    .unwrap_or(crate::core::config::DEFAULT_AGENT_TITLE)
                     .to_string(),
                 description: cfg
                     .get("description")

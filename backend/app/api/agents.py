@@ -13,7 +13,7 @@ from app.service.stream_service import (
 )
 from app.runtime.agent_registry import get_agent_config
 from app.runtime.agent_turn_context import build_agent_turn_context
-from app.core.config import DEFAULT_DATA_DIR, get_agent_base_dir
+from app.core.config import DEFAULT_DATA_DIR, DEFAULT_AGENT_TITLE, get_agent_base_dir
 from app.core.auth import get_current_user_id
 
 # ── Agent 列表（不含 agent_id 路径参数） ─────────────────────────
@@ -35,7 +35,7 @@ async def list_agents():
             continue
         result.append({
             "name": agent_id,
-            "title": cfg.get("title", agent_id),
+            "title": cfg.get("title", DEFAULT_AGENT_TITLE),
             "description": cfg.get("description", ""),
             "locked": cfg.get("locked", False),
             "layout": cfg.get("layout", {
@@ -53,7 +53,7 @@ async def list_agents():
             if agent_id not in AGENTS_CONFIG:
                 result.append({
                     "name": agent_id,
-                    "title": cfg.get("title", agent_id),
+                    "title": cfg.get("title", DEFAULT_AGENT_TITLE),
                     "description": cfg.get("description", ""),
                     "locked": False,
                     "layout": cfg.get("layout", {

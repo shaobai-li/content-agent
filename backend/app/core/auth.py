@@ -8,7 +8,12 @@ from typing import Any, Dict
 
 from fastapi import HTTPException, Request
 
-from app.core.config import DEFAULT_DATA_DIR, _load_user_config, parse_system_md_frontmatter
+from app.core.config import (
+    DEFAULT_DATA_DIR,
+    DEFAULT_AGENT_TITLE,
+    _load_user_config,
+    parse_system_md_frontmatter,
+)
 
 _user_id_var: ContextVar[str] = ContextVar("user_id")
 _user_agents_var: ContextVar[Dict[str, Dict[str, Any]]] = ContextVar("user_agents")
@@ -50,6 +55,8 @@ def _load_user_agent_configs(user_id: str) -> Dict[str, Dict[str, Any]]:
             continue
         meta.pop("agent_id", None)
         meta["name"] = agent_id      # name 恒等于目录名（以文件名为准）
+        if "title" not in meta:
+            meta["title"] = DEFAULT_AGENT_TITLE  # title 缺失时兜底默认显示名
         result[agent_id] = meta
     return result
 

@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 from loguru import logger
 
-from app.core.config import AGENTS_CONFIG
+from app.core.config import AGENTS_CONFIG, DEFAULT_AGENT_TITLE
 from app.core.auth import _user_agents_var
 from app.providers.factory import _default_model_for
 from app.service.sessions_service import load_sessions
@@ -29,7 +29,7 @@ def _resolve_model(cfg: dict) -> str:
 
 def _build_agent_summary(agent_id: str, cfg: dict) -> dict:
     """为单个 agent 构建摘要（会话数、最近回复时间、最近会话标题）。"""
-    title = cfg.get("title", agent_id)
+    title = cfg.get("title", DEFAULT_AGENT_TITLE)
     locked = cfg.get("locked", False)
 
     sessions = load_sessions(agent_id)

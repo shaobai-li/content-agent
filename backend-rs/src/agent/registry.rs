@@ -35,7 +35,10 @@ pub fn init_registry() {
             let layout = serde_json::to_value(&cfg.layout).ok();
             AgentMeta {
                 name: id.clone(),
-                title: cfg.title.clone().unwrap_or_else(|| id.clone()),
+                title: cfg
+                    .title
+                    .clone()
+                    .unwrap_or_else(|| crate::core::config::DEFAULT_AGENT_TITLE.to_string()),
                 description: cfg
                     .extra
                     .get("description")

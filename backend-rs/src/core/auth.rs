@@ -156,8 +156,12 @@ fn load_user_agents_from(base_dir: &Path, user_id: &str) -> HashMap<String, Valu
 
         if let Ok(content) = std::fs::read_to_string(&system_md) {
             if let Some(frontmatter) = crate::core::config::extract_yaml_frontmatter(&content) {
-                if let Ok(cfg) = serde_yaml::from_str::<Value>(frontmatter) {
+                if let Ok(mut cfg) = serde_yaml::from_str::<Value>(frontmatter) {
                     if cfg.is_object() {
+                        if cfg.get("title").is_none() {
+                            cfg["title"] =
+                                Value::String(crate::core::config::DEFAULT_AGENT_TITLE.to_string());
+                        }
                         result.insert(agent_id, cfg);
                     }
                 }
@@ -209,6 +213,23 @@ mod tests {
         assert_eq!(
             result["helper"]["name"].as_str().unwrap(),
             "Helper Bot"
+        );
+    }
+
+    #[test]
+    fn test_load_user_agents_default_title_when_missing() {
+        let tmp = setup_dir();
+        let user_id = "test-user";
+
+        let agent_dir = tmp.path().join("u_test-user").join("legacy-agent");
+        fs::create_dir_all(&agent_dir).unwrap();
+        // 旧格式：frontmatter 无 title 字段
+        fs::write(agent_dir.join("SYSTEM.md"), "---\nname: 旧显示名\n---\n\nbody").unwrap();
+
+        let result = load_user_agents_from(tmp.path(), user_id);
+        assert_eq!(
+            result["legacy-agent"]["title"].as_str().unwrap(),
+            "未命名智能体"
         );
     }
 

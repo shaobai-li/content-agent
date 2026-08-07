@@ -57,7 +57,10 @@ async fn get_agents_summary(Extension(ctx): Extension<UserContext>) -> Json<Valu
 
         agents.push(AgentSummary {
             name: agent_id.clone(),
-            title: cfg.title.clone().unwrap_or_else(|| agent_id.clone()),
+            title: cfg
+                .title
+                .clone()
+                .unwrap_or_else(|| crate::core::config::DEFAULT_AGENT_TITLE.to_string()),
             locked: cfg.locked.unwrap_or(false),
             model,
             session_count,
@@ -100,7 +103,7 @@ async fn get_agents_summary(Extension(ctx): Extension<UserContext>) -> Json<Valu
             title: cfg
                 .get("title")
                 .and_then(|v| v.as_str())
-                .unwrap_or(agent_id)
+                .unwrap_or(crate::core::config::DEFAULT_AGENT_TITLE)
                 .to_string(),
             locked: cfg.get("locked").and_then(|v| v.as_bool()).unwrap_or(false),
             model,

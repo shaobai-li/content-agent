@@ -77,13 +77,13 @@ class TestBuildAgentSummary:
 
         assert result["locked"] is True
 
-    def test_title_fallback_to_agent_id(self):
-        """cfg 无 title 字段时以 agent_id 作为 title，name 恒等于 agent_id。"""
+    def test_title_fallback_to_default(self):
+        """cfg 无 title 字段时兜底默认显示名，name 恒等于 agent_id。"""
         with patch("app.api.management.load_sessions", return_value=[]):
             result = _build_agent_summary("std", {})
 
         assert result["name"] == "std"
-        assert result["title"] == "std"
+        assert result["title"] == "未命名智能体"
 
     def test_uses_first_session_for_reply_and_title(self):
         """仅用第一个会话（sessions[0]）计算 last_reply_time 和 last_session_title。"""
