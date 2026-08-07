@@ -162,6 +162,7 @@ fn load_user_agents_from(base_dir: &Path, user_id: &str) -> HashMap<String, Valu
                             cfg["title"] =
                                 Value::String(crate::core::config::DEFAULT_AGENT_TITLE.to_string());
                         }
+                        cfg["name"] = Value::String(agent_id.clone()); // name 恒等于目录名（以文件名为准）
                         result.insert(agent_id, cfg);
                     }
                 }
@@ -206,13 +207,14 @@ mod tests {
 
         let result = load_user_agents_from(tmp.path(), user_id);
         assert_eq!(result.len(), 2);
+        // name 恒等于目录名（以文件名为准），frontmatter 中的旧显示名被覆盖
         assert_eq!(
             result["my-agent"]["name"].as_str().unwrap(),
-            "My Custom Agent"
+            "my-agent"
         );
         assert_eq!(
             result["helper"]["name"].as_str().unwrap(),
-            "Helper Bot"
+            "helper"
         );
     }
 
@@ -230,6 +232,10 @@ mod tests {
         assert_eq!(
             result["legacy-agent"]["title"].as_str().unwrap(),
             "未命名智能体"
+        );
+        assert_eq!(
+            result["legacy-agent"]["name"].as_str().unwrap(),
+            "legacy-agent"
         );
     }
 

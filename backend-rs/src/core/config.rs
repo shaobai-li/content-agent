@@ -112,6 +112,7 @@ fn load_agent_configs(config_dir: &Path) -> HashMap<String, AgentConfig> {
                     if cfg.title.is_none() {
                         cfg.title = Some(DEFAULT_AGENT_TITLE.to_string());
                     }
+                    cfg.name = Some(agent_id.clone()); // name 恒等于目录名（以文件名为准）
                     agents.insert(agent_id, cfg);
                 }
             }
@@ -184,7 +185,8 @@ pub fn get_agent_user_config(agent_id: &str) -> Option<AgentConfig> {
         if user_system.exists() {
             if let Ok(content) = std::fs::read_to_string(&user_system) {
                 if let Some(frontmatter) = extract_yaml_frontmatter(&content) {
-                    if let Ok(user_cfg) = serde_yaml::from_str::<AgentConfig>(frontmatter) {
+                    if let Ok(mut user_cfg) = serde_yaml::from_str::<AgentConfig>(frontmatter) {
+                        user_cfg.name = Some(agent_id.to_string()); // name 恒等于目录名（以文件名为准）
                         return Some(merge_agent_configs(base, user_cfg));
                     }
                 }
@@ -625,6 +627,11 @@ mod tests {
         assert_eq!(
             result.get("std").and_then(|c| c.title.clone()),
             Some(DEFAULT_AGENT_TITLE.to_string())
+        );
+        // name 恒等于目录名（以文件名为准），frontmatter 中的旧显示名被覆盖
+        assert_eq!(
+            result.get("std").and_then(|c| c.name.clone()),
+            Some("std".to_string())
         );
     }
 
