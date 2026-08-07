@@ -8,6 +8,9 @@ const DEFAULT_LAYOUT = {
   defaultRight: "chat" as Agent["layout"]["defaultRight"],
 };
 
+/** title 缺失时的默认显示名（与后端 DEFAULT_AGENT_TITLE 保持一致） */
+const DEFAULT_AGENT_TITLE = "未命名智能体";
+
 /** 可变的对象引用，供 getSidebarRoutes / page.tsx 同步读取。 */
 export const agentRegistry: Record<string, Agent> = {};
 
@@ -24,7 +27,7 @@ export async function loadAgents(): Promise<void> {
     for (const item of data.agents) {
       agentRegistry[item.name] = {
         name: item.name,
-        title: item.title ?? item.name,
+        title: item.title ?? DEFAULT_AGENT_TITLE,
         visible: item.visible ?? true,
         locked: item.locked ?? false,
         layout: item.layout ?? DEFAULT_LAYOUT,
