@@ -54,12 +54,12 @@ async fn create_agent(
     let title = body.title.trim().to_string();
     if title.is_empty() {
         return Json(serde_json::json!({
-            "ok": false, "error_code": "AGENT_NAME_REQUIRED", "error": "智能体名称不能为空"
+            "ok": false, "error_code": "AGENT_TITLE_REQUIRED", "error": "智能体标题不能为空"
         }));
     }
     if title.chars().count() > 20 {
         return Json(serde_json::json!({
-            "ok": false, "error_code": "AGENT_NAME_TOO_LONG", "error": "智能体名称不能超过20个字符"
+            "ok": false, "error_code": "AGENT_TITLE_TOO_LONG", "error": "智能体标题不能超过20个字符"
         }));
     }
 
