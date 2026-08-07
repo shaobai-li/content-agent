@@ -7,8 +7,8 @@ use crate::agent::base::BaseAgent;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct AgentMeta {
-    pub id: String,
     pub name: String,
+    pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     pub visible: bool,
@@ -34,8 +34,8 @@ pub fn init_registry() {
                 .unwrap_or(visibility.default_visible);
             let layout = serde_json::to_value(&cfg.layout).ok();
             AgentMeta {
-                id: id.clone(),
-                name: cfg.name.clone().unwrap_or_else(|| id.clone()),
+                name: id.clone(),
+                title: cfg.title.clone().unwrap_or_else(|| id.clone()),
                 description: cfg
                     .extra
                     .get("description")
@@ -47,7 +47,7 @@ pub fn init_registry() {
             }
         })
         .collect();
-    agents.sort_by(|a, b| a.id.cmp(&b.id));
+    agents.sort_by(|a, b| a.name.cmp(&b.name));
     AGENT_LIST.set(agents).ok();
 }
 

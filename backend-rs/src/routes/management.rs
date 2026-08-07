@@ -10,8 +10,8 @@ use crate::provider::factory;
 
 #[derive(Serialize)]
 struct AgentSummary {
-    id: String,
     name: String,
+    title: String,
     locked: bool,
     model: String,
     session_count: usize,
@@ -56,8 +56,8 @@ async fn get_agents_summary(Extension(ctx): Extension<UserContext>) -> Json<Valu
         let model = resolve_model(cfg);
 
         agents.push(AgentSummary {
-            id: agent_id.clone(),
-            name: cfg.name.clone().unwrap_or_else(|| agent_id.clone()),
+            name: agent_id.clone(),
+            title: cfg.title.clone().unwrap_or_else(|| agent_id.clone()),
             locked: cfg.locked.unwrap_or(false),
             model,
             session_count,
@@ -96,9 +96,9 @@ async fn get_agents_summary(Extension(ctx): Extension<UserContext>) -> Json<Valu
         let model = resolve_model_from_value(cfg);
 
         agents.push(AgentSummary {
-            id: agent_id.clone(),
-            name: cfg
-                .get("name")
+            name: agent_id.clone(),
+            title: cfg
+                .get("title")
                 .and_then(|v| v.as_str())
                 .unwrap_or(agent_id)
                 .to_string(),

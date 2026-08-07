@@ -18,11 +18,11 @@ async fn list_agents(Extension(ctx): Extension<UserContext>) -> Json<Value> {
 
     // 追加当前用户的 custom agent
     for (agent_id, cfg) in &ctx.user_agents {
-        if !agents.iter().any(|a| a.id == *agent_id) {
+        if !agents.iter().any(|a| a.name == *agent_id) {
             agents.push(crate::agent::registry::AgentMeta {
-                id: agent_id.clone(),
-                name: cfg
-                    .get("name")
+                name: agent_id.clone(),
+                title: cfg
+                    .get("title")
                     .and_then(|v| v.as_str())
                     .unwrap_or(agent_id)
                     .to_string(),
@@ -42,7 +42,7 @@ async fn list_agents(Extension(ctx): Extension<UserContext>) -> Json<Value> {
 
 #[derive(Deserialize)]
 struct CreateAgentBody {
-    name: String,
+    title: String,
     description: Option<String>,
 }
 
@@ -51,13 +51,13 @@ async fn create_agent(
     Extension(ctx): Extension<UserContext>,
     Json(body): Json<CreateAgentBody>,
 ) -> Json<Value> {
-    let name = body.name.trim().to_string();
-    if name.is_empty() {
+    let title = body.title.trim().to_string();
+    if title.is_empty() {
         return Json(serde_json::json!({
             "ok": false, "error_code": "AGENT_NAME_REQUIRED", "error": "智能体名称不能为空"
         }));
     }
-    if name.chars().count() > 20 {
+    if title.chars().count() > 20 {
         return Json(serde_json::json!({
             "ok": false, "error_code": "AGENT_NAME_TOO_LONG", "error": "智能体名称不能超过20个字符"
         }));
@@ -99,7 +99,8 @@ async fn create_agent(
 
     // 写入 SYSTEM.md（frontmatter + body，使用 YAML 序列化防止注入）
     let mut meta = serde_json::Map::new();
-    meta.insert("name".into(), serde_json::json!(name));
+    meta.insert("title".into(), serde_json::json!(title));
+    meta.insert("name".into(), serde_json::json!(agent_id.clone()));
     if !description.is_empty() {
         meta.insert("description".into(), serde_json::json!(description));
     }
@@ -119,8 +120,8 @@ async fn create_agent(
     Json(serde_json::json!({
         "ok": true,
         "agent": {
-            "id": agent_id,
-            "name": name
+            "name": agent_id,
+            "title": title
         }
     }))
 }
