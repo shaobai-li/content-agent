@@ -21,6 +21,7 @@ pub struct AgentLayout {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
     pub name: Option<String>,
+    pub title: Option<String>,
     pub locked: Option<bool>,
     pub skills: Option<Vec<String>>,
     pub layout: Option<AgentLayout>,
@@ -196,6 +197,7 @@ fn merge_agent_configs(base: Option<AgentConfig>, user: AgentConfig) -> AgentCon
     };
     AgentConfig {
         name: user.name.or(base.name),
+        title: user.title.or(base.title),
         locked: user.locked.or(base.locked),
         skills: user.skills.or(base.skills),
         layout: user.layout.or(base.layout),
@@ -513,11 +515,11 @@ mod tests {
 
     #[test]
     fn test_extract_frontmatter_valid() {
-        let content = "---\nname: test\nskills:\n  - skill_a\n---\n\nbody text";
+        let content = "---\ntitle: test\nname: test\nskills:\n  - skill_a\n---\n\nbody text";
         let result = extract_yaml_frontmatter(content);
         assert!(result.is_some());
         let fm = result.unwrap();
-        assert!(fm.contains("name: test"));
+        assert!(fm.contains("title: test"));
         assert!(fm.contains("skill_a"));
     }
 
@@ -589,13 +591,14 @@ mod tests {
         std::fs::create_dir_all(&agent_dir).unwrap();
         std::fs::write(
             agent_dir.join("SYSTEM.md"),
-            "---\nname: 标准助手\n---\n\n提示词正文",
+            "---\ntitle: 标准助手\nname: std\n---\n\n提示词正文",
         )
         .unwrap();
 
         let result = load_agent_configs(tmp.path());
         assert_eq!(result.len(), 1);
         assert!(result.contains_key("std"));
+        assert_eq!(result.get("std").and_then(|c| c.title.clone()), Some("标准助手".to_string()));
     }
 
     #[test]
