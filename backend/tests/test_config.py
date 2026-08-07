@@ -43,12 +43,13 @@ def test_load_agent_configs_loads_system_md(tmp_path):
     agent_dir = tmp_path / "std"
     agent_dir.mkdir()
     system_md = agent_dir / "SYSTEM.md"
-    system_md.write_text("---\nname: 标准助手\n---\n\n提示词正文", encoding="utf-8")
+    system_md.write_text("---\ntitle: 标准助手\nname: std\n---\n\n提示词正文", encoding="utf-8")
 
     with patch("app.core.config.OMNIAGE_ROOT", tmp_path):
         result = _load_agent_configs()
     assert "std" in result
-    assert result["std"]["name"] == "标准助手"
+    assert result["std"]["title"] == "标准助手"
+    assert result["std"]["name"] == "std"
 
 
 def test_load_agent_configs_skips_non_dir(tmp_path):
@@ -94,12 +95,12 @@ def test_load_agent_configs_skips_invalid_frontmatter():
 
 
 def test_load_agent_configs_strips_agent_id_key():
-    """frontmatter 中的 agent_id 字段被移除。"""
+    """frontmatter 中的 agent_id 字段被移除，name 恒等于目录名。"""
     agent_dir = MagicMock(spec=Path)
     agent_dir.is_dir.return_value = True
     agent_dir.name = "std"
 
-    system_md = _mock_system_md("---\nagent_id: should_be_ignored\nname: test\n---\n\nbody")
+    system_md = _mock_system_md("---\nagent_id: should_be_ignored\ntitle: test\nname: wrong-name\n---\n\nbody")
     agent_dir.__truediv__.return_value = system_md
 
     with patch.object(Path, "is_dir", return_value=True), \
@@ -107,16 +108,17 @@ def test_load_agent_configs_strips_agent_id_key():
         result = _load_agent_configs()
     assert "std" in result
     assert "agent_id" not in result["std"]
-    assert result["std"]["name"] == "test"
+    assert result["std"]["title"] == "test"
+    assert result["std"]["name"] == "std"  # name 恒等于目录名
 
 
 # ── parse_system_md_frontmatter ────────────────────────────────────────────
 
 def test_parse_system_md_frontmatter_valid(tmp_path):
     path = tmp_path / "SYSTEM.md"
-    path.write_text("---\nname: test\nskills:\n  - skill_a\n---\n\nbody text", encoding="utf-8")
+    path.write_text("---\ntitle: test\nname: test\nskills:\n  - skill_a\n---\n\nbody text", encoding="utf-8")
     result = parse_system_md_frontmatter(path)
-    assert result == {"name": "test", "skills": ["skill_a"]}
+    assert result == {"title": "test", "name": "test", "skills": ["skill_a"]}
 
 
 def test_parse_system_md_frontmatter_no_frontmatter(tmp_path):

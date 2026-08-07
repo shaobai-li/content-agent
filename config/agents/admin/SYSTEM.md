@@ -1,5 +1,6 @@
 ---
-name: 智能体管理员
+title: 智能体管理员
+name: admin
 locked: true
 skills: []
 layout:

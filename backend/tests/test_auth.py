@@ -38,7 +38,7 @@ class TestRequireUserId:
     async def test_loads_user_agent_configs(self):
         """require_user_id 加载该用户的 custom agent 配置。"""
         request = _mock_request(headers={"x-user-id": "99"})
-        with patch("app.core.auth._load_user_agent_configs", return_value={"my-agent": {"name": "测试"}}):
+        with patch("app.core.auth._load_user_agent_configs", return_value={"my-agent": {"title": "测试"}}):
             await require_user_id(request)
         assert get_current_user_id() == "99"
 
@@ -60,12 +60,13 @@ class TestLoadUserAgentConfigs:
             agent_dir = tmp_path / "u_1" / "my-agent"
             agent_dir.mkdir(parents=True)
             (agent_dir / "SYSTEM.md").write_text(
-                "---\nname: 测试\nskills:\n  - web-search\n---\n\nbody text",
+                "---\ntitle: 测试\nname: my-agent\nskills:\n  - web-search\n---\n\nbody text",
                 encoding="utf-8",
             )
             result = _load_user_agent_configs("1")
             assert "my-agent" in result
-            assert result["my-agent"]["name"] == "测试"
+            assert result["my-agent"]["title"] == "测试"
+            assert result["my-agent"]["name"] == "my-agent"
         finally:
             m.DEFAULT_DATA_DIR = original
 

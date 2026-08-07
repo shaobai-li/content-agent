@@ -34,8 +34,8 @@ async def list_agents():
         if not isinstance(cfg, dict):
             continue
         result.append({
-            "id": agent_id,
-            "name": cfg.get("name", agent_id),
+            "name": agent_id,
+            "title": cfg.get("title", agent_id),
             "description": cfg.get("description", ""),
             "locked": cfg.get("locked", False),
             "layout": cfg.get("layout", {
@@ -52,8 +52,8 @@ async def list_agents():
         for agent_id, cfg in user_agents.items():
             if agent_id not in AGENTS_CONFIG:
                 result.append({
-                    "id": agent_id,
-                    "name": cfg.get("name", agent_id),
+                    "name": agent_id,
+                    "title": cfg.get("title", agent_id),
                     "description": cfg.get("description", ""),
                     "locked": False,
                     "layout": cfg.get("layout", {
@@ -72,10 +72,10 @@ async def list_agents():
 @list_router.post("/agents")
 async def create_agent(payload: dict = Body(...)):
     """创建自定义智能体，返回 agent_id。"""
-    name = (payload.get("name") or "").strip()
-    if not name:
+    title = (payload.get("title") or "").strip()
+    if not title:
         return {"ok": False, "error_code": "AGENT_NAME_REQUIRED", "error": "智能体名称不能为空"}
-    if len(name) > 20:
+    if len(title) > 20:
         return {"ok": False, "error_code": "AGENT_NAME_TOO_LONG", "error": "智能体名称不能超过20个字符"}
 
     description = (payload.get("description") or "").strip()
@@ -89,7 +89,7 @@ async def create_agent(payload: dict = Body(...)):
 
     # 构造 SYSTEM.md 并写入（使用 YAML 序列化防止注入）
     import yaml as _yaml
-    meta = {"name": name}
+    meta = {"title": title, "name": agent_id}
     if description:
         meta["description"] = description
     frontmatter = _yaml.dump(meta, allow_unicode=True)
@@ -98,8 +98,8 @@ async def create_agent(payload: dict = Body(...)):
     system_path.parent.mkdir(parents=True, exist_ok=True)
     system_path.write_text(system_content, encoding="utf-8")
 
-    logger.info("created custom agent: {} ({})", agent_id, name)
-    return {"ok": True, "agent": {"id": agent_id, "name": name}}
+    logger.info("created custom agent: {} ({})", agent_id, title)
+    return {"ok": True, "agent": {"name": agent_id, "title": title}}
 
 
 @list_router.delete("/agents/{agent_id}")

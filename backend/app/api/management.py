@@ -29,7 +29,7 @@ def _resolve_model(cfg: dict) -> str:
 
 def _build_agent_summary(agent_id: str, cfg: dict) -> dict:
     """为单个 agent 构建摘要（会话数、最近回复时间、最近会话标题）。"""
-    name = cfg.get("name", agent_id)
+    title = cfg.get("title", agent_id)
     locked = cfg.get("locked", False)
 
     sessions = load_sessions(agent_id)
@@ -49,8 +49,8 @@ def _build_agent_summary(agent_id: str, cfg: dict) -> dict:
     model = _resolve_model(cfg)
 
     return {
-        "id": agent_id,
-        "name": name,
+        "name": agent_id,
+        "title": title,
         "description": cfg.get("description", ""),
         "locked": locked,
         "model": model,
