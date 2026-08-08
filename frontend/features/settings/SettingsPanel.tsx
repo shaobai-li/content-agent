@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { Check, Ellipsis, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -21,7 +21,9 @@ import {
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
+import { Input } from "@/shared/ui/input";
 import { usePrompts, useSkills } from "./useSettingsApi";
+import { parseSystemPrompt } from "./parseSystemPrompt";
 import { McpServersPanel } from "./McpServersPanel";
 import { useTranslation } from "react-i18next";
 
@@ -152,6 +154,17 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     [],
   );
 
+  // ── SYSTEM.md frontmatter 的 title/description（UI 展示，保存写回留待后端联调）──
+  const systemContent = getValue("SYSTEM.md");
+  const parsedMeta = useMemo(
+    () => parseSystemPrompt(systemContent),
+    [systemContent],
+  );
+  const [titleInput, setTitleInput] = useState<string | null>(null);
+  const [descInput, setDescInput] = useState<string | null>(null);
+  const systemTitle = titleInput ?? parsedMeta.title;
+  const systemDescription = descInput ?? parsedMeta.description;
+
   // ── Header 暴露保存/重置方法 ──────────────────────────────────
   // SettingsHeader 通过 DOM 事件或父级协调；这里直接用最简单的方案:
   // 暴露到 window 供 header 调用（或改为 context）
@@ -179,6 +192,8 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
 
   const handleCancel = useCallback(() => {
     setDirtyText({});
+    setTitleInput(null);
+    setDescInput(null);
     setSaveError(null);
     setSaveSuccess(false);
     reloadPrompts();
@@ -226,6 +241,55 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
           )}
           <Card className="gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
             <CardContent className="flex flex-col gap-4 px-4">
+              {/* title：来自 SYSTEM.md frontmatter，样式对齐新建智能体 */}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="settings-system-title"
+                  className="text-sm font-medium text-foreground"
+                >
+                  {t("agentManagement.title")}
+                </label>
+                <div className="relative">
+                  <Input
+                    id="settings-system-title"
+                    type="text"
+                    className="bg-white pr-14 text-sm"
+                    placeholder={t("agentManagement.titlePlaceholder")}
+                    value={systemTitle}
+                    onChange={(e) => setTitleInput(e.target.value)}
+                    maxLength={20}
+                    disabled={promptsLoading}
+                    autoComplete="off"
+                    aria-describedby="settings-system-title-count"
+                  />
+                  <span
+                    id="settings-system-title-count"
+                    role="status"
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground tabular-nums"
+                  >
+                    {systemTitle.length}/20
+                  </span>
+                </div>
+              </div>
+              {/* description：来自 SYSTEM.md frontmatter，样式对齐新建智能体 */}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="settings-system-description"
+                  className="text-sm font-medium text-foreground"
+                >
+                  {t("agentManagement.description")}
+                </label>
+                <textarea
+                  id="settings-system-description"
+                  rows={3}
+                  className="selection:bg-primary selection:text-primary-foreground border-input w-full rounded-md border bg-white dark:bg-input/30 px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-input focus-visible:ring-0 resize-none"
+                  placeholder={t("agentManagement.descriptionPlaceholder")}
+                  value={systemDescription}
+                  onChange={(e) => setDescInput(e.target.value)}
+                  disabled={promptsLoading}
+                  maxLength={200}
+                />
+              </div>
               {systemFields.map((field) => (
                 <div key={field.id} className="flex flex-col gap-2">
                   <label
