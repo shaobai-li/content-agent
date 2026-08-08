@@ -75,10 +75,16 @@ describe("SettingsPanel SYSTEM tab title/description 输入框", () => {
     expect(screen.getByText("4/20")).toBeInTheDocument(); // "标准助手" = 4 字
 
     fireEvent.change(screen.getByLabelText("标题"), {
-      target: { value: "测试助手" },
+      target: { value: "测试助手助手" },
     });
 
-    expect(screen.getByText("4/20")).toBeInTheDocument(); // "测试助手" = 4 字
+    expect(screen.getByText("6/20")).toBeInTheDocument(); // "测试助手助手" = 6 字
+
+    fireEvent.change(screen.getByLabelText("标题"), {
+      target: { value: "" },
+    });
+
+    expect(screen.getByText("0/20")).toBeInTheDocument();
   });
 
   it("SYSTEM 文本框初值为完整 SYSTEM.md 文本（含 --- 与 frontmatter）", () => {
