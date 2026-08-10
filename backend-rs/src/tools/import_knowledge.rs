@@ -11,7 +11,6 @@ use serde_json::{json, Value};
 use super::base::Tool;
 use crate::core::config::get_agent_local_data_dir;
 use crate::service::knowledge_base::list_knowledge_bases;
-use crate::service::mineru::{self, MinerUConfig};
 
 // ═══════════════════════════════════════════════════════════════════════
 // Parameters schema
@@ -380,11 +379,6 @@ fn content_paths(src: &Path, parsed: Option<&Value>) -> Value {
 // Parsers: PDF / DOCX / PPTX → markdown
 // ═══════════════════════════════════════════════════════════════════════
 
-const PDF_MIN_TOTAL_CHARS: usize = 50;
-const PDF_MIN_CHARS_PER_PAGE: f64 = 20.0;
-const PDF_SCANNED_IMAGE_MIN_BYTES: usize = 5000;
-const PDF_SCANNED_RATIO_THRESHOLD: f64 = 0.3;
-
 /// 尝试解析文档，返回 `{"markdown_path": "..."}` 或 None。
 async fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value>, String> {
     std::fs::create_dir_all(output_dir)
@@ -392,18 +386,6 @@ async fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value
     let md_path = output_dir.join("parsed.md");
 
     match src.extension().and_then(|e| e.to_str()).unwrap_or("") {
-        "pdf" => {
-            let (text, meta) = extract_pdf_with_fallback(src).await?;
-            std::fs::write(&md_path, &text)
-                .map_err(|e| format!("写入 parsed.md 失败: {}", e))?;
-            let mut parsed = json!({"markdown_path": md_path.to_string_lossy(), "parser": "pymupdf", "parser_v0": "pdf_extract"});
-            if let Some(obj) = meta.as_object() {
-                for (k, v) in obj {
-                    parsed[k] = v.clone();
-                }
-            }
-            Ok(Some(parsed))
-        }
         "docx" => {
             let text = extract_docx_text(src)?;
             std::fs::write(&md_path, &text)
@@ -418,224 +400,6 @@ async fn extract_parsed_md(src: &Path, output_dir: &Path) -> Result<Option<Value
         }
         _ => Ok(None), // md / txt 等无需解析
     }
-}
-
-/// 本地抽取 PDF；文本不足或页面以扫描图片为主时 fallback 到 MinerU OCR。
-async fn extract_pdf_with_fallback(src: &Path) -> Result<(String, Value), String> {
-    // 先做轻量的结构分析（lopdf 只解析页面树/图片对象，不提取文字）
-    let (page_count, scanned_ratio) = pdf_page_stats(src);
-    // 再提取文本（pymupdf 逐页解析）
-    let text = extract_pdf_text(src).await?;
-
-    if !is_pdf_text_insufficient(&text, page_count, scanned_ratio) {
-        return Ok((text, json!({})));
-    }
-
-    let fallback_reason = format_pdf_insufficient_reason(&text, page_count, scanned_ratio);
-    let config = MinerUConfig::from_config().map_err(|e| {
-        format!(
-            "PDF 需要 OCR（{}），但 {}",
-            fallback_reason, e
-        )
-    })?;
-
-    let md = mineru::parse_pdf(src, &config)
-        .await
-        .map_err(|e| format!("MinerU OCR 失败: {}", e))?;
-
-    Ok((
-        md,
-        json!({
-            "parser": "mineru_vlm_ocr",
-            "fallback_reason": fallback_reason,
-        }),
-    ))
-}
-
-fn is_pdf_text_insufficient(text: &str, page_count: u32, scanned_ratio: f64) -> bool {
-    let trimmed = text.trim();
-    let len = trimmed.chars().count();
-
-    if trimmed.is_empty() {
-        return true;
-    }
-    if len < PDF_MIN_TOTAL_CHARS {
-        return true;
-    }
-    if page_count > 0 && (len as f64 / page_count as f64) < PDF_MIN_CHARS_PER_PAGE {
-        return true;
-    }
-    if scanned_ratio > PDF_SCANNED_RATIO_THRESHOLD {
-        return true;
-    }
-    false
-}
-
-fn format_pdf_insufficient_reason(text: &str, page_count: u32, scanned_ratio: f64) -> String {
-    if scanned_ratio > PDF_SCANNED_RATIO_THRESHOLD {
-        let scanned_pages = (scanned_ratio * page_count as f64).round() as u32;
-        return format!(
-            "scanned_image_pages: {}/{} ({:.1}%)",
-            scanned_pages,
-            page_count,
-            scanned_ratio * 100.0
-        );
-    }
-    let len = text.trim().chars().count();
-    if page_count > 0 {
-        format!(
-            "insufficient_text: {} chars / {} pages ({:.1} chars/page)",
-            len,
-            page_count,
-            len as f64 / page_count as f64
-        )
-    } else {
-        format!("insufficient_text: {} chars", len)
-    }
-}
-
-/// 加载 PDF，返回 (总页数, 扫描页比例)。
-/// 扫描页：包含至少一个压缩后 > PDF_SCANNED_IMAGE_MIN_BYTES 字节的 Image XObject。
-fn pdf_page_stats(path: &Path) -> (u32, f64) {
-    let doc = match lopdf::Document::load(path) {
-        Ok(d) => d,
-        Err(_) => return (0, 0.0),
-    };
-    let pages = doc.get_pages();
-    let total = pages.len();
-    if total == 0 {
-        return (0, 0.0);
-    }
-    let scanned = pages
-        .values()
-        .filter(|&&page_id| page_has_large_image(&doc, page_id))
-        .count();
-    (total as u32, scanned as f64 / total as f64)
-}
-
-/// 判断某页是否包含大尺寸 Image XObject（扫描件特征）。
-fn page_has_large_image(doc: &lopdf::Document, page_id: lopdf::ObjectId) -> bool {
-    let page_dict = match doc.get_object(page_id) {
-        Ok(lopdf::Object::Dictionary(d)) => d,
-        _ => return false,
-    };
-
-    let resources_dict = match page_dict.get(b"Resources") {
-        Ok(obj) => match resolve_dict(doc, obj) {
-            Some(d) => d,
-            None => return false,
-        },
-        Err(_) => return false,
-    };
-
-    let xobj_dict = match resources_dict.get(b"XObject") {
-        Ok(obj) => match resolve_dict(doc, obj) {
-            Some(d) => d,
-            None => return false,
-        },
-        Err(_) => return false,
-    };
-
-    for (_, val) in xobj_dict.iter() {
-        let ref_id = match val {
-            lopdf::Object::Reference(r) => *r,
-            _ => continue,
-        };
-        let stream = match doc.get_object(ref_id) {
-            Ok(lopdf::Object::Stream(s)) => s,
-            _ => continue,
-        };
-        let subtype = match stream.dict.get(b"Subtype") {
-            Ok(lopdf::Object::Name(n)) => n,
-            _ => continue,
-        };
-        if subtype == b"Image" && stream.content.len() > PDF_SCANNED_IMAGE_MIN_BYTES {
-            return true;
-        }
-    }
-    false
-}
-
-/// 将 Object 解引用为 Dictionary（支持直接 Dictionary 或 Reference）。
-fn resolve_dict<'a>(
-    doc: &'a lopdf::Document,
-    obj: &'a lopdf::Object,
-) -> Option<&'a lopdf::Dictionary> {
-    match obj {
-        lopdf::Object::Dictionary(d) => Some(d),
-        lopdf::Object::Reference(r) => match doc.get_object(*r) {
-            Ok(lopdf::Object::Dictionary(d)) => Some(d),
-            _ => None,
-        },
-        _ => None,
-    }
-}
-
-/// 内嵌的 PyMuPDF 抽取脚本：按页读取文本，以 JSON 形式输出到 stdout。
-/// 相比 pdf-extract crate，PyMuPDF 对 CID 字体（含中文 PDF 常见的
-/// Identity-V 等非 Identity-H 编码）兼容性更好，不会 panic。
-const PDF_EXTRACT_SCRIPT: &str = r#"
-import sys
-import json
-
-import fitz
-
-# Windows 平台将输出流编码设为 UTF-8，避免中文乱码
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
-
-path = sys.argv[1]
-parts = []
-with fitz.open(path) as doc:
-    for page in doc:
-        parts.append(page.get_text("text"))
-sys.stdout.write(json.dumps({"text": "\n\n".join(parts)}))
-"#;
-
-/// 解析打包/开发环境下的 python 可执行文件路径，找不到则回退到系统 PATH 中的 "python"。
-fn resolve_python_exe() -> PathBuf {
-    if let Ok(root) = std::env::var("OMNIAGE_ROOT") {
-        let candidates = [
-            Path::new(&root).join("resources").join("python").join("python.exe"),
-            Path::new(&root)
-                .join("src-tauri")
-                .join("resources")
-                .join("python")
-                .join("python.exe"),
-        ];
-        for candidate in candidates {
-            if candidate.exists() {
-                return candidate;
-            }
-        }
-    }
-    PathBuf::from("python")
-}
-
-/// 提取 PDF 文本内容（调用打包 Python + PyMuPDF）。
-async fn extract_pdf_text(path: &Path) -> Result<String, String> {
-    let python = resolve_python_exe();
-    let output = tokio::process::Command::new(&python)
-        .arg("-c")
-        .arg(PDF_EXTRACT_SCRIPT)
-        .arg(path)
-        .output()
-        .await
-        .map_err(|e| format!("调用 Python（{}）解析 PDF 失败: {}", python.display(), e))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("PDF 解析失败: {}", stderr.trim()));
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let parsed: Value = serde_json::from_str(stdout.trim())
-        .map_err(|e| format!("解析 PDF 提取脚本输出失败: {} (stdout: {})", e, stdout))?;
-    parsed
-        .get("text")
-        .and_then(|v| v.as_str())
-        .map(|s| s.to_string())
-        .ok_or_else(|| "PDF 提取脚本输出缺少 text 字段".to_string())
 }
 
 /// 提取 DOCX 文本内容（解压 → 解析 word/document.xml 中的 <w:t> 元素）。
@@ -892,7 +656,7 @@ async fn import_single_file(src_path: &Path, kb_root: &Path) -> Value {
     let needs_parsing = src
         .extension()
         .and_then(|e| e.to_str())
-        .map_or(false, |e| matches!(e, "pdf" | "docx" | "pptx"));
+        .map_or(false, |e| matches!(e, "docx" | "pptx"));
     if needs_parsing {
         let parsing_record = build_record(&m_id, &src, &sha256_hex, "parsing", None);
         let _ = save_record_json(&m_dir, &parsing_record);
@@ -953,8 +717,9 @@ impl Tool for ImportKnowledgeTool {
     }
 
     fn description(&self) -> &str {
-        "将文件批量导入到指定知识库中。支持 PDF、DOCX、PPTX、MD、TXT 等格式。\
-         PDF/DOCX/PPTX 会自动解析为 Markdown 文本。\
+        "将文件批量导入到指定知识库中。支持 DOCX、PPTX、MD、TXT 等格式。\
+         DOCX/PPTX 会自动解析为 Markdown 文本。\
+         注意：PDF 文件请先使用 pdf2md 工具转换为 Markdown 后再导入。\
          自动基于 SHA256 指纹去重，避免重复导入同一文件。\
          会同步更新 knowledge_base 目录下的 metadata.json 和 view/nodes.json \
          供前端知识库面板展示。"

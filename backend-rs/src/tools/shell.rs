@@ -125,6 +125,15 @@ fn build_env(workspace: &str, cwd: &PathBuf, use_skills_cwd: bool) -> Vec<(Strin
                 .join("resources").join("python"),
             std::path::PathBuf::from(&root)
                 .join("src-tauri").join("resources").join("python"),
+            // Python console_scripts (e.g. pdf2md via pip install --prefix)
+            std::path::PathBuf::from(&root)
+                .join("resources").join("python").join("Scripts"),
+            std::path::PathBuf::from(&root)
+                .join("src-tauri").join("resources").join("python").join("Scripts"),
+            std::path::PathBuf::from(&root)
+                .join("resources").join("python").join("bin"),
+            std::path::PathBuf::from(&root)
+                .join("src-tauri").join("resources").join("python").join("bin"),
         ];
 
         let bundle_dirs: Vec<String> = candidates.iter()

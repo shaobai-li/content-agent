@@ -73,6 +73,9 @@ Write-Info "Installing bundled packages..."
 & $PYTHON -m pip install --target="$OUTPUT/Lib/site-packages" --disable-pip-version-check --no-input -r $REQUIREMENTS 2>&1 | ForEach-Object { Write-Info "  pip: $_" }
 & $PYTHON -m pip install --target="$OUTPUT/Lib/site-packages" --disable-pip-version-check --no-input pip 2>&1 | ForEach-Object { Write-Info "  pip: $_" }
 
+Write-Info "Installing pdf2md..."
+& $PYTHON -m pip install --prefix="$OUTPUT" --disable-pip-version-check --no-input ../cli_tools_for_content_agent/pdf2md 2>&1 | ForEach-Object { Write-Info "  pip: $_" }
+
 # ── 5. 预编译 .pyc ──
 Write-Info "Pre-compiling .pyc..."
 & $PYTHON -m compileall -q -j 0 "$OUTPUT/Lib" 2>&1 | Out-Null
@@ -82,7 +85,20 @@ Write-Info "Cleaning caches..."
 Get-ChildItem $OUTPUT -Recurse -Directory -Filter "__pycache__" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
 Get-ChildItem $OUTPUT -Recurse -Filter "*.pyc" | Where-Object { $_.FullName -match '\\test\\' } | Remove-Item -Force
 
-# ── 7. 体积报告 ──
+# ── 7. pdf2md 默认配置模板 ──
+Write-Info "Writing pdf2md config.json template..."
+@"
+{
+  "providers": {
+    "mineru": {
+      "api_key": "",
+      "api_base": "https://mineru.net"
+    }
+  }
+}
+"@ | Out-File -Encoding UTF8 "$OUTPUT/config.json"
+
+# ── 8. 体积报告 ──
 $size = (Get-ChildItem $OUTPUT -Recurse | Measure-Object -Property Length -Sum).Sum
 $fileCount = (Get-ChildItem $OUTPUT -Recurse -File).Count
 Write-Info "Bundle: $fileCount files, $([math]::Round($size / 1MB, 1)) MB"

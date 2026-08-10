@@ -126,6 +126,10 @@ info "Installing bundled packages..."
 "$PYTHON" -m pip install --target="$PIP_TARGET" --disable-pip-version-check --no-input pip \
   2>&1 | while IFS= read -r line; do info "  pip: $line"; done
 
+info "Installing pdf2md..."
+"$PYTHON" -m pip install --prefix="$OUTPUT" --disable-pip-version-check --no-input ../cli_tools_for_content_agent/pdf2md \
+  2>&1 | while IFS= read -r line; do info "  pip: $line"; done
+
 # ── 5. 预编译 .pyc ──
 info "Pre-compiling .pyc..."
 case "$ARCH" in
@@ -139,7 +143,20 @@ info "Cleaning caches..."
 find "$OUTPUT" -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 find "$OUTPUT" -name '*.pyc' -path '*/test/*' -delete 2>/dev/null || true
 
-# ── 7. 体积报告 ──
+# ── 7. pdf2md 默认配置模板 ──
+info "Writing pdf2md config.json template..."
+cat > "$OUTPUT/config.json" << 'EOF'
+{
+  "providers": {
+    "mineru": {
+      "api_key": "",
+      "api_base": "https://mineru.net"
+    }
+  }
+}
+EOF
+
+# ── 8. 体积报告 ──
 info "Bundle size: $(du -sh "$OUTPUT" | cut -f1)"
 FILE_COUNT=$(find "$OUTPUT" -type f 2>/dev/null | wc -l)
 info "Bundle: $FILE_COUNT files"

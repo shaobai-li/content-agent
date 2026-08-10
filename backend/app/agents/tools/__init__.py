@@ -19,6 +19,7 @@ from app.agents.tools.schema import (
     tool_parameters_schema,
 )
 from app.agents.tools.import_knowledge import ImportKnowledgeTool
+from app.agents.tools.pdf2md_tool import Pdf2mdTool
 from app.agents.tools.shell import RunCommandTool
 from app.agents.tools.skill import InvokeSkillTool
 from app.agents.tools.web import WebFetchTool, WebSearchTool
@@ -36,6 +37,7 @@ __all__ = [
     "tool_parameters",
     "tool_parameters_schema",
     "RunCommandTool",
+    "Pdf2mdTool",
     "ReadFileTool",
     "WriteFileTool",
     "EditFileTool",
@@ -84,6 +86,7 @@ def create_tool_registry(
     registry.register(InvokeSkillTool(agent_id))
     registry.register(GenerateHTMLTool(provider_name=provider_name, model=model))
     registry.register(ImportKnowledgeTool(workspace=workspace, agent_id=agent_id))
+    registry.register(Pdf2mdTool())
     registry.register(LoadHTMLToCanvasTool(workspace))
 
     # 暂存 MCP 配置，在 AgentLoop 启动时异步完成连接和注册
