@@ -23,7 +23,7 @@ import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
 import { Input } from "@/shared/ui/input";
 import { usePrompts, useSkills } from "./useSettingsApi";
-import { parseSystemPrompt } from "./parseSystemPrompt";
+import { parseSystemPrompt, buildSystemPrompt } from "./parseSystemPrompt";
 import { McpServersPanel } from "./McpServersPanel";
 import { useTranslation } from "react-i18next";
 
@@ -154,22 +154,38 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     [],
   );
 
-  // ── SYSTEM.md frontmatter 的 title/description（UI 展示，保存写回留待后端联调）──
+  // ── SYSTEM.md frontmatter 的 title/description + 正文（保存时按 schema 拼接写回）──
   const systemContent = getValue("SYSTEM.md");
-  const parsedMeta = useMemo(
+  const parsed = useMemo(
     () => parseSystemPrompt(systemContent),
     [systemContent],
   );
   const [titleInput, setTitleInput] = useState<string | null>(null);
   const [descInput, setDescInput] = useState<string | null>(null);
-  const systemTitle = titleInput ?? parsedMeta.title;
-  const systemDescription = descInput ?? parsedMeta.description;
+  const [bodyInput, setBodyInput] = useState<string | null>(null);
+  const systemTitle = titleInput ?? parsed.title;
+  const systemDescription = descInput ?? parsed.description;
+  const systemBody = bodyInput ?? parsed.body;
+  const hasEdits =
+    Object.keys(dirtyText).length > 0 ||
+    titleInput !== null ||
+    descInput !== null ||
+    bodyInput !== null;
 
   // ── Header 暴露保存/重置方法 ──────────────────────────────────
   // SettingsHeader 通过 DOM 事件或父级协调；这里直接用最简单的方案:
   // 暴露到 window 供 header 调用（或改为 context）
   const handleSave = useCallback(async () => {
-    const modified = Object.keys(dirtyText);
+    const filesToSave: Record<string, string> = { ...dirtyText };
+    if (titleInput !== null || descInput !== null || bodyInput !== null) {
+      filesToSave["SYSTEM.md"] = buildSystemPrompt({
+        title: systemTitle,
+        description: systemDescription,
+        body: systemBody,
+        passthroughLines: parsed.passthroughLines,
+      });
+    }
+    const modified = Object.keys(filesToSave);
     if (modified.length === 0) return;
 
     setSaving(true);
@@ -178,9 +194,12 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
 
     try {
       for (const filename of modified) {
-        await savePrompt(filename, dirtyText[filename]);
+        await savePrompt(filename, filesToSave[filename]);
       }
       setDirtyText({});
+      setTitleInput(null);
+      setDescInput(null);
+      setBodyInput(null);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 1500);
     } catch (err) {
@@ -188,12 +207,13 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     } finally {
       setSaving(false);
     }
-  }, [dirtyText, savePrompt, t]);
+  }, [dirtyText, titleInput, descInput, bodyInput, systemTitle, systemDescription, systemBody, parsed, savePrompt, t]);
 
   const handleCancel = useCallback(() => {
     setDirtyText({});
     setTitleInput(null);
     setDescInput(null);
+    setBodyInput(null);
     setSaveError(null);
     setSaveSuccess(false);
     reloadPrompts();
@@ -303,8 +323,8 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                     className={settingsMultilineFieldClass}
                     rows={10}
                     autoComplete="off"
-                    value={getValue(field.id)}
-                    onChange={(e) => handleChange(field.id, e.target.value)}
+                    value={systemBody}
+                    onChange={(e) => setBodyInput(e.target.value)}
                     disabled={promptsLoading}
                   />
                 </div>
@@ -328,7 +348,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving || Object.keys(dirtyText).length === 0}
+                disabled={saving || !hasEdits}
                 className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
                 {saving ? (

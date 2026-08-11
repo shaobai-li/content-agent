@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SettingsPanel } from "../SettingsPanel";
 
 /** mock i18n：返回固定的中文译文，未命中的 key 原样返回 */
@@ -20,12 +20,14 @@ vi.mock("react-i18next", () => {
   };
 });
 
-/** mock useSettingsApi：SYSTEM.md 含 title/description frontmatter */
+/** mock useSettingsApi：SYSTEM.md 含 title/description + 透传字段（name/skills/layout） */
+const { saveMock } = vi.hoisted(() => ({ saveMock: vi.fn() }));
+
 vi.mock("../useSettingsApi", () => ({
   usePrompts: () => ({
     files: {
       "SYSTEM.md":
-        "---\ntitle: 标准助手\ndescription: 写作助手\n---\n\n正文内容",
+        "---\ntitle: 标准助手\ndescription: 写作助手\nname: std\nskills: []\nlayout:\n  left: [history]\n  defaultLeft: history\n---\n\n正文内容",
       "SOUL.md": "",
       "USER.md": "",
       "IDENTITY.md": "",
@@ -33,7 +35,7 @@ vi.mock("../useSettingsApi", () => ({
     loading: false,
     error: null,
     load: vi.fn(),
-    save: vi.fn(),
+    save: saveMock,
   }),
   useSkills: () => ({
     skills: [],
@@ -51,6 +53,10 @@ vi.mock("../McpServersPanel", () => ({
 }));
 
 describe("SettingsPanel SYSTEM tab title/description 输入框", () => {
+  beforeEach(() => {
+    saveMock.mockClear();
+  });
+
   function renderSystemTab() {
     render(<SettingsPanel agentId="std" />);
     // SYSTEM tab 默认激活
@@ -87,10 +93,55 @@ describe("SettingsPanel SYSTEM tab title/description 输入框", () => {
     expect(screen.getByText("0/20")).toBeInTheDocument();
   });
 
-  it("SYSTEM 文本框初值为完整 SYSTEM.md 文本（含 --- 与 frontmatter）", () => {
+  it("SYSTEM 正文文本框只显示 frontmatter 之后的部分（不含 ---）", () => {
     renderSystemTab();
-    expect(screen.getByLabelText("SYSTEM")).toHaveValue(
-      "---\ntitle: 标准助手\ndescription: 写作助手\n---\n\n正文内容",
+    expect(screen.getByLabelText("SYSTEM")).toHaveValue("\n\n正文内容");
+  });
+
+  it("只编辑 title → 保存按钮可用", () => {
+    renderSystemTab();
+    const saveButton = screen.getByRole("button", { name: "保存" });
+    expect(saveButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("标题"), {
+      target: { value: "测试助手" },
+    });
+
+    expect(saveButton).not.toBeDisabled();
+  });
+
+  it("编辑 title + 正文 → 保存拼接完整 SYSTEM.md 写回（透传字段原样保留）", () => {
+    renderSystemTab();
+
+    fireEvent.change(screen.getByLabelText("标题"), {
+      target: { value: "测试助手" },
+    });
+    fireEvent.change(screen.getByLabelText("SYSTEM"), {
+      target: { value: "新正文" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(saveMock).toHaveBeenCalledTimes(1);
+    expect(saveMock).toHaveBeenCalledWith(
+      "SYSTEM.md",
+      "---\ntitle: 测试助手\ndescription: 写作助手\nname: std\nskills: []\nlayout:\n  left: [history]\n  defaultLeft: history\n---\n\n新正文",
     );
+  });
+
+  it("取消重置：title/正文恢复 frontmatter 初值", () => {
+    renderSystemTab();
+
+    fireEvent.change(screen.getByLabelText("标题"), {
+      target: { value: "临时标题" },
+    });
+    fireEvent.change(screen.getByLabelText("SYSTEM"), {
+      target: { value: "临时正文" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+
+    expect(screen.getByLabelText("标题")).toHaveValue("标准助手");
+    expect(screen.getByLabelText("SYSTEM")).toHaveValue("\n\n正文内容");
   });
 });
