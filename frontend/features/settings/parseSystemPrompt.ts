@@ -1,3 +1,5 @@
+import { SYSTEM_PROMPT_SCHEMA } from "./systemPromptSchema";
+
 export interface ParsedSystemPrompt {
   title: string;
   description: string;
@@ -56,4 +58,24 @@ export function parseSystemPrompt(content: string): ParsedSystemPrompt {
     parsed.passthroughLines.push(line);
   }
   return parsed;
+}
+
+/** 按最新 schema 拼接完整 SYSTEM.md：可编辑字段按 schema 生成，其余字段（passthroughLines）原样透传。 */
+export function buildSystemPrompt(input: ParsedSystemPrompt): string {
+  const schemaLines: string[] = [];
+  let hasNonEmptyField = false;
+  for (const field of SYSTEM_PROMPT_SCHEMA) {
+    const value = input[field.key as "title" | "description"] ?? field.defaultValue;
+    if (field.omitWhenEmpty && value === "") continue; // description 空串省略
+    if (value !== "") hasNonEmptyField = true;
+    schemaLines.push(`${field.key}: ${value}`);
+  }
+  const frontmatterLines = [...schemaLines, ...input.passthroughLines];
+
+  // 原无 frontmatter 且无可编辑非空字段 → 不凭空生成 frontmatter，返回纯正文
+  if (input.passthroughLines.length === 0 && !hasNonEmptyField) return input.body;
+
+  // 原 frontmatter 分离出的 body 自带前导换行，直接接在 --- 后无损；纯正文无前导换行则补分隔空行
+  const separator = input.body.startsWith("\n") ? "" : "\n\n";
+  return `---\n${frontmatterLines.join("\n")}\n---${separator}${input.body}`;
 }
