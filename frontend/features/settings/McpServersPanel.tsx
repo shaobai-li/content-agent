@@ -276,7 +276,7 @@ function ServerCard({
   const toolCount = config.enabled_tools?.length ?? 0;
 
   return (
-    <Card className="flex flex-col h-55 gap-0 border-border bg-card py-4 text-card-foreground shadow-sm">
+    <Card className="flex min-h-36 flex-col gap-0 border-border bg-card pt-4 pb-2 text-card-foreground shadow-sm">
       {/* Top: name + badges */}
       <CardContent className="flex shrink-0 items-start justify-between px-4 pb-0">
         <span className="text-base font-semibold text-foreground">{name}</span>
@@ -329,7 +329,7 @@ function ServerCard({
                 <div className="h-px bg-border mx-1 my-1" />
                 <DropdownMenuItem variant="destructive" onClick={onDelete}>
                   <span className="flex items-center gap-2 cursor-pointer">
-                    <Trash2 className="size-4" />
+                    <Trash2 className="size-4 text-red-600" />
                     {t("mcp.remove")}
                   </span>
                 </DropdownMenuItem>
