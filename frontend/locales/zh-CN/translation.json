@@ -188,6 +188,7 @@
     "addTitle": "添加 MCP 服务器",
     "formatHint": "格式：{ \"name\": \"server-name\", \"command\": \"python\", \"args\": [\"-m\", \"my_server\"], ... }",
     "unconfigured": "未配置 command 或 url",
+    "toolCount": "{{count}} 个工具",
     "edit": "编辑",
     "remove": "移除",
     "confirmDelete": {
