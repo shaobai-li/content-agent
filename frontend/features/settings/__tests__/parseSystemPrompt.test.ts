@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { parseSystemPrompt, buildSystemPrompt } from "../parseSystemPrompt";
 
 describe("parseSystemPrompt", () => {
-  it("标准 SYSTEM.md（含 title/description）→ 正确解析 + 透传其余行 + 正文分离", () => {
+  it("标准 SYSTEM.md（含 title/description）→ 正确解析 + 保留全部原始行 + 正文分离", () => {
     const content = [
       "---",
       "title: 标准个人助手",
@@ -18,11 +18,16 @@ describe("parseSystemPrompt", () => {
       title: "标准个人助手",
       description: "通用的标准助手",
       body: "\n\n你是一个标准的智能体助手。",
-      passthroughLines: ["name: std", "skills: []"],
+      frontmatterLines: [
+        "title: 标准个人助手",
+        "name: std",
+        "description: 通用的标准助手",
+        "skills: []",
+      ],
     });
   });
 
-  it("layout 嵌套块 → 逐行原样透传（含缩进）", () => {
+  it("layout 嵌套块 → 逐行原样保留（含缩进）", () => {
     const content = [
       "---",
       "title: 智能体管理员",
@@ -42,7 +47,8 @@ describe("parseSystemPrompt", () => {
       title: "智能体管理员",
       description: "",
       body: "\n\n正文",
-      passthroughLines: [
+      frontmatterLines: [
+        "title: 智能体管理员",
         "name: admin",
         "skills: []",
         "layout:",
@@ -54,7 +60,7 @@ describe("parseSystemPrompt", () => {
     });
   });
 
-  it("只有 title 无 description → description 为空、其余行透传", () => {
+  it("只有 title 无 description → description 为空、其余行保留", () => {
     const content = ["---", "title: 标准个人助手", "name: std", "---", "", "正文"].join(
       "\n",
     );
@@ -63,7 +69,7 @@ describe("parseSystemPrompt", () => {
       title: "标准个人助手",
       description: "",
       body: "\n\n正文",
-      passthroughLines: ["name: std"],
+      frontmatterLines: ["title: 标准个人助手", "name: std"],
     });
   });
 
@@ -72,7 +78,7 @@ describe("parseSystemPrompt", () => {
       title: "",
       description: "",
       body: "你是一个标准的智能体助手。",
-      passthroughLines: [],
+      frontmatterLines: [],
     });
   });
 
@@ -90,7 +96,7 @@ describe("parseSystemPrompt", () => {
       title: "标准助手",
       description: "助手",
       body: "\n\n正文",
-      passthroughLines: [],
+      frontmatterLines: ['title: "标准助手"', "description: 助手"],
     });
   });
 
@@ -108,7 +114,7 @@ describe("parseSystemPrompt", () => {
       title: "写作助手",
       description: "用途：写作与总结",
       body: "\n\n正文",
-      passthroughLines: [],
+      frontmatterLines: ["title: 写作助手", 'description: "用途：写作与总结"'],
     });
   });
 
@@ -117,19 +123,19 @@ describe("parseSystemPrompt", () => {
       title: "",
       description: "",
       body: "",
-      passthroughLines: [],
+      frontmatterLines: [],
     });
     expect(parseSystemPrompt("---\n---\n正文")).toEqual({
       title: "",
       description: "",
       body: "\n正文",
-      passthroughLines: [],
+      frontmatterLines: [],
     });
   });
 });
 
 describe("buildSystemPrompt", () => {
-  it("round-trip：改 title/description 后 name/skills/layout 原样保留、body 不变", () => {
+  it("round-trip：改 title/description 后其他字段原样保留、顺序不变、body 不变", () => {
     const original = [
       "---",
       "title: 标准个人助手",
@@ -155,8 +161,10 @@ describe("buildSystemPrompt", () => {
       title: "新标题",
       description: "新描述",
       body: "\n\n正文",
-      passthroughLines: [
+      frontmatterLines: [
+        "title: 新标题",
         "name: std",
+        "description: 新描述",
         "skills: []",
         "layout:",
         "  left: [history]",
@@ -165,14 +173,22 @@ describe("buildSystemPrompt", () => {
     });
   });
 
-  it("title 值含半角冒号 → 序列化加双引号保护，round-trip 值不变", () => {
-    const parsed = parseSystemPrompt(
-      ["---", 'title: "写作: 助手"', "---", "", "正文"].join("\n"),
-    );
-    const rebuilt = buildSystemPrompt({ ...parsed, title: "写作: 助手" });
+  it("只改正文不改 title/description → 字段顺序保持原始（description 不挪前）", () => {
+    const original = [
+      "---",
+      "title: A",
+      "name: std",
+      "description: B",
+      "skills: []",
+      "---",
+      "",
+      "正文",
+    ].join("\n");
 
-    expect(rebuilt).toBe("---\ntitle: \"写作: 助手\"\n---\n\n正文");
-    expect(parseSystemPrompt(rebuilt).title).toBe("写作: 助手");
+    const parsed = parseSystemPrompt(original);
+    const rebuilt = buildSystemPrompt({ ...parsed, body: "新正文" });
+
+    expect(rebuilt).toBe("---\ntitle: A\nname: std\ndescription: B\nskills: []\n---\n\n新正文");
   });
 
   it("description 为空串 → 拼接结果不含 description 行", () => {
@@ -183,6 +199,16 @@ describe("buildSystemPrompt", () => {
 
     expect(rebuilt).toBe("---\ntitle: T\nname: std\n---\n\n正文");
     expect(rebuilt).not.toContain("description:");
+  });
+
+  it("title 值含半角冒号 → 序列化加双引号保护，round-trip 值不变", () => {
+    const parsed = parseSystemPrompt(
+      ["---", 'title: "写作: 助手"', "---", "", "正文"].join("\n"),
+    );
+    const rebuilt = buildSystemPrompt({ ...parsed, title: "写作: 助手" });
+
+    expect(rebuilt).toBe("---\ntitle: \"写作: 助手\"\n---\n\n正文");
+    expect(parseSystemPrompt(rebuilt).title).toBe("写作: 助手");
   });
 
   it("无 frontmatter 且 title/description 为空 → 返回纯正文（不生成 ---）", () => {
