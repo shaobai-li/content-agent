@@ -188,6 +188,9 @@
     "addTitle": "Add MCP Server",
     "formatHint": "Format: { \"name\": \"server-name\", \"command\": \"python\", \"args\": [\"-m\", \"my_server\"], ... }",
     "unconfigured": "No command or URL configured",
+    "toolCount": "{{count}} tools",
+    "toolCount_one": "{{count}} tool",
+    "toolCount_other": "{{count}} tools",
     "edit": "Edit",
     "remove": "Remove",
     "confirmDelete": {

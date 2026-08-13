@@ -238,7 +238,7 @@ function ProviderSettings() {
                       size="sm"
                       onClick={() => handleProviderSave(p.provider)}
                       disabled={!isKeyDirty || savingProvider === p.provider}
-                      className="absolute right-0 top-0 bottom-0 m-0.5 text-xs font-semibold"
+                      className="absolute right-0.5 top-1/2 -translate-y-1/2 text-xs font-semibold"
                     >
                       {savingProvider === p.provider && (
                         <Loader2 className="size-3.5 animate-spin" />

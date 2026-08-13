@@ -188,7 +188,7 @@ export function AgentInfoCard({
                       onClick={() => setDeleteConfirm(true)}
                     >
                       <span className="flex items-center gap-2 cursor-pointer">
-                        <Trash2 className="size-4" />
+                        <Trash2 className="size-4 text-red-600" />
                         {t("agentManagement.menu.delete")}
                       </span>
                     </DropdownMenuItem>
