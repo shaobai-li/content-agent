@@ -60,6 +60,15 @@ export function parseSystemPrompt(content: string): ParsedSystemPrompt {
   return parsed;
 }
 
+/** 值含 YAML 特殊字符或首尾空白时加双引号保护，避免剥引号后破坏 frontmatter 结构（如值含半角冒号）。 */
+function yamlSafe(value: string): string {
+  if (value === "") return value;
+  if (/[:#\[\]{},&*!|>'"%@`]/.test(value) || value !== value.trim()) {
+    return JSON.stringify(value);
+  }
+  return value;
+}
+
 /** 按最新 schema 拼接完整 SYSTEM.md：可编辑字段按 schema 生成，其余字段（passthroughLines）原样透传。 */
 export function buildSystemPrompt(input: ParsedSystemPrompt): string {
   const schemaLines: string[] = [];
@@ -68,7 +77,7 @@ export function buildSystemPrompt(input: ParsedSystemPrompt): string {
     const value = input[field.key as "title" | "description"] ?? field.defaultValue;
     if (field.omitWhenEmpty && value === "") continue; // description 空串省略
     if (value !== "") hasNonEmptyField = true;
-    schemaLines.push(`${field.key}: ${value}`);
+    schemaLines.push(`${field.key}: ${yamlSafe(value)}`);
   }
   const frontmatterLines = [...schemaLines, ...input.passthroughLines];
 
