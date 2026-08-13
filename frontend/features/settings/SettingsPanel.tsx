@@ -182,7 +182,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
         title: systemTitle,
         description: systemDescription,
         body: systemBody,
-        passthroughLines: parsed.passthroughLines,
+        frontmatterLines: parsed.frontmatterLines,
       });
     }
     const modified = Object.keys(filesToSave);
