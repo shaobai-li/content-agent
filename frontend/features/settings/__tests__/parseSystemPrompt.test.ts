@@ -165,6 +165,16 @@ describe("buildSystemPrompt", () => {
     });
   });
 
+  it("title 值含半角冒号 → 序列化加双引号保护，round-trip 值不变", () => {
+    const parsed = parseSystemPrompt(
+      ["---", 'title: "写作: 助手"', "---", "", "正文"].join("\n"),
+    );
+    const rebuilt = buildSystemPrompt({ ...parsed, title: "写作: 助手" });
+
+    expect(rebuilt).toBe("---\ntitle: \"写作: 助手\"\n---\n\n正文");
+    expect(parseSystemPrompt(rebuilt).title).toBe("写作: 助手");
+  });
+
   it("description 为空串 → 拼接结果不含 description 行", () => {
     const parsed = parseSystemPrompt(
       ["---", "title: T", "name: std", "---", "", "正文"].join("\n"),
