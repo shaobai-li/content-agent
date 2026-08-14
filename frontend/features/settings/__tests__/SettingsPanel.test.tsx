@@ -1,24 +1,24 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SettingsPanel } from "../SettingsPanel";
+import zhCN from "../../../locales/zh-CN/translation.json";
 
-/** mock i18n：返回固定的中文译文，未命中的 key 原样返回 */
+/** mock i18n 直接读真实 zh-CN locale，避免手写翻译表掩盖真实 locale 缺失/错位的 key。 */
+function resolveLocalePath(obj: Record<string, unknown>, path: string): unknown {
+  return path.split(".").reduce<unknown>((acc, p) => {
+    if (acc && typeof acc === "object") return (acc as Record<string, unknown>)[p];
+    return undefined;
+  }, obj);
+}
+
+/** mock i18n：t 从真实 zh-CN locale 读取，未命中的 key 原样返回 */
 vi.mock("react-i18next", () => {
-  const translations: Record<string, string> = {
-    "agentManagement.title": "标题",
-    "agentManagement.titlePlaceholder": "输入智能体标题",
-    "agentManagement.description": "描述",
-    "agentManagement.descriptionPlaceholder": "描述这个智能体的用途",
-    "settingsPanel.prompts.save": "保存",
-    "settingsPanel.prompts.systemPrompt": "系统提示词",
-    "settingsPanel.prompts.soulPrompt": "灵魂提示词",
-    "settingsPanel.prompts.cancel": "取消",
-    "settingsPanel.skills.loading": "加载中...",
+  const t = (key: string) => {
+    const value = resolveLocalePath(zhCN, key);
+    return typeof value === "string" ? value : key;
   };
   return {
-    useTranslation: () => ({
-      t: (key: string) => translations[key] ?? key,
-    }),
+    useTranslation: () => ({ t }),
   };
 });
 
