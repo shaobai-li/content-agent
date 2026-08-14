@@ -36,20 +36,26 @@ const settingsTabs = [
 
 type SettingsTabId = (typeof settingsTabs)[number]["id"];
 
+interface PromptField {
+  id: string;
+  label: string;
+  labelKey?: string;
+}
+
 const settingsMultilineFieldClass = cn(
-  "selection:bg-primary selection:text-primary-foreground border-input w-full min-w-0 rounded-md border bg-muted px-3 py-2 text-base text-foreground shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-base resize-none overflow-y-auto break-words",
+  "selection:bg-primary selection:text-primary-foreground border-input w-full min-w-0 rounded-md border bg-white dark:bg-input/30 px-3 py-2 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 resize-none overflow-y-auto break-words",
   "focus-visible:border-input focus-visible:ring-0 focus-visible:ring-offset-0",
 );
 
-const personalizationFields = [
+const personalizationFields: PromptField[] = [
   { id: "SOUL.md", label: "SOUL" },
   { id: "USER.md", label: "USER" },
   { id: "IDENTITY.md", label: "IDENTITY" },
-] as const;
+];
 
-const systemFields = [
-  { id: "SYSTEM.md", label: "SYSTEM" },
-] as const;
+const systemFields: PromptField[] = [
+  { id: "SYSTEM.md", label: "SYSTEM", labelKey: "settingsPanel.prompts.systemPrompt" },
+];
 
 interface SettingsPanelProps {
   agentId: string;
@@ -316,7 +322,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                     htmlFor={`settings-system-${field.id}`}
                     className="text-sm font-medium text-foreground"
                   >
-                    {field.label}
+                    {field.labelKey ? t(field.labelKey) : field.label}
                   </label>
                   <textarea
                     id={`settings-system-${field.id}`}
@@ -487,7 +493,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                     htmlFor={`settings-personalization-${field.id}`}
                     className="text-sm font-medium text-foreground"
                   >
-                    {field.label}
+                    {field.labelKey ? t(field.labelKey) : field.label}
                   </label>
                   <textarea
                     id={`settings-personalization-${field.id}`}
