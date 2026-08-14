@@ -48,13 +48,13 @@ const settingsMultilineFieldClass = cn(
 );
 
 const personalizationFields: PromptField[] = [
-  { id: "SOUL.md", label: "SOUL" },
   { id: "USER.md", label: "USER" },
   { id: "IDENTITY.md", label: "IDENTITY" },
 ];
 
 const systemFields: PromptField[] = [
   { id: "SYSTEM.md", label: "SYSTEM", labelKey: "settingsPanel.prompts.systemPrompt" },
+  { id: "SOUL.md", label: "SOUL", labelKey: "settingsPanel.prompts.soulPrompt" },
 ];
 
 interface SettingsPanelProps {
@@ -316,25 +316,33 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                   maxLength={200}
                 />
               </div>
-              {systemFields.map((field) => (
-                <div key={field.id} className="flex flex-col gap-2">
-                  <label
-                    htmlFor={`settings-system-${field.id}`}
-                    className="text-sm font-medium text-foreground"
-                  >
-                    {field.labelKey ? t(field.labelKey) : field.label}
-                  </label>
-                  <textarea
-                    id={`settings-system-${field.id}`}
-                    className={settingsMultilineFieldClass}
-                    rows={10}
-                    autoComplete="off"
-                    value={systemBody}
-                    onChange={(e) => setBodyInput(e.target.value)}
-                    disabled={promptsLoading}
-                  />
-                </div>
-              ))}
+              {systemFields.map((field) => {
+                // SYSTEM 走 frontmatter 正文（systemBody）拼接；SOUL 等其余字段走普通 per-file 编辑
+                const isSystem = field.id === "SYSTEM.md";
+                return (
+                  <div key={field.id} className="flex flex-col gap-2">
+                    <label
+                      htmlFor={`settings-system-${field.id}`}
+                      className="text-sm font-medium text-foreground"
+                    >
+                      {field.labelKey ? t(field.labelKey) : field.label}
+                    </label>
+                    <textarea
+                      id={`settings-system-${field.id}`}
+                      className={settingsMultilineFieldClass}
+                      rows={isSystem ? 10 : 6}
+                      autoComplete="off"
+                      value={isSystem ? systemBody : getValue(field.id)}
+                      onChange={
+                        isSystem
+                          ? (e) => setBodyInput(e.target.value)
+                          : (e) => handleChange(field.id, e.target.value)
+                      }
+                      disabled={promptsLoading}
+                    />
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
           {/* 行内保存/取消 */}

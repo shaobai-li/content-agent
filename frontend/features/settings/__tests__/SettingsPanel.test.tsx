@@ -11,6 +11,7 @@ vi.mock("react-i18next", () => {
     "agentManagement.descriptionPlaceholder": "描述这个智能体的用途",
     "settingsPanel.prompts.save": "保存",
     "settingsPanel.prompts.systemPrompt": "系统提示词",
+    "settingsPanel.prompts.soulPrompt": "灵魂提示词",
     "settingsPanel.prompts.cancel": "取消",
     "settingsPanel.skills.loading": "加载中...",
   };
@@ -144,5 +145,24 @@ describe("SettingsPanel SYSTEM tab title/description 输入框", () => {
 
     expect(screen.getByLabelText("标题")).toHaveValue("标准助手");
     expect(screen.getByLabelText("系统提示词")).toHaveValue("\n\n正文内容");
+  });
+
+  it("系统页渲染灵魂提示词文本框，初值来自 SOUL.md", () => {
+    renderSystemTab();
+    expect(screen.getByLabelText("灵魂提示词")).toBeInTheDocument();
+    expect(screen.getByLabelText("灵魂提示词")).toHaveValue("");
+  });
+
+  it("编辑灵魂提示词 → 保存走 SOUL.md 普通写回", () => {
+    renderSystemTab();
+
+    fireEvent.change(screen.getByLabelText("灵魂提示词"), {
+      target: { value: "你的灵魂指南" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(saveMock).toHaveBeenCalledTimes(1);
+    expect(saveMock).toHaveBeenCalledWith("SOUL.md", "你的灵魂指南");
   });
 });
