@@ -6,8 +6,6 @@
     "save": "保存",
     "saving": "保存中...",
     "saved": "已保存",
-    "systemPrompt": "系统提示词",
-    "soulPrompt": "灵魂提示词",
     "cancel": "取消",
     "delete": "删除",
     "confirm": "确认",
@@ -75,6 +73,8 @@
       "save": "保存",
       "saving": "保存中...",
       "saved": "已保存",
+      "systemPrompt": "系统提示词",
+      "soulPrompt": "灵魂提示词",
       "cancel": "取消"
     },
     "header": {
