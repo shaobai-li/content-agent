@@ -6,8 +6,6 @@
     "save": "Save",
     "saving": "Saving...",
     "saved": "Saved!",
-    "systemPrompt": "system prompt",
-    "soulPrompt": "soul prompt",
     "cancel": "Cancel",
     "delete": "Delete",
     "confirm": "Confirm",
@@ -75,6 +73,8 @@
       "save": "Save",
       "saving": "Saving...",
       "saved": "Saved!",
+      "systemPrompt": "system prompt",
+      "soulPrompt": "soul prompt",
       "cancel": "Cancel"
     },
     "header": {
