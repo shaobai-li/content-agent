@@ -344,34 +344,34 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                   </div>
                 );
               })}
+              {/* 行内保存/取消 */}
+              <div className="flex flex-col gap-2">
+                {saveError && (
+                  <p className="text-sm text-destructive text-right">{saveError}</p>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleCancel}
+                    disabled={saving}
+                  >
+                    {t("settingsPanel.prompts.cancel")}
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving || !hasEdits}
+                  >
+                    {saving ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : saveSuccess ? (
+                      <Check className="size-3.5" />
+                    ) : null}
+                    {saving ? t("settingsPanel.prompts.saving") : saveSuccess ? t("settingsPanel.prompts.saved") : t("settingsPanel.prompts.save")}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          {/* 行内保存/取消 */}
-          <div className="flex flex-col gap-2">
-            {saveError && (
-              <p className="text-sm text-destructive text-right">{saveError}</p>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                disabled={saving}
-              >
-                {t("settingsPanel.prompts.cancel")}
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={saving || !hasEdits}
-              >
-                {saving ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : saveSuccess ? (
-                  <Check className="size-3.5" />
-                ) : null}
-                {saving ? t("settingsPanel.prompts.saving") : saveSuccess ? t("settingsPanel.prompts.saved") : t("settingsPanel.prompts.save")}
-              </Button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -512,34 +512,34 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                   />
                 </div>
               ))}
+              {/* 行内保存/取消 */}
+              <div className="flex flex-col gap-2">
+                {saveError && (
+                  <p className="text-sm text-destructive text-right">{saveError}</p>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleCancel}
+                    disabled={saving}
+                  >
+                    {t("settingsPanel.prompts.cancel")}
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving || Object.keys(dirtyText).length === 0}
+                  >
+                    {saving ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : saveSuccess ? (
+                      <Check className="size-3.5" />
+                    ) : null}
+                    {saving ? t("settingsPanel.prompts.saving") : saveSuccess ? t("settingsPanel.prompts.saved") : t("settingsPanel.prompts.save")}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          {/* 行内保存/取消 */}
-          <div className="flex flex-col gap-2">
-            {saveError && (
-              <p className="text-sm text-destructive text-right">{saveError}</p>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                disabled={saving}
-              >
-                {t("settingsPanel.prompts.cancel")}
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={saving || Object.keys(dirtyText).length === 0}
-              >
-                {saving ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : saveSuccess ? (
-                  <Check className="size-3.5" />
-                ) : null}
-                {saving ? t("settingsPanel.prompts.saving") : saveSuccess ? t("settingsPanel.prompts.saved") : t("settingsPanel.prompts.save")}
-              </Button>
-            </div>
-          </div>
         </div>
       )}
 
