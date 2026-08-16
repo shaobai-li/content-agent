@@ -157,6 +157,8 @@
     "createFailedRetry": "Failed to create knowledge base, please retry",
     "namePlaceholder": "Knowledge base name",
     "descriptionPlaceholder": "Description",
+    "titleLabel": "Title",
+    "descriptionLabel": "Description",
     "create": "Create",
     "folderNamePlaceholder": "Folder name",
     "createFolderFailedRetry": "Failed to create folder, please retry",

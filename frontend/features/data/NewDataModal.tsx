@@ -57,24 +57,44 @@ export function NewDataModal({ open, onOpenChange, onCreateData }: NewDataModalP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-sm min-h-[220px] p-4 flex flex-col"
+        className="sm:max-w-sm min-h-[220px] flex flex-col"
       >
         <DialogHeader className="text-left">
           <DialogTitle>{t("kb.newKnowledgeBase")}</DialogTitle>
         </DialogHeader>
-        <Input
-          value={dataName}
-          onChange={(event) => setDataName(event.target.value)}
-          placeholder={t("kb.namePlaceholder")}
-          className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
-          autoFocus
-        />
-        <Input
-          value={dataDescription}
-          onChange={(event) => setDataDescription(event.target.value)}
-          placeholder={t("kb.descriptionPlaceholder")}
-          className="mt-3 h-10 focus-visible:border-input focus-visible:ring-0"
-        />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="new-data-title"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("kb.titleLabel")}
+            </label>
+            <Input
+              id="new-data-title"
+              value={dataName}
+              onChange={(event) => setDataName(event.target.value)}
+              placeholder={t("kb.namePlaceholder")}
+              className="bg-white text-sm focus-visible:border-input focus-visible:ring-0"
+              autoFocus
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor="new-data-description"
+              className="text-sm font-medium text-foreground"
+            >
+              {t("kb.descriptionLabel")}
+            </label>
+            <Input
+              id="new-data-description"
+              value={dataDescription}
+              onChange={(event) => setDataDescription(event.target.value)}
+              placeholder={t("kb.descriptionPlaceholder")}
+              className="bg-white text-sm focus-visible:border-input focus-visible:ring-0"
+            />
+          </div>
+        </div>
         {errorMsg && (
           <div className="text-sm text-destructive bg-destructive/5 rounded-md px-3 py-2">
             {errorMsg}
