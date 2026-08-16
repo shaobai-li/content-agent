@@ -21,6 +21,7 @@ import {
 import { Card, CardContent } from "@/shared/ui/card";
 import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
+import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { usePrompts, useSkills } from "./useSettingsApi";
 import { parseSystemPrompt, buildSystemPrompt } from "./parseSystemPrompt";
@@ -351,19 +352,16 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
               <p className="text-sm text-destructive text-right">{saveError}</p>
             )}
             <div className="flex justify-end gap-2">
-              <button
-                type="button"
+              <Button
+                variant="outline"
                 onClick={handleCancel}
                 disabled={saving}
-                className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
               >
                 {t("settingsPanel.prompts.cancel")}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={handleSave}
                 disabled={saving || !hasEdits}
-                className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
                 {saving ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -371,7 +369,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                   <Check className="size-3.5" />
                 ) : null}
                 {saving ? t("settingsPanel.prompts.saving") : saveSuccess ? t("settingsPanel.prompts.saved") : t("settingsPanel.prompts.save")}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -522,19 +520,16 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
               <p className="text-sm text-destructive text-right">{saveError}</p>
             )}
             <div className="flex justify-end gap-2">
-              <button
-                type="button"
+              <Button
+                variant="outline"
                 onClick={handleCancel}
                 disabled={saving}
-                className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
               >
                 {t("settingsPanel.prompts.cancel")}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={handleSave}
                 disabled={saving || Object.keys(dirtyText).length === 0}
-                className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
                 {saving ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -542,7 +537,7 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
                   <Check className="size-3.5" />
                 ) : null}
                 {saving ? t("settingsPanel.prompts.saving") : saveSuccess ? t("settingsPanel.prompts.saved") : t("settingsPanel.prompts.save")}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
