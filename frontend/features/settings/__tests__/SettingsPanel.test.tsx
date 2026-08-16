@@ -97,7 +97,7 @@ describe("SettingsPanel SYSTEM tab title/description 输入框", () => {
 
   it("SYSTEM 正文文本框只显示 frontmatter 之后的部分（不含 ---）", () => {
     renderSystemTab();
-    expect(screen.getByLabelText("系统提示词")).toHaveValue("\n\n正文内容");
+    expect(screen.getByLabelText("系统提示词")).toHaveValue("正文内容");
   });
 
   it("只编辑 title → 保存按钮可用", () => {
@@ -144,7 +144,7 @@ describe("SettingsPanel SYSTEM tab title/description 输入框", () => {
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
 
     expect(screen.getByLabelText("标题")).toHaveValue("标准助手");
-    expect(screen.getByLabelText("系统提示词")).toHaveValue("\n\n正文内容");
+    expect(screen.getByLabelText("系统提示词")).toHaveValue("正文内容");
   });
 
   it("系统页渲染灵魂提示词文本框，初值来自 SOUL.md", () => {

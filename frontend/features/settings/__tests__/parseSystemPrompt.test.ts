@@ -17,7 +17,7 @@ describe("parseSystemPrompt", () => {
     expect(parseSystemPrompt(content)).toEqual({
       title: "标准个人助手",
       description: "通用的标准助手",
-      body: "\n\n你是一个标准的智能体助手。",
+      body: "你是一个标准的智能体助手。",
       frontmatterLines: [
         "title: 标准个人助手",
         "name: std",
@@ -46,7 +46,7 @@ describe("parseSystemPrompt", () => {
     expect(parseSystemPrompt(content)).toEqual({
       title: "智能体管理员",
       description: "",
-      body: "\n\n正文",
+      body: "正文",
       frontmatterLines: [
         "title: 智能体管理员",
         "name: admin",
@@ -68,7 +68,7 @@ describe("parseSystemPrompt", () => {
     expect(parseSystemPrompt(content)).toEqual({
       title: "标准个人助手",
       description: "",
-      body: "\n\n正文",
+      body: "正文",
       frontmatterLines: ["title: 标准个人助手", "name: std"],
     });
   });
@@ -95,7 +95,7 @@ describe("parseSystemPrompt", () => {
     expect(parseSystemPrompt(content)).toEqual({
       title: "标准助手",
       description: "助手",
-      body: "\n\n正文",
+      body: "正文",
       frontmatterLines: ['title: "标准助手"', "description: 助手"],
     });
   });
@@ -113,7 +113,7 @@ describe("parseSystemPrompt", () => {
     expect(parseSystemPrompt(content)).toEqual({
       title: "写作助手",
       description: "用途：写作与总结",
-      body: "\n\n正文",
+      body: "正文",
       frontmatterLines: ["title: 写作助手", 'description: "用途：写作与总结"'],
     });
   });
@@ -128,7 +128,7 @@ describe("parseSystemPrompt", () => {
     expect(parseSystemPrompt("---\n---\n正文")).toEqual({
       title: "",
       description: "",
-      body: "\n正文",
+      body: "正文",
       frontmatterLines: [],
     });
   });
@@ -160,7 +160,7 @@ describe("buildSystemPrompt", () => {
     expect(parseSystemPrompt(rebuilt)).toEqual({
       title: "新标题",
       description: "新描述",
-      body: "\n\n正文",
+      body: "正文",
       frontmatterLines: [
         "title: 新标题",
         "name: std",

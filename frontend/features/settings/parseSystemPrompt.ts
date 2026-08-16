@@ -36,7 +36,8 @@ export function parseSystemPrompt(content: string): ParsedSystemPrompt {
   const parsed: ParsedSystemPrompt = {
     title: "",
     description: "",
-    body: parts[2],
+    // 剥离正文前导换行（frontmatter 与正文间的分隔符），保证编辑保存后 round-trip 不再累积空行
+    body: parts[2].replace(/^\n+/, ""),
     frontmatterLines: [],
   };
 
@@ -114,7 +115,6 @@ export function buildSystemPrompt(input: ParsedSystemPrompt): string {
   // 无任何可写 frontmatter → 纯正文
   if (lines.length === 0) return input.body;
 
-  // body 自带前导换行（原 frontmatter 分离或用户保留空行）则直接接在 --- 后无损，否则补分隔空行
-  const separator = input.body.startsWith("\n") ? "" : "\n\n";
-  return `---\n${lines.join("\n")}\n---${separator}${input.body}`;
+  // body 已剥离前导换行，固定用 \n\n 作 frontmatter 与正文的分隔空行，round-trip 一致
+  return `---\n${lines.join("\n")}\n---\n\n${input.body}`;
 }
