@@ -82,7 +82,7 @@ export function NewAgentDialog({
             {t("agentManagement.newAgent")}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-4 py-2">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label
               htmlFor="new-agent-title"
