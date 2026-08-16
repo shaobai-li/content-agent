@@ -11,6 +11,7 @@ import {
 } from "@/shared/ui/dialog";
 import { createAgent } from "@/shared/api/management";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
 interface NewAgentDialogProps {
@@ -140,23 +141,20 @@ export function NewAgentDialog({
           )}
         </div>
         <DialogFooter>
-          <button
-            type="button"
+          <Button
+            variant="outline"
             onClick={() => handleOpenChange(false)}
             disabled={creating}
-            className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted disabled:opacity-50"
           >
             {t("common.cancel")}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={creating || !title.trim()}
-            className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-sm text-background hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {creating && <Loader2 className="size-3.5 animate-spin" />}
             {creating ? t("agentManagement.creating") : t("agentManagement.create")}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -243,7 +243,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button size="sm" className="text-xs gap-2.5" onClick={onSend} disabled={isSendDisabled}>
+        <Button size="sm" onClick={onSend} disabled={isSendDisabled}>
           {t("common.send")}
         </Button>
       </div>
