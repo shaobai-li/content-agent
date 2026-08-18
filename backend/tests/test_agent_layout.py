@@ -1,7 +1,7 @@
 """Tests for agent layout defaults.
 
 覆盖 PR #337 的行为变更：
-- ``list_agents`` 对 frontmatter 未声明 layout 的 agent 兜底 ``DEFAULT_AGENT_LAYOUT``；
+- ``list_agents`` 对 frontmatter 未声明 layout 的 agent 兜底默认布局（``_default_agent_layout()``）；
 - 显式声明的 layout 原样返回；
 - ``create_agent`` 将默认 layout 写入新自定义 agent 的 SYSTEM.md，且可被读回。
 """
@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from app.api.agents import DEFAULT_AGENT_LAYOUT
+from app.api.agents import _default_agent_layout
 from app.core.auth import _user_agents_var, _user_id_var
 from app.core.config import parse_system_md_frontmatter
 
@@ -29,7 +29,7 @@ CUSTOM_LAYOUT = {
 
 @pytest.mark.asyncio
 async def test_list_agents_falls_back_to_default_layout():
-    """自定义 agent frontmatter 未声明 layout → 返回 DEFAULT_AGENT_LAYOUT。"""
+    """自定义 agent frontmatter 未声明 layout → 返回默认布局。"""
     from app.api.agents import list_agents
 
     custom = {
@@ -46,7 +46,7 @@ async def test_list_agents_falls_back_to_default_layout():
     agents = {a["name"]: a for a in result["agents"]}
 
     # 未声明 layout → 兜底默认
-    assert agents["a_no_layout"]["layout"] == DEFAULT_AGENT_LAYOUT
+    assert agents["a_no_layout"]["layout"] == _default_agent_layout()
     # 显式声明 layout → 原样返回
     assert agents["a_with_layout"]["layout"] == CUSTOM_LAYOUT
 
@@ -67,14 +67,14 @@ async def test_list_agents_system_agent_falls_back_when_layout_missing():
         _user_agents_var.reset(token)
 
     agents = {a["name"]: a for a in result["agents"]}
-    assert agents["new_system_agent"]["layout"] == DEFAULT_AGENT_LAYOUT
+    assert agents["new_system_agent"]["layout"] == _default_agent_layout()
 
 
 # ── create_agent 写入 layout ───────────────────────────────────────
 
 
 def test_create_agent_writes_default_layout_to_system_md(tmp_path):
-    """create_agent 将 DEFAULT_AGENT_LAYOUT 写入新 agent 的 SYSTEM.md，且可读回。"""
+    """create_agent 将默认布局写入新 agent 的 SYSTEM.md，且可读回。"""
     import app.core.config as config_mod
     from app.api.agents import create_agent
 
@@ -102,4 +102,15 @@ def test_create_agent_writes_default_layout_to_system_md(tmp_path):
     assert meta["name"] == agent_id
     assert meta["title"] == "测试智能体"
     assert meta["description"] == "描述"
-    assert meta["layout"] == DEFAULT_AGENT_LAYOUT
+    assert meta["layout"] == _default_agent_layout()
+
+
+def test_default_agent_layout_returns_fresh_objects():
+    """工厂函数每次返回新对象，就地修改不会污染全局默认值。"""
+    a = _default_agent_layout()
+    b = _default_agent_layout()
+    assert a is not b
+
+    a["left"].append("document")
+    assert "document" not in b["left"]
+    assert _default_agent_layout()["left"] == ["history", "settings"]

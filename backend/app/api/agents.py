@@ -17,12 +17,14 @@ from app.core.config import DEFAULT_DATA_DIR, DEFAULT_AGENT_TITLE, get_agent_bas
 from app.core.auth import get_current_user_id
 
 # SYSTEM.md frontmatter 未声明 layout 时的默认布局（自定义 agent 默认：聊天记录 + 设置）
-DEFAULT_AGENT_LAYOUT = {
-    "left": ["history", "settings"],
-    "defaultLeft": "history",
-    "right": ["chat"],
-    "defaultRight": "chat",
-}
+# 工厂函数而非模块级常量：每次返回新对象，避免共享可变引用被就地修改而污染全局默认
+def _default_agent_layout() -> dict:
+    return {
+        "left": ["history", "settings"],
+        "defaultLeft": "history",
+        "right": ["chat"],
+        "defaultRight": "chat",
+    }
 
 # ── Agent 列表（不含 agent_id 路径参数） ─────────────────────────
 list_router = APIRouter(prefix="/api", tags=["agents"])
@@ -46,7 +48,7 @@ async def list_agents():
             "title": cfg.get("title", DEFAULT_AGENT_TITLE),
             "description": cfg.get("description", ""),
             "locked": cfg.get("locked", False),
-            "layout": cfg.get("layout", DEFAULT_AGENT_LAYOUT),
+            "layout": cfg.get("layout", _default_agent_layout()),
         })
 
     # 当前用户的 custom agent
@@ -59,7 +61,7 @@ async def list_agents():
                     "title": cfg.get("title", DEFAULT_AGENT_TITLE),
                     "description": cfg.get("description", ""),
                     "locked": False,
-                    "layout": cfg.get("layout", DEFAULT_AGENT_LAYOUT),
+                    "layout": cfg.get("layout", _default_agent_layout()),
                 })
     except LookupError:
         pass
@@ -90,7 +92,7 @@ async def create_agent(payload: dict = Body(...)):
     meta = {"title": title, "name": agent_id}
     if description:
         meta["description"] = description
-    meta["layout"] = DEFAULT_AGENT_LAYOUT  # 自定义 agent 默认视图：聊天记录 + 设置
+    meta["layout"] = _default_agent_layout()  # 自定义 agent 默认视图：聊天记录 + 设置
     frontmatter = _yaml.dump(meta, allow_unicode=True)
     system_content = f"---\n{frontmatter}---\n"
     system_path = get_agent_base_dir(agent_id) / "SYSTEM.md"
