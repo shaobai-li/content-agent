@@ -5,6 +5,7 @@ skills: []
 layout:
   left:
     - history
+    - settings
     - knowledgebase
     - document
   defaultLeft: knowledgebase

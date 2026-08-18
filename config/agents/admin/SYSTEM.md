@@ -6,6 +6,7 @@ skills: []
 layout:
   left:
     - history
+    - settings
   defaultLeft: history
   right:
     - chat
