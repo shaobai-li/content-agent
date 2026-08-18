@@ -42,7 +42,7 @@
     "nav": {
       "history": "聊天记录",
       "knowledgeBase": "知识库",
-      "document": "画布",
+      "canvas": "画布",
       "settings": "设置",
       "management": "管理"
     }

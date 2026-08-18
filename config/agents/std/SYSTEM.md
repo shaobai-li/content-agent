@@ -7,7 +7,7 @@ layout:
     - history
     - settings
     - knowledgebase
-    - document
+    - canvas
   defaultLeft: knowledgebase
   right:
     - chat

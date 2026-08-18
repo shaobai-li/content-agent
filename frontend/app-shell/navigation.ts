@@ -3,18 +3,22 @@ import { agentRegistry } from "@/entities/agent/agent.registry";
 import type { UIModule } from "@/entities/agent/model";
 
 // 左侧面板模块 → 翻译 key 映射
-const LEFT_MODULE_LABEL_MAP: Record<Exclude<UIModule, "chat" | "settings" | "management">, string> = {
+// 三点菜单只渲染 layout.left 中声明且在此映射内的模块（未知 key / chat / management 静默跳过）
+const LEFT_MODULE_LABEL_MAP: Partial<Record<UIModule, string>> = {
   history: "history",
   knowledgebase: "knowledgeBase",
-  document: "document",
+  canvas: "canvas",
+  settings: "settings",
 };
+
+type SidebarLeftModule = "history" | "knowledgebase" | "canvas" | "settings";
 
 export function getSidebarRoutes(): RouteItem[] {
   return Object.values(agentRegistry).map((agent) => {
     const menuItems: MenuItem[] = agent.layout.left
       .filter(
-        (m): m is Exclude<UIModule, "chat" | "settings" | "management"> =>
-          m !== "chat" && m !== "settings" && m !== "management",
+        (m): m is SidebarLeftModule =>
+          LEFT_MODULE_LABEL_MAP[m] !== undefined,
       )
       .map((module) => ({
         labelKey: `sidebar.nav.${LEFT_MODULE_LABEL_MAP[module]}`,
@@ -22,12 +26,7 @@ export function getSidebarRoutes(): RouteItem[] {
         icon: module,
       }));
 
-    menuItems.push({
-      labelKey: "sidebar.nav.settings",
-      icon: "settings",
-      href: `/agent/${agent.name}?left=settings`,
-    });
-
+    // admin 管理页豁免：不由 SYSTEM.md 控制，仅 admin 可见
     if (agent.name === "admin") {
       menuItems.push({
         labelKey: "sidebar.nav.management",

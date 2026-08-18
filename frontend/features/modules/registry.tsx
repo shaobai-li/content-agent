@@ -29,7 +29,7 @@ export const uiModuleRegistry: Record<
     body: <HistoryPanel />,
   }),
 
-  document: (agentId) => ({
+  canvas: (agentId) => ({
     header: <CanvasHeader />,
     body: <CanvasPanel agentId={agentId} />,
   }),
