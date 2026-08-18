@@ -1,9 +1,10 @@
 """Tests for agent layout defaults.
 
 覆盖 PR #337 的行为变更：
-- ``list_agents`` 对 frontmatter 未声明 layout 的 agent 兜底默认布局（``_default_agent_layout()``）；
+- ``list_agents`` 原样返回 SYSTEM.md 声明的 layout，缺失时不兜底（删除页面即不再显示）；
 - 显式声明的 layout 原样返回；
-- ``create_agent`` 将默认 layout 写入新自定义 agent 的 SYSTEM.md，且可被读回。
+- ``create_agent`` 创建时将默认布局写入新自定义 agent 的 SYSTEM.md，且可被读回；
+- 默认布局工厂函数每次返回新对象，避免共享可变引用污染全局默认。
 """
 from __future__ import annotations
 
@@ -24,12 +25,12 @@ CUSTOM_LAYOUT = {
 }
 
 
-# ── list_agents 默认 layout 兜底 ───────────────────────────────────
+# ── list_agents 原样返回 layout，不兜底 ────────────────────────────
 
 
 @pytest.mark.asyncio
-async def test_list_agents_falls_back_to_default_layout():
-    """自定义 agent frontmatter 未声明 layout → 返回默认布局。"""
+async def test_list_agents_returns_layout_verbatim_no_fallback():
+    """list_agents 原样返回 SYSTEM.md 的 layout：缺失时不兜底，删了页面就没页面。"""
     from app.api.agents import list_agents
 
     custom = {
@@ -45,15 +46,15 @@ async def test_list_agents_falls_back_to_default_layout():
 
     agents = {a["name"]: a for a in result["agents"]}
 
-    # 未声明 layout → 兜底默认
-    assert agents["a_no_layout"]["layout"] == _default_agent_layout()
+    # 未声明 layout → 返回 None，不注入默认布局
+    assert agents["a_no_layout"]["layout"] is None
     # 显式声明 layout → 原样返回
     assert agents["a_with_layout"]["layout"] == CUSTOM_LAYOUT
 
 
 @pytest.mark.asyncio
-async def test_list_agents_system_agent_falls_back_when_layout_missing():
-    """系统 agent frontmatter 未声明 layout（如未来新增的 agent）→ 同样兜底默认。"""
+async def test_list_agents_system_agent_without_layout_returns_none():
+    """系统 agent frontmatter 未声明 layout → 同样返回 None，不注入默认布局。"""
     from app.api.agents import list_agents
 
     token = _user_agents_var.set({})
@@ -67,7 +68,7 @@ async def test_list_agents_system_agent_falls_back_when_layout_missing():
         _user_agents_var.reset(token)
 
     agents = {a["name"]: a for a in result["agents"]}
-    assert agents["new_system_agent"]["layout"] == _default_agent_layout()
+    assert agents["new_system_agent"]["layout"] is None
 
 
 # ── create_agent 写入 layout ───────────────────────────────────────

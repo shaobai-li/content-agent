@@ -16,7 +16,7 @@ from app.runtime.agent_turn_context import build_agent_turn_context
 from app.core.config import DEFAULT_DATA_DIR, DEFAULT_AGENT_TITLE, get_agent_base_dir
 from app.core.auth import get_current_user_id
 
-# SYSTEM.md frontmatter 未声明 layout 时的默认布局（自定义 agent 默认：聊天记录 + 设置）
+# create_agent 创建自定义 agent 时写入 SYSTEM.md 的默认布局（聊天记录 + 设置视图）
 # 工厂函数而非模块级常量：每次返回新对象，避免共享可变引用被就地修改而污染全局默认
 def _default_agent_layout() -> dict:
     return {
@@ -48,7 +48,7 @@ async def list_agents():
             "title": cfg.get("title", DEFAULT_AGENT_TITLE),
             "description": cfg.get("description", ""),
             "locked": cfg.get("locked", False),
-            "layout": cfg.get("layout", _default_agent_layout()),
+            "layout": cfg.get("layout"),  # 原样返回 SYSTEM.md 的 layout，缺失时不兜底（删除页面即不再显示）
         })
 
     # 当前用户的 custom agent
@@ -61,7 +61,7 @@ async def list_agents():
                     "title": cfg.get("title", DEFAULT_AGENT_TITLE),
                     "description": cfg.get("description", ""),
                     "locked": False,
-                    "layout": cfg.get("layout", _default_agent_layout()),
+                    "layout": cfg.get("layout"),  # 原样返回 SYSTEM.md 的 layout，缺失时不兜底（删除页面即不再显示）
                 })
     except LookupError:
         pass
