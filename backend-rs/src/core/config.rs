@@ -529,6 +529,22 @@ pub fn load_mcp_servers(user_id: &str) -> HashMap<String, Value> {
 mod tests {
     use super::*;
 
+    // ── default_agent_layout ─────────────────────────────────────
+
+    #[test]
+    fn test_default_agent_layout_shape() {
+        let layout = default_agent_layout();
+        assert_eq!(
+            layout,
+            serde_json::json!({
+                "left": ["history", "settings"],
+                "defaultLeft": "history",
+                "right": ["chat"],
+                "defaultRight": "chat",
+            })
+        );
+    }
+
     // ── extract_yaml_frontmatter ─────────────────────────────────
 
     #[test]
