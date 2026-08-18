@@ -32,8 +32,8 @@ pub fn init_registry() {
                 .get(id)
                 .copied()
                 .unwrap_or(visibility.default_visible);
-            // 原样返回 SYSTEM.md 的 layout，缺失时省略（与 Python list_agents 一致，前端 DEFAULT_LAYOUT 兜底）
-            let layout = cfg.layout.as_ref().and_then(|l| serde_json::to_value(l).ok());
+            // 原样返回 SYSTEM.md 的 layout，缺失时返回 null（与 Python list_agents 一致）
+            let layout = serde_json::to_value(&cfg.layout).ok();
             AgentMeta {
                 name: id.clone(),
                 title: cfg
