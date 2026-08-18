@@ -12,6 +12,16 @@ static CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
 /// SYSTEM.md frontmatter 未声明 title 时的默认显示名
 pub const DEFAULT_AGENT_TITLE: &str = "未命名智能体";
 
+/// SYSTEM.md frontmatter 未声明 layout 时的默认布局（自定义 agent 默认：聊天记录 + 设置）
+pub fn default_agent_layout() -> serde_json::Value {
+    serde_json::json!({
+        "left": ["history", "settings"],
+        "defaultLeft": "history",
+        "right": ["chat"],
+        "defaultRight": "chat",
+    })
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentLayout {
