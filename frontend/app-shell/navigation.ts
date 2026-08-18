@@ -4,22 +4,23 @@ import type { UIModule } from "@/entities/agent/model";
 
 // 左侧面板模块 → 翻译 key 映射
 // 三点菜单只渲染 layout.left 中声明且在此映射内的模块（未知 key / chat / management 静默跳过）
-const LEFT_MODULE_LABEL_MAP: Partial<Record<UIModule, string>> = {
+type SidebarLeftModule = "history" | "knowledgebase" | "canvas" | "settings";
+
+const LEFT_MODULE_LABEL_MAP: Record<SidebarLeftModule, string> = {
   history: "history",
   knowledgebase: "knowledgeBase",
   canvas: "canvas",
   settings: "settings",
 };
 
-type SidebarLeftModule = "history" | "knowledgebase" | "canvas" | "settings";
+function isSidebarLeftModule(m: UIModule): m is SidebarLeftModule {
+  return m in LEFT_MODULE_LABEL_MAP;
+}
 
 export function getSidebarRoutes(): RouteItem[] {
   return Object.values(agentRegistry).map((agent) => {
     const menuItems: MenuItem[] = agent.layout.left
-      .filter(
-        (m): m is SidebarLeftModule =>
-          LEFT_MODULE_LABEL_MAP[m] !== undefined,
-      )
+      .filter(isSidebarLeftModule)
       .map((module) => ({
         labelKey: `sidebar.nav.${LEFT_MODULE_LABEL_MAP[module]}`,
         href: `/agent/${agent.name}?left=${module}`,
