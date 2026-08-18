@@ -32,7 +32,11 @@ async fn list_agents(Extension(ctx): Extension<UserContext>) -> Json<Value> {
                     .map(str::to_string),
                 visible: true,
                 locked: false,
-                layout: None,
+                layout: cfg
+                    .get("layout")
+                    .filter(|v| !v.is_null())
+                    .cloned()
+                    .or(Some(crate::core::config::default_agent_layout())),
             });
         }
     }
@@ -104,6 +108,7 @@ async fn create_agent(
     if !description.is_empty() {
         meta.insert("description".into(), serde_json::json!(description));
     }
+    meta.insert("layout".into(), crate::core::config::default_agent_layout());
     let frontmatter = serde_yaml::to_string(&serde_json::Value::Object(meta))
         .expect("serialize static JSON to YAML cannot fail");
     let system_content = format!("---\n{}---\n", frontmatter);
