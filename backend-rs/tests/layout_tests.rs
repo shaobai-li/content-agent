@@ -2,7 +2,7 @@
 ///
 /// 覆盖：
 /// - `list_agents` 原样返回系统 agent 的 layout（来自 config/agents/*/SYSTEM.md）；
-/// - `list_agents` 对无 layout 的自定义 agent 省略 layout 键（不注入默认）；
+/// - `list_agents` 对无 layout 的自定义 agent 返回 `layout: null`（不注入默认，与 Python 一致）；
 /// - `create_agent` 将默认 layout 写入新自定义 agent 的 SYSTEM.md，且能被读回并出现在 `list_agents` 响应中。
 ///
 /// 通过设置 OMNIAGE_ROOT 指向临时目录，在进程内初始化后端并直接发 HTTP 请求。
@@ -74,12 +74,13 @@ async fn test_layout_create_and_list_flow() {
 
     let app = omniage_backend_rs::build_app();
 
-    // 1. 初始 GET：std 返回其 SYSTEM.md 声明的 layout；a_custom 无 layout → 省略键
+    // 1. 初始 GET：std 返回其 SYSTEM.md 声明的 layout；a_custom 无 layout → 返回 null
     let agents = get_agents(&app, "1").await;
     let std_agent = agents.iter().find(|a| a["name"] == "std").expect("应包含 std");
     assert_eq!(std_agent["layout"]["defaultLeft"], "knowledgebase");
     let custom = agents.iter().find(|a| a["name"] == "a_custom").expect("应包含 a_custom");
-    assert!(custom.get("layout").is_none(), "无 layout 的自定义 agent 不应返回 layout 键");
+    assert!(custom.get("layout").is_some(), "无 layout 的自定义 agent 应返回 layout 键");
+    assert!(custom["layout"].is_null(), "缺失 layout 应返回 null（与 Python 一致）");
 
     // 2. POST 创建新自定义 agent
     let resp = app

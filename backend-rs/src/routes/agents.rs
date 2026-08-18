@@ -32,8 +32,8 @@ async fn list_agents(Extension(ctx): Extension<UserContext>) -> Json<Value> {
                     .map(str::to_string),
                 visible: true,
                 locked: false,
-                // 原样返回 SYSTEM.md 的 layout，缺失时不兜底（与 Python list_agents 一致）
-                layout: cfg.get("layout").filter(|v| !v.is_null()).cloned(),
+                // 原样返回 SYSTEM.md 的 layout，缺失时返回 null（与 Python list_agents 一致）
+                layout: cfg.get("layout").cloned().or(Some(Value::Null)),
             });
         }
     }
