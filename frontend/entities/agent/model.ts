@@ -14,7 +14,7 @@ export type UIModule =
     | "chat"
     | "history"
     | "knowledgebase"
-    | "document"
+    | "canvas"
     | "settings"
     | "management";
 

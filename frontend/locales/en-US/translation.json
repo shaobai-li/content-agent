@@ -42,7 +42,7 @@
     "nav": {
       "history": "Chat History",
       "knowledgeBase": "Knowledge Base",
-      "document": "Canvas",
+      "canvas": "Canvas",
       "settings": "Settings",
       "management": "Management"
     }
