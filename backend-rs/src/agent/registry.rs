@@ -32,7 +32,11 @@ pub fn init_registry() {
                 .get(id)
                 .copied()
                 .unwrap_or(visibility.default_visible);
-            let layout = serde_json::to_value(&cfg.layout).ok();
+            let layout = cfg
+                .layout
+                .as_ref()
+                .and_then(|l| serde_json::to_value(l).ok())
+                .or(Some(crate::core::config::default_agent_layout()));
             AgentMeta {
                 name: id.clone(),
                 title: cfg
