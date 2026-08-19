@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AgentId } from "@/entities/agent/model";
 import type { FileNode } from "./types";
 import { MOCK_TREE } from "./mockData";
@@ -10,6 +10,36 @@ import { FilePreview } from "./FilePreview";
 
 interface FileManagerPanelProps {
   agentId: AgentId;
+}
+
+interface FileManagerState {
+  expandedIds: string[];
+  selectedId: string | null;
+}
+
+function getStorageKey(agentId: string): string {
+  return `filemanager-state-${agentId}`;
+}
+
+function loadState(agentId: string): FileManagerState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(getStorageKey(agentId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as FileManagerState;
+    if (!parsed || !Array.isArray(parsed.expandedIds)) return null;
+    return { expandedIds: parsed.expandedIds, selectedId: parsed.selectedId ?? null };
+  } catch {
+    return null;
+  }
+}
+
+function saveState(agentId: string, state: FileManagerState): void {
+  try {
+    localStorage.setItem(getStorageKey(agentId), JSON.stringify(state));
+  } catch {
+    // storage full or unavailable
+  }
 }
 
 /** 初始展开所有文件夹，便于演示完整文件树 */
@@ -24,9 +54,13 @@ function getInitialExpanded(): Set<string> {
 }
 
 export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
-  void agentId; // 供 Plan 3 状态持久化使用
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(getInitialExpanded);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const saved = loadState(agentId);
+    return saved ? new Set(saved.expandedIds) : getInitialExpanded();
+  });
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => loadState(agentId)?.selectedId ?? null,
+  );
   const selectedNode = useMemo(
     () => (selectedId ? findNode(MOCK_TREE, selectedId) : null),
     [selectedId],
@@ -40,6 +74,11 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
       return next;
     });
   };
+
+  // 持久化展开/选中状态（按 agent 隔离），切换 agent 后保留
+  useEffect(() => {
+    saveState(agentId, { expandedIds: [...expandedIds], selectedId });
+  }, [agentId, expandedIds, selectedId]);
 
   return (
     <div className="flex h-full min-h-0 gap-0">
