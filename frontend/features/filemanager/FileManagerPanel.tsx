@@ -12,7 +12,11 @@ interface FileManagerPanelProps {
   agentId: AgentId;
 }
 
+/** 持久化状态结构版本号：mock 数据结构或状态字段变化时递增，旧版本数据自动失效 */
+const FILE_MANAGER_STATE_VERSION = 1;
+
 interface FileManagerState {
+  version: number;
   expandedIds: string[];
   selectedId: string | null;
 }
@@ -27,8 +31,13 @@ function loadState(agentId: string): FileManagerState | null {
     const raw = localStorage.getItem(getStorageKey(agentId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as FileManagerState;
-    if (!parsed || !Array.isArray(parsed.expandedIds)) return null;
-    return { expandedIds: parsed.expandedIds, selectedId: parsed.selectedId ?? null };
+    if (!parsed || parsed.version !== FILE_MANAGER_STATE_VERSION) return null;
+    if (!Array.isArray(parsed.expandedIds)) return null;
+    return {
+      version: FILE_MANAGER_STATE_VERSION,
+      expandedIds: parsed.expandedIds,
+      selectedId: parsed.selectedId ?? null,
+    };
   } catch {
     return null;
   }
@@ -80,7 +89,11 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
 
   // 持久化展开/选中状态（按 agent 隔离），切换 agent 后保留
   useEffect(() => {
-    saveState(agentId, { expandedIds: [...expandedIds], selectedId });
+    saveState(agentId, {
+      version: FILE_MANAGER_STATE_VERSION,
+      expandedIds: [...expandedIds],
+      selectedId,
+    });
   }, [agentId, expandedIds, selectedId]);
 
   return (
