@@ -241,5 +241,15 @@
       "descriptionTooLong": "智能体描述不能超过200个字符",
       "notLoggedIn": "未登录用户无法创建智能体"
     }
+  },
+  "filemanager": {
+    "newFile": "新建文件",
+    "newFolder": "新建文件夹",
+    "refresh": "刷新",
+    "selectHint": "请选择文件或文件夹",
+    "folder": "文件夹",
+    "items": "项",
+    "file": "文件",
+    "noPreview": "无预览内容"
   }
 }
