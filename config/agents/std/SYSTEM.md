@@ -8,6 +8,7 @@ layout:
     - settings
     - knowledgebase
     - canvas
+    - filemanager
   defaultLeft: knowledgebase
   right:
     - chat
