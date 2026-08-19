@@ -44,7 +44,8 @@
       "knowledgeBase": "知识库",
       "canvas": "画布",
       "settings": "设置",
-      "management": "管理"
+      "management": "管理",
+      "fileManager": "文件管理"
     }
   },
   "settingsPanel": {

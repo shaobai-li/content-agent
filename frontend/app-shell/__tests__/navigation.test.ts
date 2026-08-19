@@ -79,4 +79,12 @@ describe("getSidebarRoutes", () => {
     const menu = routes[0].menuItems ?? [];
     expect(menu.map((m) => m.icon)).toEqual(["history", "knowledgebase"]);
   });
+
+  it("layout.left 含 filemanager 时生成文件管理菜单项", () => {
+    agentRegistry["std"] = makeAgent("std", ["history", "filemanager"]);
+    const routes = getSidebarRoutes();
+    const menu = routes[0].menuItems ?? [];
+    expect(menu.map((m) => m.icon)).toEqual(["history", "filemanager"]);
+    expect(menu.find((m) => m.icon === "filemanager")?.labelKey).toBe("sidebar.nav.fileManager");
+  });
 });

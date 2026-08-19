@@ -44,7 +44,8 @@
       "knowledgeBase": "Knowledge Base",
       "canvas": "Canvas",
       "settings": "Settings",
-      "management": "Management"
+      "management": "Management",
+      "fileManager": "File Manager"
     }
   },
   "settingsPanel": {
