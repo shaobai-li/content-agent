@@ -54,13 +54,16 @@ function getInitialExpanded(): Set<string> {
 }
 
 export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+  // 一次性读取持久化状态，避免同一 localStorage key 读两次
+  const [initialState] = useState(() => {
     const saved = loadState(agentId);
-    return saved ? new Set(saved.expandedIds) : getInitialExpanded();
+    return {
+      expandedIds: saved ? new Set(saved.expandedIds) : getInitialExpanded(),
+      selectedId: saved?.selectedId ?? null,
+    };
   });
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => loadState(agentId)?.selectedId ?? null,
-  );
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(initialState.expandedIds);
+  const [selectedId, setSelectedId] = useState<string | null>(initialState.selectedId);
   const selectedNode = useMemo(
     () => (selectedId ? findNode(MOCK_TREE, selectedId) : null),
     [selectedId],
