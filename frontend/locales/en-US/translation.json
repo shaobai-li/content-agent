@@ -243,5 +243,15 @@
       "descriptionTooLong": "Description must be 200 characters or fewer",
       "notLoggedIn": "Please log in to create agents"
     }
+  },
+  "filemanager": {
+    "newFile": "New File",
+    "newFolder": "New Folder",
+    "refresh": "Refresh",
+    "selectHint": "Select a file or folder",
+    "folder": "Folder",
+    "items": "items",
+    "file": "File",
+    "noPreview": "No preview"
   }
 }
