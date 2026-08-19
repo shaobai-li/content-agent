@@ -7,6 +7,7 @@ layout:
   left:
     - history
     - settings
+    - filemanager
   defaultLeft: history
   right:
     - chat
