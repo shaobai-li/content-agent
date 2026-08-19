@@ -4,13 +4,14 @@ import type { UIModule } from "@/entities/agent/model";
 
 // 左侧面板模块 → 翻译 key 映射
 // 三点菜单只渲染 layout.left 中声明且在此映射内的模块（未知 key / chat / management 静默跳过）
-type SidebarLeftModule = "history" | "knowledgebase" | "canvas" | "settings";
+type SidebarLeftModule = "history" | "knowledgebase" | "canvas" | "settings" | "filemanager";
 
 const LEFT_MODULE_LABEL_MAP: Record<SidebarLeftModule, string> = {
   history: "history",
   knowledgebase: "knowledgeBase",
   canvas: "canvas",
   settings: "settings",
+  filemanager: "fileManager",
 };
 
 function isSidebarLeftModule(m: UIModule): m is SidebarLeftModule {

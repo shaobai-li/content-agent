@@ -13,6 +13,9 @@ import { SettingsPanel } from "../settings/SettingsPanel";
 import { ManagementHeader } from "../agent-management/ManagementHeader";
 import { ManagementPanel } from "../agent-management/ManagementPanel";
 
+import { FileManagerHeader } from "../filemanager/FileManagerHeader";
+import { FileManagerPanel } from "../filemanager/FileManagerPanel";
+
 import { AgentId } from "@/entities/agent/model";
 
 export type ModuleRenderResult = {
@@ -47,6 +50,11 @@ export const uiModuleRegistry: Record<
   management: (agentId) => ({
     header: <ManagementHeader />,
     body: <ManagementPanel agentId={agentId} />,
+  }),
+
+  filemanager: (agentId) => ({
+    header: <FileManagerHeader />,
+    body: <FileManagerPanel agentId={agentId} />,
   }),
 
   chat: () => ({

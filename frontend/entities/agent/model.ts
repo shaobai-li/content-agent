@@ -16,7 +16,8 @@ export type UIModule =
     | "knowledgebase"
     | "canvas"
     | "settings"
-    | "management";
+    | "management"
+    | "filemanager";
 
 export type LayoutType = {
     left: UIModule[];

@@ -5,7 +5,7 @@ import { Button } from "@/shared/ui/button";
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/cn";
-import { Settings, Ellipsis, Monitor, History, BookOpen, PanelsTopLeft, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench, Cpu } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, PanelsTopLeft, FolderTree, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench, Cpu } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
@@ -64,7 +64,7 @@ export interface MenuItem {
   /** 国际化翻译 key（优先于 label） */
   labelKey?: string;
   href?: string;
-  icon?: "history" | "knowledgebase" | "canvas" | "settings" | "management";
+  icon?: "history" | "knowledgebase" | "canvas" | "settings" | "management" | "filemanager";
   onClick?: () => void;
 }
 
@@ -239,6 +239,7 @@ export function Sidebar({ routes }: SidebarProps) {
                             canvas: PanelsTopLeft,
                             settings: Settings,
                             management: Wrench,
+                            filemanager: FolderTree,
                           };
                           const Icon = item.icon ? IconMap[item.icon] : null;
                           return (
