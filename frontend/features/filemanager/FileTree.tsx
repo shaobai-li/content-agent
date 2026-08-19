@@ -45,6 +45,7 @@ export function FileTree({
               )}
               style={{ paddingLeft: `${depth * 14 + 8}px` }}
               title={node.name}
+              aria-current={selected ? "true" : undefined}
             >
               {isFolder ? (
                 <ChevronRight
