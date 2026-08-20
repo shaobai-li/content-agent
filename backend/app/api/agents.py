@@ -75,12 +75,13 @@ async def list_agents():
             "layout": cfg.get("layout"),  # 原样返回 SYSTEM.md 的 layout，缺失时不兜底（删除页面即不再显示）
         }
         # 用户 workspace 的 SYSTEM.md 覆盖内置（与设置页编辑/运行时 prompt 同源）
+        # 仅覆盖「显式声明且非 null」的字段：description: null 等显式空值按未覆盖处理，
+        # 避免把响应字段置为 null（spec 中 description 为 string）
         user_meta = _read_user_system_meta(agent_id)
         if user_meta:
-            meta["title"] = user_meta.get("title", meta["title"])
-            meta["description"] = user_meta.get("description", meta["description"])
-            meta["locked"] = user_meta.get("locked", meta["locked"])
-            meta["layout"] = user_meta.get("layout", meta["layout"])
+            for key in ("title", "description", "locked", "layout"):
+                if key in user_meta and user_meta[key] is not None:
+                    meta[key] = user_meta[key]
         result.append(meta)
 
     # 当前用户的 custom agent
