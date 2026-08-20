@@ -141,6 +141,42 @@ async def test_list_agents_merges_user_workspace_system_md(tmp_path):
         config_mod.DEFAULT_DATA_DIR = original
 
 
+@pytest.mark.asyncio
+async def test_list_agents_merges_user_workspace_system_md_ignores_null(tmp_path):
+    """用户 frontmatter 显式 null 的字段按未覆盖处理（回退内置），不污染响应。"""
+    import app.core.config as config_mod
+    from app.api.agents import list_agents
+
+    original = config_mod.DEFAULT_DATA_DIR
+    try:
+        config_mod.DEFAULT_DATA_DIR = tmp_path
+        std_dir = tmp_path / "u_1" / "std"
+        std_dir.mkdir(parents=True, exist_ok=True)
+        (std_dir / "SYSTEM.md").write_text(
+            "---\ntitle: 用户标题\ndescription: null\nname: std\nlocked: null\n---\n\n正文",
+            encoding="utf-8",
+        )
+
+        uid_token = _user_id_var.set("1")
+        ua_token = _user_agents_var.set({})
+        try:
+            with patch(
+                "app.core.config.AGENTS_CONFIG",
+                {"std": {"title": "内置标题", "description": "内置描述", "locked": False}},
+            ):
+                result = await list_agents()
+        finally:
+            _user_agents_var.reset(ua_token)
+            _user_id_var.reset(uid_token)
+
+        agents = {a["name"]: a for a in result["agents"]}
+        assert agents["std"]["title"] == "用户标题"       # 非 null → 覆盖
+        assert agents["std"]["description"] == "内置描述"  # description: null → 回退内置
+        assert agents["std"]["locked"] is False            # locked: null → 回退内置
+    finally:
+        config_mod.DEFAULT_DATA_DIR = original
+
+
 # ── create_agent 写入 layout ───────────────────────────────────────
 
 
