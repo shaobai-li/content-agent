@@ -86,11 +86,11 @@ async def test_list_agents_merges_user_workspace_system_md(tmp_path):
     original = config_mod.DEFAULT_DATA_DIR
     try:
         config_mod.DEFAULT_DATA_DIR = tmp_path
-        # 模拟设置页保存后的状态：用户 workspace SYSTEM.md 覆盖了 title/description/layout
+        # 模拟设置页保存后的状态：用户 workspace SYSTEM.md 覆盖了 title/description/locked/layout
         std_dir = tmp_path / "u_1" / "std"
         std_dir.mkdir(parents=True, exist_ok=True)
         (std_dir / "SYSTEM.md").write_text(
-            "---\ntitle: 用户改的标题\ndescription: 用户描述\nname: std\nlayout:\n"
+            "---\ntitle: 用户改的标题\ndescription: 用户描述\nname: std\nlocked: true\nlayout:\n"
             "  left: [history, settings]\n  defaultLeft: settings\n"
             "  right: [chat]\n  defaultRight: chat\n---\n\n正文",
             encoding="utf-8",
@@ -122,6 +122,7 @@ async def test_list_agents_merges_user_workspace_system_md(tmp_path):
         agents = {a["name"]: a for a in result["agents"]}
         assert agents["std"]["title"] == "用户改的标题"
         assert agents["std"]["description"] == "用户描述"
+        assert agents["std"]["locked"] is True
         assert agents["std"]["layout"] == user_layout
 
         # 无用户上下文 → _read_user_system_meta 走 LookupError 分支，回退内置
@@ -135,6 +136,7 @@ async def test_list_agents_merges_user_workspace_system_md(tmp_path):
         agents = {a["name"]: a for a in result["agents"]}
         assert agents["std"]["title"] == "内置标题"
         assert agents["std"]["description"] == "内置描述"
+        assert agents["std"]["locked"] is False
     finally:
         config_mod.DEFAULT_DATA_DIR = original
 
