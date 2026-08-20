@@ -71,6 +71,74 @@ async def test_list_agents_system_agent_without_layout_returns_none():
     assert agents["new_system_agent"]["layout"] is None
 
 
+@pytest.mark.asyncio
+async def test_list_agents_merges_user_workspace_system_md(tmp_path):
+    """系统 agent 合并用户 workspace SYSTEM.md frontmatter；无用户上下文回退内置。"""
+    import app.core.config as config_mod
+    from app.api.agents import list_agents
+
+    user_layout = {
+        "left": ["history", "settings"],
+        "defaultLeft": "settings",
+        "right": ["chat"],
+        "defaultRight": "chat",
+    }
+    original = config_mod.DEFAULT_DATA_DIR
+    try:
+        config_mod.DEFAULT_DATA_DIR = tmp_path
+        # 模拟设置页保存后的状态：用户 workspace SYSTEM.md 覆盖了 title/description/layout
+        std_dir = tmp_path / "u_1" / "std"
+        std_dir.mkdir(parents=True, exist_ok=True)
+        (std_dir / "SYSTEM.md").write_text(
+            "---\ntitle: 用户改的标题\ndescription: 用户描述\nname: std\nlayout:\n"
+            "  left: [history, settings]\n  defaultLeft: settings\n"
+            "  right: [chat]\n  defaultRight: chat\n---\n\n正文",
+            encoding="utf-8",
+        )
+
+        builtin = {
+            "std": {
+                "title": "内置标题",
+                "description": "内置描述",
+                "layout": {
+                    "left": ["history"],
+                    "defaultLeft": "history",
+                    "right": ["chat"],
+                    "defaultRight": "chat",
+                },
+            }
+        }
+
+        # 有用户上下文 → 合并生效（用户 workspace 优先）
+        uid_token = _user_id_var.set("1")
+        ua_token = _user_agents_var.set({})
+        try:
+            with patch("app.core.config.AGENTS_CONFIG", builtin):
+                result = await list_agents()
+        finally:
+            _user_agents_var.reset(ua_token)
+            _user_id_var.reset(uid_token)
+
+        agents = {a["name"]: a for a in result["agents"]}
+        assert agents["std"]["title"] == "用户改的标题"
+        assert agents["std"]["description"] == "用户描述"
+        assert agents["std"]["layout"] == user_layout
+
+        # 无用户上下文 → _read_user_system_meta 走 LookupError 分支，回退内置
+        ua_token = _user_agents_var.set({})
+        try:
+            with patch("app.core.config.AGENTS_CONFIG", builtin):
+                result = await list_agents()
+        finally:
+            _user_agents_var.reset(ua_token)
+
+        agents = {a["name"]: a for a in result["agents"]}
+        assert agents["std"]["title"] == "内置标题"
+        assert agents["std"]["description"] == "内置描述"
+    finally:
+        config_mod.DEFAULT_DATA_DIR = original
+
+
 # ── create_agent 写入 layout ───────────────────────────────────────
 
 

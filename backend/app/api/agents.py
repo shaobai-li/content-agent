@@ -1,6 +1,6 @@
 import json
 import uuid
-from typing import Optional, List
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Body, Form, File, UploadFile
 from fastapi.responses import StreamingResponse
 from loguru import logger
@@ -13,7 +13,12 @@ from app.service.stream_service import (
 )
 from app.runtime.agent_registry import get_agent_config
 from app.runtime.agent_turn_context import build_agent_turn_context
-from app.core.config import DEFAULT_DATA_DIR, DEFAULT_AGENT_TITLE, get_agent_base_dir
+from app.core.config import (
+    DEFAULT_DATA_DIR,
+    DEFAULT_AGENT_TITLE,
+    get_agent_base_dir,
+    parse_system_md_frontmatter,
+)
 from app.core.auth import get_current_user_id
 
 # create_agent 创建自定义 agent 时写入 SYSTEM.md 的默认布局（聊天记录 + 设置视图）
@@ -25,6 +30,23 @@ def _default_agent_layout() -> dict:
         "right": ["chat"],
         "defaultRight": "chat",
     }
+
+
+def _read_user_system_meta(agent_id: str) -> Optional[Dict[str, Any]]:
+    """读取当前用户在 agent workspace 的 SYSTEM.md frontmatter（与设置页/运行时同源）。
+
+    无用户上下文（未认证）或文件缺失时返回 None，调用方回退启动缓存 AGENTS_CONFIG。
+    """
+    try:
+        path = get_agent_base_dir(agent_id) / "SYSTEM.md"
+        if not path.is_file():
+            return None
+        meta = parse_system_md_frontmatter(path)
+        return meta if isinstance(meta, dict) else None
+    except LookupError:
+        # 无 X-User-Id 上下文（如单元测试直接调用 list_agents）
+        return None
+
 
 # ── Agent 列表（不含 agent_id 路径参数） ─────────────────────────
 list_router = APIRouter(prefix="/api", tags=["agents"])
@@ -43,13 +65,21 @@ async def list_agents():
     for agent_id, cfg in AGENTS_CONFIG.items():
         if not isinstance(cfg, dict):
             continue
-        result.append({
+        meta = {
             "name": agent_id,
             "title": cfg.get("title", DEFAULT_AGENT_TITLE),
             "description": cfg.get("description", ""),
             "locked": cfg.get("locked", False),
             "layout": cfg.get("layout"),  # 原样返回 SYSTEM.md 的 layout，缺失时不兜底（删除页面即不再显示）
-        })
+        }
+        # 用户 workspace 的 SYSTEM.md 覆盖内置（与设置页编辑/运行时 prompt 同源）
+        user_meta = _read_user_system_meta(agent_id)
+        if user_meta:
+            meta["title"] = user_meta.get("title", meta["title"])
+            meta["description"] = user_meta.get("description", meta["description"])
+            meta["locked"] = user_meta.get("locked", meta["locked"])
+            meta["layout"] = user_meta.get("layout", meta["layout"])
+        result.append(meta)
 
     # 当前用户的 custom agent
     try:
