@@ -38,3 +38,9 @@ export async function loadAgents(): Promise<void> {
     throw err;
   }
 }
+
+/** 重新拉取 agent 列表并通知侧边栏刷新（设置页保存 title 等配置后调用）。 */
+export async function refreshAgentRegistry(): Promise<void> {
+  await loadAgents();
+  window.dispatchEvent(new CustomEvent("agent-registry-refresh"));
+}
