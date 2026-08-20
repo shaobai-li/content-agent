@@ -14,7 +14,35 @@ pub fn router() -> axum::Router {
 }
 
 async fn list_agents(Extension(ctx): Extension<UserContext>) -> Json<Value> {
-    let mut agents = registry::list_agents().clone();
+    let mut agents = Vec::new();
+
+    // 系统 agent：有用户上下文时合并用户 workspace SYSTEM.md（与 Python list_agents 一致）
+    if ctx.user_id.is_some() {
+        for base in registry::list_agents().iter() {
+            match crate::core::config::get_agent_user_config(&base.name) {
+                Some(merged) => agents.push(crate::agent::registry::AgentMeta {
+                    name: base.name.clone(),
+                    title: merged.title.clone().unwrap_or_else(|| base.title.clone()),
+                    description: merged
+                        .extra
+                        .get("description")
+                        .and_then(|v| v.as_str())
+                        .map(str::to_string)
+                        .or_else(|| base.description.clone()),
+                    visible: base.visible,
+                    locked: merged.locked.unwrap_or(base.locked),
+                    layout: merged
+                        .layout
+                        .as_ref()
+                        .and_then(|l| serde_json::to_value(l).ok())
+                        .or_else(|| base.layout.clone()),
+                }),
+                None => agents.push(base.clone()),
+            }
+        }
+    } else {
+        agents = registry::list_agents().clone();
+    }
 
     // 追加当前用户的 custom agent
     for (agent_id, cfg) in &ctx.user_agents {
