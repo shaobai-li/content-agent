@@ -1,5 +1,7 @@
 import json
 import uuid
+
+import yaml
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Body, Form, File, UploadFile
 from fastapi.responses import StreamingResponse
@@ -43,8 +45,8 @@ def _read_user_system_meta(agent_id: str) -> Optional[Dict[str, Any]]:
             return None
         meta = parse_system_md_frontmatter(path)
         return meta if isinstance(meta, dict) else None
-    except LookupError:
-        # 无 X-User-Id 上下文（如单元测试直接调用 list_agents）
+    except (LookupError, yaml.YAMLError, UnicodeDecodeError, OSError):
+        # 无 X-User-Id 上下文 / SYSTEM.md 非法（非 UTF-8 或 frontmatter 非 YAML）→ 回退内置
         return None
 
 
