@@ -22,7 +22,7 @@ fn setup_temp_root() -> tempfile::TempDir {
     std::fs::create_dir_all(root.join("config/agents/std")).unwrap();
     std::fs::write(
         root.join("config/agents/std/SYSTEM.md"),
-        "---\ntitle: 内置标题\nname: std\nlayout:\n  left: [history]\n  defaultLeft: history\n  right: [chat]\n  defaultRight: chat\n---\n\nstd body",
+        "---\ntitle: 内置标题\ndescription: 内置描述\nname: std\nlocked: false\nlayout:\n  left: [history]\n  defaultLeft: history\n  right: [chat]\n  defaultRight: chat\n---\n\nstd body",
     )
     .unwrap();
     std::fs::write(root.join("config/visibility.yaml"), "default_visible: true\n").unwrap();
@@ -86,4 +86,27 @@ async fn test_list_agents_merges_user_workspace_system_md() {
     let std_agent = agents.iter().find(|a| a["name"] == "std").expect("应包含 std");
     assert_eq!(std_agent["title"], "内置标题");
     assert_eq!(std_agent["layout"]["defaultLeft"], "history");
+
+    // 3. 用户 frontmatter 显式 null → 按未覆盖处理（回退内置）
+    std::fs::write(
+        tmp.path().join("data/u_1/std/SYSTEM.md"),
+        "---\ntitle: 用户标题\ndescription: null\nname: std\nlocked: null\n---\n\nstd body",
+    )
+    .unwrap();
+    let agents = get_agents(&app, Some("1")).await;
+    let std_agent = agents.iter().find(|a| a["name"] == "std").expect("应包含 std");
+    assert_eq!(std_agent["title"], "用户标题");       // 非 null → 覆盖
+    assert_eq!(std_agent["description"], "内置描述");  // description: null → 回退内置
+    assert_eq!(std_agent["locked"], false);            // locked: null → 回退内置
+
+    // 4. 用户 SYSTEM.md frontmatter 非法 YAML → serde_yaml 解析失败，回退内置
+    std::fs::write(
+        tmp.path().join("data/u_1/std/SYSTEM.md"),
+        "---\ntitle: [unclosed\n---\n\nstd body",
+    )
+    .unwrap();
+    let agents = get_agents(&app, Some("1")).await;
+    let std_agent = agents.iter().find(|a| a["name"] == "std").expect("应包含 std");
+    assert_eq!(std_agent["title"], "内置标题");
+    assert_eq!(std_agent["description"], "内置描述");
 }
