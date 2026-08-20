@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SettingsPanel } from "../SettingsPanel";
 import zhCN from "../../../locales/zh-CN/translation.json";
@@ -23,7 +23,12 @@ vi.mock("react-i18next", () => {
 });
 
 /** mock useSettingsApi：SYSTEM.md 含 title/description + 透传字段（name/skills/layout） */
-const { saveMock } = vi.hoisted(() => ({ saveMock: vi.fn() }));
+const { saveMock, refreshMock } = vi.hoisted(() => ({ saveMock: vi.fn(), refreshMock: vi.fn() }));
+
+/** mock agent registry：避免 refreshAgentRegistry 触发真实网络请求 */
+vi.mock("@/entities/agent/agent.registry", () => ({
+  refreshAgentRegistry: refreshMock,
+}));
 
 vi.mock("../useSettingsApi", () => ({
   usePrompts: () => ({
@@ -57,6 +62,7 @@ vi.mock("../McpServersPanel", () => ({
 describe("SettingsPanel SYSTEM tab title/description 输入框", () => {
   beforeEach(() => {
     saveMock.mockClear();
+    refreshMock.mockClear();
   });
 
   function renderSystemTab() {
@@ -129,6 +135,18 @@ describe("SettingsPanel SYSTEM tab title/description 输入框", () => {
       "SYSTEM.md",
       "---\ntitle: 测试助手\ndescription: 写作助手\nname: std\nskills: []\nlayout:\n  left: [history]\n  defaultLeft: history\n---\n\n新正文",
     );
+  });
+
+  it("编辑 title 保存后触发 refreshAgentRegistry（侧边栏显示名刷新）", async () => {
+    renderSystemTab();
+
+    fireEvent.change(screen.getByLabelText("标题"), {
+      target: { value: "测试助手" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => expect(refreshMock).toHaveBeenCalledTimes(1));
   });
 
   it("取消重置：title/正文恢复 frontmatter 初值", () => {

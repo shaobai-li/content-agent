@@ -23,6 +23,7 @@ import { cn } from "@/shared/lib/cn";
 import { Switch } from "@/shared/ui/switch";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
+import { refreshAgentRegistry } from "@/entities/agent/agent.registry";
 import { usePrompts, useSkills } from "./useSettingsApi";
 import { parseSystemPrompt, buildSystemPrompt } from "./parseSystemPrompt";
 import { McpServersPanel } from "./McpServersPanel";
@@ -202,6 +203,10 @@ export function SettingsPanel({ agentId }: SettingsPanelProps) {
     try {
       for (const filename of modified) {
         await savePrompt(filename, filesToSave[filename]);
+      }
+      // title/description/正文都属于 SYSTEM.md：保存后刷新注册表，让侧边栏显示名即时更新
+      if (modified.includes("SYSTEM.md")) {
+        void refreshAgentRegistry();
       }
       setDirtyText({});
       setTitleInput(null);
