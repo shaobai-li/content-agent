@@ -19,8 +19,8 @@ async fn list_agents(Extension(ctx): Extension<UserContext>) -> Json<Value> {
     // 系统 agent：有用户上下文时合并用户 workspace SYSTEM.md（与 Python list_agents 一致）
     if ctx.user_id.is_some() {
         for base in registry::list_agents().iter() {
-            match crate::core::config::get_agent_user_config(&base.name) {
-                Some(merged) => agents.push(crate::agent::registry::AgentMeta {
+            if let Some(merged) = crate::core::config::get_agent_user_config(&base.name) {
+                agents.push(crate::agent::registry::AgentMeta {
                     name: base.name.clone(),
                     title: merged.title.clone().unwrap_or_else(|| base.title.clone()),
                     description: merged
@@ -36,8 +36,11 @@ async fn list_agents(Extension(ctx): Extension<UserContext>) -> Json<Value> {
                         .as_ref()
                         .and_then(|l| serde_json::to_value(l).ok())
                         .or_else(|| base.layout.clone()),
-                }),
-                None => agents.push(base.clone()),
+                });
+            } else {
+                // 理论不可达：registry 与 get_agent_user_config 的 base 来自同一 config 快照，
+                // 防御性保留兜底，避免意外丢 agent
+                agents.push(base.clone());
             }
         }
     } else {
