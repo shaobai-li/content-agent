@@ -52,3 +52,21 @@ export function getNodePath(root: FileNode, id: string): FileNode[] {
   walk(root);
   return path;
 }
+
+/** 按文件名过滤目录树（大小写不敏感、模糊匹配）。保留命中节点及其祖先链；文件夹名命中时保留其整棵子树。 */
+export function filterTree(root: FileNode, keyword: string): FileNode[] {
+  const kw = keyword.trim().toLowerCase();
+  if (!kw) return [root];
+  const match = (node: FileNode) => node.name.toLowerCase().includes(kw);
+  const filter = (node: FileNode): FileNode | null => {
+    if (node.type === "file") return match(node) ? node : null;
+    if (match(node)) return node; // 文件夹名命中 → 保留整棵子树
+    const children = (node.children ?? [])
+      .map(filter)
+      .filter((c): c is FileNode => c !== null);
+    if (children.length === 0) return null;
+    return { ...node, children };
+  };
+  const top = filter(root);
+  return top ? [top] : [];
+}

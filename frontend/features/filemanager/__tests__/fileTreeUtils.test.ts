@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MOCK_TREE } from "../mockData";
 import {
+  filterTree,
   findNode,
   flattenNodes,
   formatDate,
@@ -46,5 +47,28 @@ describe("fileTreeUtils", () => {
 
   it("formatDate 输出本地日期", () => {
     expect(formatDate("2026-08-12T09:30:00")).toMatch(/^2026-08-12 /);
+  });
+
+  it("filterTree 空关键字返回原树", () => {
+    expect(filterTree(MOCK_TREE, "")).toEqual([MOCK_TREE]);
+    expect(filterTree(MOCK_TREE, "   ")).toEqual([MOCK_TREE]);
+  });
+
+  it("filterTree 按文件名过滤并保留祖先链", () => {
+    const [root] = filterTree(MOCK_TREE, "需求说明");
+    const docs = root.children?.find((c) => c.id === "docs");
+    expect(docs?.children?.map((c) => c.id)).toEqual(["docs-req"]);
+    // 不命中的兄弟分支被剔除
+    expect(root.children?.length).toBe(1);
+  });
+
+  it("filterTree 文件夹名命中保留整棵子树", () => {
+    const [root] = filterTree(MOCK_TREE, "代码");
+    const code = root.children?.find((c) => c.id === "code");
+    expect(code?.children?.length).toBe(3);
+  });
+
+  it("filterTree 无命中返回空数组", () => {
+    expect(filterTree(MOCK_TREE, "不存在的文件")).toEqual([]);
   });
 });
