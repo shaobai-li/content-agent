@@ -251,6 +251,8 @@
     "folder": "文件夹",
     "items": "项",
     "file": "文件",
-    "noPreview": "无预览内容"
+    "noPreview": "无预览内容",
+    "edit": "编辑",
+    "download": "下载"
   }
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Download, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FileNode } from "./types";
 import { formatDate, formatFileSize, getExtension } from "./fileTreeUtils";
@@ -36,6 +37,22 @@ export function FilePreview({ node }: FilePreviewProps) {
               : `${getExtension(node.name).toUpperCase() || t("filemanager.file")} · ${formatFileSize(node.size ?? 0)} · ${formatDate(node.modifiedAt ?? "")}`}
           </p>
         </div>
+        <button
+          type="button"
+          aria-label={t("filemanager.edit")}
+          title={t("filemanager.edit")}
+          className="shrink-0 p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+        >
+          <Pencil size={18} />
+        </button>
+        <button
+          type="button"
+          aria-label={t("filemanager.download")}
+          title={t("filemanager.download")}
+          className="shrink-0 p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+        >
+          <Download size={18} />
+        </button>
       </div>
       {/* 分割线 */}
       <div className="h-px shrink-0 bg-border" />
