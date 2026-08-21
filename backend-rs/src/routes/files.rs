@@ -1,16 +1,28 @@
+use std::collections::HashMap;
+
 use axum::{
-    extract::{Multipart, Path},
+    extract::{Multipart, Path, Query},
+    http::StatusCode,
     Json,
 };
 use serde_json::Value;
 
-use crate::service::files;
+use crate::service::{file_tree, files};
 
 pub fn router() -> axum::Router {
-    axum::Router::new().route(
-        "/api/agents/:agent_id/attachments/cache",
-        axum::routing::post(upload_attachment),
-    )
+    axum::Router::new()
+        .route(
+            "/api/agents/:agent_id/attachments/cache",
+            axum::routing::post(upload_attachment),
+        )
+        .route(
+            "/api/agents/:agent_id/files/tree",
+            axum::routing::get(get_workspace_tree),
+        )
+        .route(
+            "/api/agents/:agent_id/files/content",
+            axum::routing::get(get_workspace_file_content),
+        )
 }
 
 async fn upload_attachment(
@@ -34,4 +46,22 @@ async fn upload_attachment(
     }
 
     Json(serde_json::json!({"cached_path": cached_path}))
+}
+
+async fn get_workspace_tree(Path(agent_id): Path<String>) -> Json<Value> {
+    Json(serde_json::json!({ "tree": file_tree::build_workspace_tree(&agent_id) }))
+}
+
+async fn get_workspace_file_content(
+    Path(agent_id): Path<String>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let path = params.get("path").cloned().unwrap_or_default();
+    match file_tree::read_workspace_file(&agent_id, &path) {
+        Ok(content) => Ok(Json(serde_json::json!({ "path": path, "content": content }))),
+        Err((status, detail)) => Err((
+            StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(serde_json::json!({ "detail": detail })),
+        )),
+    }
 }
