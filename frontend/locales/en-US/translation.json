@@ -247,8 +247,9 @@
   "filemanager": {
     "newFile": "New File",
     "newFolder": "New Folder",
-    "refresh": "Refresh",
     "selectHint": "Select a file or folder",
+    "search": "Search files",
+    "searchEmpty": "No matching files",
     "folder": "Folder",
     "items": "items",
     "file": "File",

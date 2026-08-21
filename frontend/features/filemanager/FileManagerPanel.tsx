@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { FilePlus, FolderPlus, Search } from "lucide-react";
 import type { AgentId } from "@/entities/agent/model";
 import type { FileNode } from "./types";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
 import { MOCK_TREE } from "./mockData";
 import { findNode } from "./fileTreeUtils";
 import { FileTree } from "./FileTree";
 import { FilePreview } from "./FilePreview";
+import { useTranslation } from "react-i18next";
 
 interface FileManagerPanelProps {
   agentId: AgentId;
@@ -63,6 +67,9 @@ function getInitialExpanded(): Set<string> {
 }
 
 export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
+  const { t } = useTranslation();
+  const [keyword, setKeyword] = useState("");
+
   // 一次性读取持久化状态，避免同一 localStorage key 读两次
   const [initialState] = useState(() => {
     const saved = loadState(agentId);
@@ -97,19 +104,52 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
   }, [agentId, expandedIds, selectedId]);
 
   return (
-    <div className="flex h-full min-h-0 gap-0">
-      <aside className="w-64 shrink-0 overflow-y-auto border-r border-border p-2">
-        <FileTree
-          nodes={[MOCK_TREE]}
-          expandedIds={expandedIds}
-          onToggleFolder={handleToggleFolder}
-          selectedId={selectedId}
-          onSelect={(node) => setSelectedId(node.id)}
-        />
-      </aside>
-      <section className="min-w-0 flex-1 overflow-auto p-4">
+    <div className="flex h-full min-h-0 gap-4">
+      {/* 左：目录树矩形 */}
+      <div className="flex w-64 shrink-0 flex-col rounded-lg border bg-white shadow-sm">
+        <div className="flex items-center gap-2 p-3">
+          <div className="flex min-w-0 flex-1 items-center rounded-md bg-muted px-3">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <Input
+              placeholder={t("filemanager.search")}
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className="h-8 w-full border-none bg-transparent text-xs placeholder:text-muted-foreground shadow-none focus-visible:ring-0"
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("filemanager.newFolder")}
+            title={t("filemanager.newFolder")}
+          >
+            <FolderPlus className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t("filemanager.newFile")}
+            title={t("filemanager.newFile")}
+          >
+            <FilePlus className="size-4" />
+          </Button>
+        </div>
+        <div className="h-px shrink-0 bg-border" />
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          <FileTree
+            nodes={[MOCK_TREE]}
+            expandedIds={expandedIds}
+            onToggleFolder={handleToggleFolder}
+            selectedId={selectedId}
+            onSelect={(node) => setSelectedId(node.id)}
+          />
+        </div>
+      </div>
+
+      {/* 右：文件视图矩形 */}
+      <div className="flex min-w-0 flex-1 flex-col rounded-lg border bg-white shadow-sm">
         <FilePreview node={selectedNode} />
-      </section>
+      </div>
     </div>
   );
 }
