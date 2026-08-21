@@ -63,3 +63,11 @@ SkillId:
   schema:
     type: string
   description: Skill 标识符
+
+FilePath:
+  name: path
+  in: query
+  required: true
+  schema:
+    type: string
+  description: workspace 内相对路径
