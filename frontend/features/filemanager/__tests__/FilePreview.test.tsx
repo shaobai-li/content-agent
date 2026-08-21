@@ -23,25 +23,25 @@ vi.mock("react-i18next", () => {
 
 describe("FilePreview", () => {
   it("未选中时显示选择提示", () => {
-    render(<FilePreview node={null} />);
+    render(<FilePreview node={null} agentId="std" />);
     expect(screen.getByText(zhCN.filemanager.selectHint)).toBeTruthy();
   });
 
   it("文本文件渲染纯文本内容", () => {
     const node = findNode(MOCK_TREE, "docs-req")!;
-    render(<FilePreview node={node} />);
+    render(<FilePreview node={node} agentId="std" />);
     expect(screen.getAllByText(/需求说明/).length).toBeGreaterThan(0);
   });
 
   it("文件夹显示子项数量", () => {
     const node = findNode(MOCK_TREE, "docs")!;
-    render(<FilePreview node={node} />);
+    render(<FilePreview node={node} agentId="std" />);
     expect(screen.getByText(/3 项/)).toBeTruthy();
   });
 
   it("无内容文件显示无预览空态", () => {
     const node = findNode(MOCK_TREE, "assets-logo")!;
-    render(<FilePreview node={node} />);
+    render(<FilePreview node={node} agentId="std" />);
     expect(screen.getByText(zhCN.filemanager.noPreview)).toBeTruthy();
   });
 });

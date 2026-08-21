@@ -9,6 +9,7 @@ import { MOCK_TREE } from "./mockData";
 import { filterTree, findNode } from "./fileTreeUtils";
 import { FileTree } from "./FileTree";
 import { FilePreview } from "./FilePreview";
+import { fetchFileTree } from "@/shared/api/files";
 import { useTranslation } from "react-i18next";
 
 interface FileManagerPanelProps {
@@ -16,7 +17,7 @@ interface FileManagerPanelProps {
 }
 
 /** 持久化状态结构版本号：mock 数据结构或状态字段变化时递增，旧版本数据自动失效 */
-const FILE_MANAGER_STATE_VERSION = 1;
+const FILE_MANAGER_STATE_VERSION = 2;
 
 interface FileManagerState {
   version: number;
@@ -54,14 +55,14 @@ function saveState(agentId: string, state: FileManagerState): void {
   }
 }
 
-/** 初始展开所有文件夹，便于演示完整文件树 */
-function getInitialExpanded(): Set<string> {
+/** 展开指定树的所有文件夹 */
+function getInitialExpanded(root: FileNode): Set<string> {
   const set = new Set<string>();
   const walk = (node: FileNode) => {
     if (node.type === "folder") set.add(node.id);
     for (const child of node.children ?? []) walk(child);
   };
-  walk(MOCK_TREE);
+  walk(root);
   return set;
 }
 
@@ -73,21 +74,45 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
   const [initialState] = useState(() => {
     const saved = loadState(agentId);
     return {
-      expandedIds: saved ? new Set(saved.expandedIds) : getInitialExpanded(),
+      expandedIds: saved ? new Set(saved.expandedIds) : getInitialExpanded(MOCK_TREE),
       selectedId: saved?.selectedId ?? null,
+      hadSaved: saved !== null,
     };
   });
   const [expandedIds, setExpandedIds] = useState<Set<string>>(initialState.expandedIds);
   const [selectedId, setSelectedId] = useState<string | null>(initialState.selectedId);
+
+  // 后端 workspace 树（加载失败回退 mock）
+  const [tree, setTree] = useState<FileNode | null>(null);
+  const root = tree ?? MOCK_TREE;
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchFileTree(agentId)
+      .then((t) => {
+        if (cancelled) return;
+        setTree(t);
+        // 首次加载（无持久化状态）：默认展开真实树全部文件夹
+        if (!initialState.hadSaved) setExpandedIds(getInitialExpanded(t));
+      })
+      .catch(() => {
+        if (!cancelled) setTree(MOCK_TREE);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentId]);
+
   const selectedNode = useMemo(
-    () => (selectedId ? findNode(MOCK_TREE, selectedId) : null),
-    [selectedId],
+    () => (selectedId ? findNode(root, selectedId) : null),
+    [selectedId, root],
   );
 
   const trimmed = keyword.trim();
-  const filteredNodes = useMemo(() => filterTree(MOCK_TREE, trimmed), [trimmed]);
+  const filteredNodes = useMemo(() => filterTree(root, trimmed), [trimmed, root]);
   // 搜索时强制展开全部文件夹，保证命中节点可见
-  const allExpanded = useMemo(() => getInitialExpanded(), []);
+  const allExpanded = useMemo(() => getInitialExpanded(root), [root]);
   const effectiveExpanded = trimmed ? allExpanded : expandedIds;
 
   const handleToggleFolder = (id: string) => {
@@ -162,7 +187,7 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
 
       {/* 右：文件视图矩形 */}
       <div className="flex min-w-0 flex-1 flex-col rounded-lg border bg-white shadow-sm">
-        <FilePreview node={selectedNode} />
+        <FilePreview node={selectedNode} agentId={agentId} />
       </div>
     </div>
   );

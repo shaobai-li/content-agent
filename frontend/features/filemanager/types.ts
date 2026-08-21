@@ -12,4 +12,6 @@ export interface FileNode {
   modifiedAt?: string;
   /** 仅 file：纯文本预览内容 */
   content?: string;
+  /** 后端真实文件的相对路径（用于内容读取） */
+  path?: string;
 }
