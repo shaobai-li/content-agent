@@ -117,6 +117,7 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
           <div className="flex min-w-0 flex-1 items-center rounded-md bg-muted px-3">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <Input
+              aria-label={t("filemanager.search")}
               placeholder={t("filemanager.search")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
