@@ -293,6 +293,20 @@ async def delete_knowledge_base_endpoint(agent_id: str, kb_id: str):
     return delete_knowledge_base(agent_id, kb_id)
 
 
+@router.get("/files/tree")
+async def get_workspace_tree(agent_id: str):
+    from app.service.file_tree_service import build_workspace_tree
+
+    return {"tree": build_workspace_tree(agent_id)}
+
+
+@router.get("/files/content")
+async def get_workspace_file_content(agent_id: str, path: str):
+    from app.service.file_tree_service import read_workspace_file
+
+    return {"path": path, "content": read_workspace_file(agent_id, path)}
+
+
 @router.post("/attachments/cache")
 async def upload_attachment_to_agent_cache(agent_id: str, file: UploadFile = File(...)):
     """将单个文件持久化到该 Agent 的 ``workspace/local_data/cache/``，保留原始文件名。"""

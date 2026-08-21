@@ -160,3 +160,25 @@ PromptFiles:
       type: object
       additionalProperties:
         type: string
+
+FileNode:
+  type: object
+  required: [id, name, type, path]
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    type:
+      type: string
+      enum: [folder, file]
+    path:
+      type: string
+    size:
+      type: integer
+    modifiedAt:
+      type: string
+    children:
+      type: array
+      items:
+        $ref: "#/FileNode"

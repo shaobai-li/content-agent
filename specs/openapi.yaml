@@ -42,6 +42,10 @@ paths:
   # ── Files ─────────────────────────────────────────────────────
   /api/agents/{agent_id}/attachments/cache:
     $ref: "paths/files.yaml#/paths/~1api~1agents~1{agent_id}~1attachments~1cache"
+  /api/agents/{agent_id}/files/tree:
+    $ref: "paths/files.yaml#/paths/~1api~1agents~1{agent_id}~1files~1tree"
+  /api/agents/{agent_id}/files/content:
+    $ref: "paths/files.yaml#/paths/~1api~1agents~1{agent_id}~1files~1content"
 
   # ── Chat ──────────────────────────────────────────────────────
   /api/agents/{agent_id}/chat/stream:
