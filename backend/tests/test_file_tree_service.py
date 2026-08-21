@@ -1,0 +1,59 @@
+import pytest
+
+from app.service.file_tree_service import build_workspace_tree, read_workspace_file
+
+
+@pytest.fixture
+def ws(tmp_path, monkeypatch):
+    """构造临时 workspace 并 monkeypatch get_agent_workspace_dir。"""
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "README.md").write_text("# hello", encoding="utf-8")
+    (tmp_path / "SYSTEM.md").write_text("system", encoding="utf-8")
+    (tmp_path / ".local").mkdir()
+    (tmp_path / ".local" / "sessions.json").write_text("[]", encoding="utf-8")
+    monkeypatch.setattr(
+        "app.service.file_tree_service.get_agent_workspace_dir",
+        lambda _: tmp_path,
+    )
+    return tmp_path
+
+
+def test_build_workspace_tree(ws):
+    tree = build_workspace_tree("std")
+    assert tree["id"] == "root"
+    assert tree["type"] == "folder"
+    assert tree["path"] == ""
+
+    names = {c["name"] for c in tree["children"]}
+    assert {"docs", "SYSTEM.md", ".local"} <= names
+
+    docs = next(c for c in tree["children"] if c["name"] == "docs")
+    assert docs["type"] == "folder"
+    assert docs["children"][0]["name"] == "README.md"
+    assert docs["children"][0]["type"] == "file"
+    assert docs["children"][0]["path"] == "docs/README.md"
+    assert "size" in docs["children"][0]
+    assert "modifiedAt" in docs["children"][0]
+
+
+def test_read_workspace_file(ws):
+    assert read_workspace_file("std", "docs/README.md") == "# hello"
+
+
+def test_read_workspace_file_outside(ws):
+    with pytest.raises(Exception) as exc:
+        read_workspace_file("std", "../secret.txt")
+    assert exc.value.status_code == 400
+
+
+def test_read_workspace_file_missing(ws):
+    with pytest.raises(Exception) as exc:
+        read_workspace_file("std", "nope.md")
+    assert exc.value.status_code == 404
+
+
+def test_read_workspace_file_too_large(ws):
+    (ws / "big.bin").write_bytes(b"x" * (1_000_001))
+    with pytest.raises(Exception) as exc:
+        read_workspace_file("std", "big.bin")
+    assert exc.value.status_code == 413
