@@ -60,7 +60,7 @@ export function filterTree(root: FileNode, keyword: string): FileNode[] {
   const match = (node: FileNode) => node.name.toLowerCase().includes(kw);
   const filter = (node: FileNode): FileNode | null => {
     if (node.type === "file") return match(node) ? node : null;
-    if (match(node)) return node; // 文件夹名命中 → 保留整棵子树
+    if (match(node)) return { ...node }; // 文件夹名命中 → 保留整棵子树（浅克隆，结果树不与源节点共享）
     const children = (node.children ?? [])
       .map(filter)
       .filter((c): c is FileNode => c !== null);
