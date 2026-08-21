@@ -253,6 +253,8 @@
     "folder": "Folder",
     "items": "items",
     "file": "File",
-    "noPreview": "No preview"
+    "noPreview": "No preview",
+    "edit": "Edit",
+    "download": "Download"
   }
 }
