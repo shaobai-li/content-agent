@@ -7,7 +7,7 @@ import type { FileNode } from "./types";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { MOCK_TREE } from "./mockData";
-import { findNode } from "./fileTreeUtils";
+import { filterTree, findNode } from "./fileTreeUtils";
 import { FileTree } from "./FileTree";
 import { FilePreview } from "./FilePreview";
 import { useTranslation } from "react-i18next";
@@ -85,6 +85,12 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
     [selectedId],
   );
 
+  const trimmed = keyword.trim();
+  const filteredNodes = useMemo(() => filterTree(MOCK_TREE, trimmed), [trimmed]);
+  // 搜索时强制展开全部文件夹，保证命中节点可见
+  const allExpanded = useMemo(() => getInitialExpanded(), []);
+  const effectiveExpanded = trimmed ? allExpanded : expandedIds;
+
   const handleToggleFolder = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -136,13 +142,19 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
         </div>
         <div className="h-px shrink-0 bg-border" />
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          <FileTree
-            nodes={[MOCK_TREE]}
-            expandedIds={expandedIds}
-            onToggleFolder={handleToggleFolder}
-            selectedId={selectedId}
-            onSelect={(node) => setSelectedId(node.id)}
-          />
+          {filteredNodes.length === 0 ? (
+            <div className="flex h-full items-center justify-center p-4 text-xs text-muted-foreground">
+              {t("filemanager.searchEmpty")}
+            </div>
+          ) : (
+            <FileTree
+              nodes={filteredNodes}
+              expandedIds={effectiveExpanded}
+              onToggleFolder={handleToggleFolder}
+              selectedId={selectedId}
+              onSelect={(node) => setSelectedId(node.id)}
+            />
+          )}
         </div>
       </div>
 
