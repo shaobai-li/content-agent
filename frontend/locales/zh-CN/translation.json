@@ -245,8 +245,9 @@
   "filemanager": {
     "newFile": "新建文件",
     "newFolder": "新建文件夹",
-    "refresh": "刷新",
     "selectHint": "请选择文件或文件夹",
+    "search": "搜索文件",
+    "searchEmpty": "无匹配文件",
     "folder": "文件夹",
     "items": "项",
     "file": "文件",
