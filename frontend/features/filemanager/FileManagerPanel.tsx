@@ -92,6 +92,8 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
   const effectiveExpanded = trimmed ? allExpanded : expandedIds;
 
   const handleToggleFolder = (id: string) => {
+    // 搜索模式下保持全展开，忽略折叠点击，避免死点击误改持久化状态
+    if (trimmed) return;
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
