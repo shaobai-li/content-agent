@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { FilePlus, FolderPlus, Search } from "lucide-react";
 import type { AgentId } from "@/entities/agent/model";
 import type { FileNode } from "./types";
-import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { MOCK_TREE } from "./mockData";
 import { filterTree, findNode } from "./fileTreeUtils";
@@ -115,7 +114,7 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
     <div className="flex h-full min-h-0 gap-4">
       {/* 左：目录树矩形 */}
       <div className="flex w-64 shrink-0 flex-col rounded-lg border bg-white shadow-sm">
-        <div className="flex items-center gap-2 p-3">
+        <div className="flex h-14 shrink-0 items-center gap-1 px-3">
           <div className="flex min-w-0 flex-1 items-center rounded-md bg-muted px-3">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <Input
@@ -126,22 +125,22 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
               className="h-8 w-full border-none bg-transparent text-xs placeholder:text-muted-foreground shadow-none focus-visible:ring-0"
             />
           </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
+          <button
+            type="button"
             aria-label={t("filemanager.newFolder")}
             title={t("filemanager.newFolder")}
+            className="shrink-0 p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
           >
-            <FolderPlus className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
+            <FolderPlus size={18} />
+          </button>
+          <button
+            type="button"
             aria-label={t("filemanager.newFile")}
             title={t("filemanager.newFile")}
+            className="shrink-0 p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
           >
-            <FilePlus className="size-4" />
-          </Button>
+            <FilePlus size={18} />
+          </button>
         </div>
         <div className="h-px shrink-0 bg-border" />
         <div className="min-h-0 flex-1 overflow-y-auto p-2">

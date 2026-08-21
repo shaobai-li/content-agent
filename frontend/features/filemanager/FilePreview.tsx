@@ -25,18 +25,16 @@ export function FilePreview({ node }: FilePreviewProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* 标题区：图标 + 名称 + 元信息 */}
-      <div className="p-4">
-        <div className="flex items-center gap-3">
-          <Icon className="size-8 shrink-0 text-muted-foreground" />
-          <div className="min-w-0">
-            <h3 className="truncate text-base font-semibold text-foreground">{node.name}</h3>
-            <p className="text-xs text-muted-foreground">
-              {isFolder
-                ? `${t("filemanager.folder")} · ${node.children?.length ?? 0} ${t("filemanager.items")}`
-                : `${getExtension(node.name).toUpperCase() || t("filemanager.file")} · ${formatFileSize(node.size ?? 0)} · ${formatDate(node.modifiedAt ?? "")}`}
-            </p>
-          </div>
+      {/* 标题区：图标 + 名称/元信息（与左标题区同为 h-14） */}
+      <div className="flex h-14 shrink-0 items-center gap-2 px-3">
+        <Icon className="size-6 shrink-0 text-muted-foreground" />
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-semibold text-foreground">{node.name}</h3>
+          <p className="truncate text-xs text-muted-foreground">
+            {isFolder
+              ? `${t("filemanager.folder")} · ${node.children?.length ?? 0} ${t("filemanager.items")}`
+              : `${getExtension(node.name).toUpperCase() || t("filemanager.file")} · ${formatFileSize(node.size ?? 0)} · ${formatDate(node.modifiedAt ?? "")}`}
+          </p>
         </div>
       </div>
       {/* 分割线 */}
