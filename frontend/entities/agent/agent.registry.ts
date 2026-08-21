@@ -41,6 +41,7 @@ export async function loadAgents(): Promise<void> {
 
 /** 重新拉取 agent 列表并通知侧边栏刷新（设置页保存 title 等配置后调用）。 */
 export async function refreshAgentRegistry(): Promise<void> {
-  await loadAgents();
+  // best-effort：拉取失败时保留旧注册表（loadAgents 失败不会清空已有数据），不向上抛出
+  await loadAgents().catch(() => {});
   window.dispatchEvent(new CustomEvent("agent-registry-refresh"));
 }
