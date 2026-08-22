@@ -22,7 +22,7 @@ use std::collections::HashMap;
 fn rust_base_url() -> String {
     std::env::var("CONTRACT_TEST_BASE_URL").unwrap_or_else(|_| "http://localhost:8001".to_string())
 }
-const SPEC_PATH: &str = "../../specs/openapi.yaml";
+const SPEC_PATH: &str = "../specs/openapi.yaml";
 
 /// 从 YAML 文件加载 OpenAPI 规范。
 fn load_openapi_spec() -> Value {
@@ -272,6 +272,40 @@ async fn test_get_messages() {
 }
 
 #[tokio::test]
+async fn test_get_workspace_tree() {
+    // 直测（不依赖 spec $ref 解析的 harness，见 tasks/issues/2026-08-21_contract-tests-SPEC_PATH解析不到.md）
+    let url = format!("{}/api/agents/std/files/tree", rust_base_url());
+    let resp = reqwest::get(&url).await.expect("GET files/tree 请求失败");
+    assert_eq!(
+        resp.status(),
+        200,
+        "GET files/tree 应返回 200，实际 {}",
+        resp.status()
+    );
+    let body: serde_json::Value = resp.json().await.expect("响应体应为有效 JSON");
+    assert_eq!(body["tree"]["id"], "root", "树根 id 应为 root");
+    assert_eq!(body["tree"]["type"], "folder");
+}
+
+#[tokio::test]
+async fn test_get_workspace_file_content() {
+    let url = format!("{}/api/agents/std/files/content?path=SYSTEM.md", rust_base_url());
+    let resp = reqwest::get(&url).await.expect("GET files/content 请求失败");
+    assert_eq!(
+        resp.status(),
+        200,
+        "GET files/content 应返回 200，实际 {}",
+        resp.status()
+    );
+    let body: serde_json::Value = resp.json().await.expect("响应体应为有效 JSON");
+    assert!(
+        body.get("content").is_some_and(|c| c.is_string()),
+        "响应应含 content 字段"
+    );
+    assert_eq!(body["path"], "SYSTEM.md");
+}
+
+#[tokio::test]
 async fn test_get_knowledge_bases() {
     let spec_path = "/api/agents/{agent_id}/knowledge-bases";
     let url_path = resolve_path(spec_path, &HashMap::from([("agent_id", "std")]));
@@ -398,6 +432,8 @@ const COVERED_ENDPOINTS: &[(&str, &str)] = &[
     ("put", "/api/agents/{agent_id}/res/{res_name}/{node_id}"),
     ("post", "/api/agents/{agent_id}/attachments/cache"),
     ("post", "/api/agents/{agent_id}/chat/stream"),
+    ("get", "/api/agents/{agent_id}/files/tree"),
+    ("get", "/api/agents/{agent_id}/files/content"),
 ];
 
 #[tokio::test]
