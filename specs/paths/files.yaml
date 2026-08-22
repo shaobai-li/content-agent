@@ -35,6 +35,8 @@ paths:
 
   /api/agents/{agent_id}/files/tree:
     get:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/files/tree
       summary: 获取 Agent workspace 目录树
       operationId: getWorkspaceTree
       tags: [files]
@@ -54,6 +56,8 @@ paths:
 
   /api/agents/{agent_id}/files/content:
     get:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/files/content
       summary: 读取 Agent workspace 内文件文本内容
       operationId: getWorkspaceFileContent
       tags: [files]

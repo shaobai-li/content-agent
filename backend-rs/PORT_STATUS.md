@@ -61,7 +61,7 @@
 | `service/agent_chat_service.py` | (内联在 routes/chat.rs + agent/standard.rs) | 🔄 In Progress | P1 | Rust 将逻辑内联在路由和 agent 中，功能基本等价；mentions 处理已集成（context_utils） |
 | `service/skill_service.py` | ❌ | ❌ Not Started | P2 | Skill 加载逻辑（调用 skill_loader + disabled_skills），当前 InvokeSkillTool 在 Rust 侧硬编码了 skill 读取路径 |
 | `service/chat_service.py` | ❌ | ❌ Not Started | P2 | 仅有 `build_chat_response` 辅助函数，非阻塞 |
-| `service/file_tree_service.py` | `service/file_tree.rs` | ❌ Not Started | P2 | workspace 目录树/文件读取，由 Plan 2 跟进 |
+| `service/file_tree_service.py` | `service/file_tree.rs` | ✅ Ported | P2 | 等价实现：递归目录树 + 文件读取（含路径越界防护） |
 
 ## 4. Provider 层
 
