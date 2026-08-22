@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilePlus, FolderPlus, Search } from "lucide-react";
 import type { AgentId } from "@/entities/agent/model";
 import type { FileNode } from "./types";
@@ -135,6 +135,11 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
     });
   }, [agentId, expandedIds, selectedId]);
 
+  // 文本保存后重拉树，刷新文件 modifiedAt
+  const handleContentSaved = useCallback(() => {
+    fetchFileTree(agentId).then(setTree).catch(() => {});
+  }, [agentId]);
+
   return (
     <div className="flex h-full min-h-0 gap-4">
       {/* 左：目录树矩形 */}
@@ -187,7 +192,7 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
 
       {/* 右：文件视图矩形 */}
       <div className="flex min-w-0 flex-1 flex-col rounded-lg border bg-white shadow-sm">
-        <FilePreview node={selectedNode} agentId={agentId} />
+        <FilePreview node={selectedNode} agentId={agentId} onContentSaved={handleContentSaved} />
       </div>
     </div>
   );

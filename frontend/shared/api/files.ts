@@ -25,3 +25,7 @@ export async function fetchFileContent(agentId: string, path: string): Promise<s
   );
   return res.content;
 }
+
+export async function updateFileContent(agentId: string, path: string, content: string): Promise<void> {
+  await http.put(`/api/agents/${agentId}/files/content?path=${encodeURIComponent(path)}`, { content });
+}

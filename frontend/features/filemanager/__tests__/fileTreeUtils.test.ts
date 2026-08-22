@@ -8,6 +8,7 @@ import {
   formatFileSize,
   getExtension,
   getNodePath,
+  isTextFile,
 } from "../fileTreeUtils";
 
 describe("fileTreeUtils", () => {
@@ -70,5 +71,18 @@ describe("fileTreeUtils", () => {
 
   it("filterTree 无命中返回空数组", () => {
     expect(filterTree(MOCK_TREE, "不存在的文件")).toEqual([]);
+  });
+
+  it("isTextFile 文本扩展名为 true", () => {
+    expect(isTextFile("README.md")).toBe(true);
+    expect(isTextFile("data.txt")).toBe(true);
+    expect(isTextFile("config.json")).toBe(true);
+    expect(isTextFile("main.py")).toBe(true);
+  });
+
+  it("isTextFile 非文本/无扩展名为 false", () => {
+    expect(isTextFile("logo.png")).toBe(false);
+    expect(isTextFile("banner.jpg")).toBe(false);
+    expect(isTextFile("noext")).toBe(false);
   });
 });
