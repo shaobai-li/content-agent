@@ -70,3 +70,14 @@ export function filterTree(root: FileNode, keyword: string): FileNode[] {
   const top = filter(root);
   return top ? [top] : [];
 }
+
+const TEXT_EXTENSIONS = new Set([
+  "md", "markdown", "txt", "text", "json", "yaml", "yml", "toml",
+  "py", "ts", "tsx", "js", "jsx", "rs", "go", "java", "c", "cpp", "h",
+  "sh", "bash", "ps1", "css", "scss", "html", "xml", "csv", "ini", "cfg", "log",
+]);
+
+/** 是否文本文件（可在 filemanager 内编辑） */
+export function isTextFile(name: string): boolean {
+  return TEXT_EXTENSIONS.has(getExtension(name));
+}
