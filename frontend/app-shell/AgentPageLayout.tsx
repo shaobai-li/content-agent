@@ -57,15 +57,20 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, lef
     const [resizing, setResizing] = useState(false);
 
     const handleChatResize = useCallback((width: number) => {
-        // 取整：e.clientX 为浮点，避免 localStorage 存下 717.322… 这类小数
-        const rounded = Math.round(width);
-        setChatWidth(rounded);
+        // 取整：e.clientX 为浮点，避免存下小数；持久化在拖动结束时统一做
+        setChatWidth(Math.round(width));
+    }, []);
+
+    // 拖动中只更新 state；拖动结束（或键盘调整）时统一写入 localStorage，
+    // 避免每个 pointermove 都触发一次 setItem
+    useEffect(() => {
+        if (resizing) return;
         try {
-            localStorage.setItem(CHAT_WIDTH_KEY, String(rounded));
+            localStorage.setItem(CHAT_WIDTH_KEY, String(chatWidth));
         } catch {
             // 忽略存储失败（隐私模式等）
         }
-    }, []);
+    }, [chatWidth, resizing]);
 
     // leftParam 变化时，根据 autoExpand 展开或收起左侧面板
     // 三点菜单导航 → ?left=X  → 展开三视图；取消选择 → 收起为双视图
