@@ -11,11 +11,13 @@ import { cn } from "@/shared/lib/cn";
 const CHAT_WIDTH_KEY = "omniage.chatWidth";
 /** 默认 Chat 宽度：与旧固定值 25rem 一致 */
 const DEFAULT_CHAT_WIDTH = 400;
+/** 加载上限：防止大屏/损坏的历史值在小窗口下把左侧面板挤到不可见 */
+const MAX_CHAT_WIDTH = 1200;
 
 function loadChatWidth(): number {
   try {
     const v = Number(localStorage.getItem(CHAT_WIDTH_KEY));
-    return Number.isFinite(v) && v > 0 ? v : DEFAULT_CHAT_WIDTH;
+    return Number.isFinite(v) && v > 0 ? Math.min(v, MAX_CHAT_WIDTH) : DEFAULT_CHAT_WIDTH;
   } catch {
     return DEFAULT_CHAT_WIDTH;
   }
