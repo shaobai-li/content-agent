@@ -55,9 +55,11 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, lef
     const [resizing, setResizing] = useState(false);
 
     const handleChatResize = useCallback((width: number) => {
-        setChatWidth(width);
+        // 取整：e.clientX 为浮点，避免 localStorage 存下 717.322… 这类小数
+        const rounded = Math.round(width);
+        setChatWidth(rounded);
         try {
-            localStorage.setItem(CHAT_WIDTH_KEY, String(width));
+            localStorage.setItem(CHAT_WIDTH_KEY, String(rounded));
         } catch {
             // 忽略存储失败（隐私模式等）
         }
@@ -86,8 +88,9 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, lef
             )}
             style={{
                 // minmax(0, 1fr) 避免「内容最小宽度」把轨道撑出视口，导致右侧聊天气泡被裁切
+                // 收起/展开都保持 3 列，轨道数一致才能让 grid-template-columns 过渡插值动画生效
                 gridTemplateColumns: isCollapsed
-                    ? "0fr minmax(0, 1fr)"
+                    ? "0fr 0 minmax(0, 1fr)"
                     : `minmax(0, 1fr) 0 minmax(0, ${chatWidth}px)`,
             }}
         >
@@ -117,8 +120,10 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, lef
                 />
             )}
 
-            {/* 右侧面板：grid 子项需可收缩，否则长内容会撑开列宽 */}
-            <div className="min-h-0 min-w-0 flex flex-col overflow-hidden">
+            {/* 右侧面板：grid 子项需可收缩，否则长内容会撑开列宽。
+                col-start-3：收起时 Splitter 不渲染（仅 2 个子元素），
+                显式放到第 3 列，避免自动放置落入第 2 列 0px 轨道导致 Chat 不可见 */}
+            <div className="col-start-3 min-h-0 min-w-0 flex flex-col overflow-hidden">
                 {rightBody}
             </div>
         </div>
