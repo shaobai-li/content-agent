@@ -1,6 +1,10 @@
 import pytest
 
-from app.service.file_tree_service import build_workspace_tree, read_workspace_file
+from app.service.file_tree_service import (
+    build_workspace_tree,
+    read_workspace_file,
+    write_workspace_file,
+)
 
 
 @pytest.fixture
@@ -56,4 +60,31 @@ def test_read_workspace_file_too_large(ws):
     (ws / "big.bin").write_bytes(b"x" * (1_000_001))
     with pytest.raises(Exception) as exc:
         read_workspace_file("std", "big.bin")
+    assert exc.value.status_code == 413
+
+
+def test_write_workspace_file(ws):
+    result = write_workspace_file("std", "docs/README.md", "# updated")
+    assert result["ok"] is True
+    assert result["path"] == "docs/README.md"
+    assert result["size"] > 0
+    assert "modifiedAt" in result
+    assert read_workspace_file("std", "docs/README.md") == "# updated"
+
+
+def test_write_workspace_file_outside(ws):
+    with pytest.raises(Exception) as exc:
+        write_workspace_file("std", "../secret.txt", "x")
+    assert exc.value.status_code == 400
+
+
+def test_write_workspace_file_missing(ws):
+    with pytest.raises(Exception) as exc:
+        write_workspace_file("std", "nope.md", "x")
+    assert exc.value.status_code == 404
+
+
+def test_write_workspace_file_too_large(ws):
+    with pytest.raises(Exception) as exc:
+        write_workspace_file("std", "docs/README.md", "x" * (1_000_001))
     assert exc.value.status_code == 413

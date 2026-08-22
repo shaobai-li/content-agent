@@ -65,3 +65,29 @@ def read_workspace_file(agent_id: str, rel_path: str) -> str:
         return target.read_text(encoding="utf-8", errors="replace")
     except OSError:
         raise HTTPException(status_code=500, detail="读取失败")
+
+
+def write_workspace_file(agent_id: str, rel_path: str, content: str) -> Dict[str, Any]:
+    """写入 workspace 内相对路径的文本文件内容（覆盖）。含越界防护 + 大小限制。"""
+    ws = get_agent_workspace_dir(agent_id).resolve()
+    target = (ws / rel_path).resolve()
+    try:
+        target.relative_to(ws)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="路径越界")
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail="文件不存在")
+    data = content.encode("utf-8")
+    if len(data) > 1_000_000:
+        raise HTTPException(status_code=413, detail="文件过大")
+    try:
+        target.write_bytes(data)
+    except OSError:
+        raise HTTPException(status_code=500, detail="写入失败")
+    stat = target.stat()
+    return {
+        "ok": True,
+        "path": rel_path,
+        "size": stat.st_size,
+        "modifiedAt": _iso(stat.st_mtime),
+    }
