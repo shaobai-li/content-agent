@@ -307,6 +307,13 @@ async def get_workspace_file_content(agent_id: str, path: str):
     return {"path": path, "content": read_workspace_file(agent_id, path)}
 
 
+@router.put("/files/content")
+async def update_workspace_file_content(agent_id: str, path: str, payload: dict = Body(...)):
+    from app.service.file_tree_service import write_workspace_file
+
+    return write_workspace_file(agent_id, path, payload.get("content", ""))
+
+
 @router.post("/attachments/cache")
 async def upload_attachment_to_agent_cache(agent_id: str, file: UploadFile = File(...)):
     """将单个文件持久化到该 Agent 的 ``workspace/local_data/cache/``，保留原始文件名。"""
