@@ -77,3 +77,37 @@ paths:
                     type: string
                   content:
                     type: string
+    put:
+      summary: 写入 Agent workspace 内文本文件内容（覆盖）
+      operationId: updateWorkspaceFileContent
+      tags: [files]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+        - $ref: "../components/parameters.yaml#/FilePath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+      responses:
+        "200":
+          description: 写入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, path, size, modifiedAt]
+                properties:
+                  ok:
+                    type: boolean
+                  path:
+                    type: string
+                  size:
+                    type: integer
+                  modifiedAt:
+                    type: string
