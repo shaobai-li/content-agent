@@ -21,7 +21,7 @@ pub fn router() -> axum::Router {
         )
         .route(
             "/api/agents/:agent_id/files/content",
-            axum::routing::get(get_workspace_file_content),
+            axum::routing::get(get_workspace_file_content).put(update_workspace_file_content),
         )
 }
 
@@ -59,6 +59,22 @@ async fn get_workspace_file_content(
     let path = params.get("path").cloned().unwrap_or_default();
     match file_tree::read_workspace_file(&agent_id, &path) {
         Ok(content) => Ok(Json(serde_json::json!({ "path": path, "content": content }))),
+        Err((status, detail)) => Err((
+            StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(serde_json::json!({ "detail": detail })),
+        )),
+    }
+}
+
+async fn update_workspace_file_content(
+    Path(agent_id): Path<String>,
+    Query(params): Query<HashMap<String, String>>,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let path = params.get("path").cloned().unwrap_or_default();
+    let content = payload.get("content").and_then(|c| c.as_str()).unwrap_or("");
+    match file_tree::write_workspace_file(&agent_id, &path, content) {
+        Ok(v) => Ok(Json(v)),
         Err((status, detail)) => Err((
             StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
             Json(serde_json::json!({ "detail": detail })),

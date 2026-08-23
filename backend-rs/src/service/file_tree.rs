@@ -117,6 +117,52 @@ pub fn read_workspace_file(agent_id: &str, rel_path: &str) -> Result<String, (u1
     read_workspace_file_at(&get_agent_workspace_dir(agent_id), rel_path)
 }
 
+/// 写入 workspace 内相对路径的文本文件内容（覆盖）。
+/// 越界（含 `..` / 绝对路径 / symlink 逃逸）恒 400，缺失 404，超 1MB 413。
+fn write_workspace_file_at(ws: &Path, rel_path: &str, content: &str) -> Result<Value, (u16, String)> {
+    let ws_lex = normalize_lexically(ws);
+    let target_lex = normalize_lexically(&ws.join(rel_path));
+    if !target_lex.starts_with(&ws_lex) {
+        return Err((400, "路径越界".to_string()));
+    }
+    let ws_canon = ws.canonicalize().unwrap_or_else(|_| ws.to_path_buf());
+    let target_canon = target_lex
+        .canonicalize()
+        .map_err(|_| (404, "文件不存在".to_string()))?;
+    if !target_canon.starts_with(&ws_canon) {
+        return Err((400, "路径越界".to_string()));
+    }
+    if !target_canon.is_file() {
+        return Err((404, "文件不存在".to_string()));
+    }
+    if content.len() > 1_000_000 {
+        return Err((413, "文件过大".to_string()));
+    }
+    std::fs::write(&target_canon, content.as_bytes()).map_err(|_| (500, "写入失败".to_string()))?;
+    let meta = target_canon
+        .metadata()
+        .map_err(|_| (500, "写入失败".to_string()))?;
+    let dt: chrono::DateTime<chrono::Utc> = meta
+        .modified()
+        .map_err(|_| (500, "写入失败".to_string()))?
+        .into();
+    Ok(json!({
+        "ok": true,
+        "path": rel_path,
+        "size": meta.len() as i64,
+        "modifiedAt": dt.format("%Y-%m-%dT%H:%M:%S").to_string(),
+    }))
+}
+
+/// 写入 workspace 内相对路径的文本文件内容（覆盖，含路径越界防护 + 大小限制）。
+pub fn write_workspace_file(
+    agent_id: &str,
+    rel_path: &str,
+    content: &str,
+) -> Result<Value, (u16, String)> {
+    write_workspace_file_at(&get_agent_workspace_dir(agent_id), rel_path, content)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -179,6 +225,36 @@ mod tests {
     fn read_file_too_large_returns_413() {
         let (_dir, ws) = make_ws();
         let err = read_workspace_file_at(&ws, "big.bin").unwrap_err();
+        assert_eq!(err.0, 413);
+    }
+
+    #[test]
+    fn write_file_ok() {
+        let (_dir, ws) = make_ws();
+        let result = write_workspace_file_at(&ws, "docs/README.md", "# updated").unwrap();
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["path"], "docs/README.md");
+        assert_eq!(read_workspace_file_at(&ws, "docs/README.md").unwrap(), "# updated");
+    }
+
+    #[test]
+    fn write_file_outside_returns_400() {
+        let (_dir, ws) = make_ws();
+        let err = write_workspace_file_at(&ws, "../secret.txt", "x").unwrap_err();
+        assert_eq!(err.0, 400);
+    }
+
+    #[test]
+    fn write_file_missing_returns_404() {
+        let (_dir, ws) = make_ws();
+        let err = write_workspace_file_at(&ws, "nope.md", "x").unwrap_err();
+        assert_eq!(err.0, 404);
+    }
+
+    #[test]
+    fn write_file_too_large_returns_413() {
+        let (_dir, ws) = make_ws();
+        let err = write_workspace_file_at(&ws, "docs/README.md", &"x".repeat(1_000_001)).unwrap_err();
         assert_eq!(err.0, 413);
     }
 }
