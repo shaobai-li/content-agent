@@ -318,28 +318,44 @@ async fn test_update_workspace_file_content() {
     let orig: serde_json::Value = orig_resp.json().await.expect("响应体应为有效 JSON");
     let original = orig["content"].as_str().unwrap_or("").to_string();
 
-    let new_content = "# contract-test edit marker";
-    let put_resp = client
+    // 非字符串 content → 400（与 Python 对齐，不覆盖文件）
+    let bad_resp = client
         .put(format!("{}?path=SYSTEM.md", base))
-        .json(&serde_json::json!({ "content": new_content }))
+        .json(&serde_json::json!({ "content": 123 }))
         .send()
         .await
         .expect("PUT files/content 请求失败");
     assert_eq!(
-        put_resp.status(),
-        200,
-        "PUT files/content 应返回 200，实际 {}",
-        put_resp.status()
+        bad_resp.status(),
+        400,
+        "非字符串 content 应返回 400，实际 {}",
+        bad_resp.status()
     );
-    let body: serde_json::Value = put_resp.json().await.expect("响应体应为有效 JSON");
-    assert_eq!(body["ok"], true);
 
-    // 恢复原文，避免污染 workspace
+    // 合法字符串 → 200（先保存结果，随后立即恢复原文，再断言——断言失败也不污染 workspace）
+    let put_resp = client
+        .put(format!("{}?path=SYSTEM.md", base))
+        .json(&serde_json::json!({ "content": "# contract-test edit marker" }))
+        .send()
+        .await
+        .expect("PUT files/content 请求失败");
+    let put_status = put_resp.status();
+    let put_body: serde_json::Value = put_resp.json().await.expect("响应体应为有效 JSON");
+
+    // 恢复原文（在任何断言之前）
     let _ = client
         .put(format!("{}?path=SYSTEM.md", base))
         .json(&serde_json::json!({ "content": original }))
         .send()
         .await;
+
+    assert_eq!(
+        put_status,
+        200,
+        "PUT files/content 应返回 200，实际 {}",
+        put_status
+    );
+    assert_eq!(put_body["ok"], true);
 }
 
 #[tokio::test]
