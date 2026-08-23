@@ -28,16 +28,19 @@ export function FilePreview({ node, agentId, onContentSaved }: FilePreviewProps)
   const [editText, setEditText] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // 真实文件（有 path、无内联 content）时按 path 读取内容
+  const nodePath = node?.path;
+  // 仅真实文件（有 path、无内联 content）需要按 path 读取
+  const shouldFetch = !!node && node.type === "file" && node.content === undefined && !!nodePath;
+
+  // 依赖 nodePath/shouldFetch 而非整个 node：保存后树重拉（同 path）不触发二次 fetch
   useEffect(() => {
     setContent(null);
     setStatus("idle");
     setIsEditing(false);
-    if (!node || node.type !== "file" || node.content !== undefined) return;
-    if (!node.path) return;
+    if (!shouldFetch || !nodePath) return;
     let cancelled = false;
     setStatus("loading");
-    fetchFileContent(agentId, node.path)
+    fetchFileContent(agentId, nodePath)
       .then((c) => {
         if (!cancelled) {
           setContent(c);
@@ -50,7 +53,7 @@ export function FilePreview({ node, agentId, onContentSaved }: FilePreviewProps)
     return () => {
       cancelled = true;
     };
-  }, [agentId, node]);
+  }, [agentId, nodePath, shouldFetch]);
 
   if (!node) {
     return (
