@@ -88,3 +88,40 @@ def test_write_workspace_file_too_large(ws):
     with pytest.raises(Exception) as exc:
         write_workspace_file("std", "docs/README.md", "x" * (1_000_001))
     assert exc.value.status_code == 413
+
+
+def _make_app():
+    from fastapi import FastAPI
+    from app.api.agents import router
+
+    app = FastAPI()
+    app.include_router(router)
+    return app
+
+
+def test_update_workspace_file_content_requires_string(monkeypatch):
+    """PUT 校验 content 必须为字符串：缺失/非字符串 → 400 且不调用写入。"""
+    from fastapi.testclient import TestClient
+
+    called = {"n": 0}
+
+    def fake_write(agent_id, path, content):
+        called["n"] += 1
+        return {"ok": True, "path": path, "size": 0, "modifiedAt": ""}
+
+    monkeypatch.setattr("app.service.file_tree_service.write_workspace_file", fake_write)
+
+    client = TestClient(_make_app())
+    url = "/api/agents/std/files/content?path=SYSTEM.md"
+
+    resp = client.put(url, json={})
+    assert resp.status_code == 400
+    assert called["n"] == 0
+
+    resp = client.put(url, json={"content": 123})
+    assert resp.status_code == 400
+    assert called["n"] == 0
+
+    resp = client.put(url, json={"content": "# ok"})
+    assert resp.status_code == 200
+    assert called["n"] == 1
