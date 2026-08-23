@@ -306,6 +306,43 @@ async fn test_get_workspace_file_content() {
 }
 
 #[tokio::test]
+async fn test_update_workspace_file_content() {
+    let base = format!("{}/api/agents/std/files/content", rust_base_url());
+    let client = reqwest::Client::new();
+    // 捕获原文
+    let orig_resp = client
+        .get(format!("{}?path=SYSTEM.md", base))
+        .send()
+        .await
+        .expect("GET files/content 请求失败");
+    let orig: serde_json::Value = orig_resp.json().await.expect("响应体应为有效 JSON");
+    let original = orig["content"].as_str().unwrap_or("").to_string();
+
+    let new_content = "# contract-test edit marker";
+    let put_resp = client
+        .put(format!("{}?path=SYSTEM.md", base))
+        .json(&serde_json::json!({ "content": new_content }))
+        .send()
+        .await
+        .expect("PUT files/content 请求失败");
+    assert_eq!(
+        put_resp.status(),
+        200,
+        "PUT files/content 应返回 200，实际 {}",
+        put_resp.status()
+    );
+    let body: serde_json::Value = put_resp.json().await.expect("响应体应为有效 JSON");
+    assert_eq!(body["ok"], true);
+
+    // 恢复原文，避免污染 workspace
+    let _ = client
+        .put(format!("{}?path=SYSTEM.md", base))
+        .json(&serde_json::json!({ "content": original }))
+        .send()
+        .await;
+}
+
+#[tokio::test]
 async fn test_get_knowledge_bases() {
     let spec_path = "/api/agents/{agent_id}/knowledge-bases";
     let url_path = resolve_path(spec_path, &HashMap::from([("agent_id", "std")]));
@@ -434,6 +471,7 @@ const COVERED_ENDPOINTS: &[(&str, &str)] = &[
     ("post", "/api/agents/{agent_id}/chat/stream"),
     ("get", "/api/agents/{agent_id}/files/tree"),
     ("get", "/api/agents/{agent_id}/files/content"),
+    ("put", "/api/agents/{agent_id}/files/content"),
 ];
 
 #[tokio::test]

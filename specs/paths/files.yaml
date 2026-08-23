@@ -78,6 +78,8 @@ paths:
                   content:
                     type: string
     put:
+      x-status: ported
+      x-rust-path: /api/agents/:agent_id/files/content
       summary: 写入 Agent workspace 内文本文件内容（覆盖）
       operationId: updateWorkspaceFileContent
       tags: [files]
