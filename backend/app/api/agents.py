@@ -3,7 +3,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 import yaml
-from fastapi import APIRouter, Body, Form, File, UploadFile
+from fastapi import APIRouter, Body, Form, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
@@ -311,7 +311,10 @@ async def get_workspace_file_content(agent_id: str, path: str):
 async def update_workspace_file_content(agent_id: str, path: str, payload: dict = Body(...)):
     from app.service.file_tree_service import write_workspace_file
 
-    return write_workspace_file(agent_id, path, payload.get("content", ""))
+    content = payload.get("content")
+    if not isinstance(content, str):
+        raise HTTPException(status_code=400, detail="content 必须为字符串")
+    return write_workspace_file(agent_id, path, content)
 
 
 @router.post("/attachments/cache")
