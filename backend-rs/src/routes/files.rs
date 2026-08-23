@@ -72,7 +72,13 @@ async fn update_workspace_file_content(
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let path = params.get("path").cloned().unwrap_or_default();
-    let content = payload.get("content").and_then(|c| c.as_str()).unwrap_or("");
+    let Some(content) = payload.get("content").and_then(|c| c.as_str()) else {
+        // 缺省/非字符串 content → 400（与 Python 对齐，避免把文件覆盖为空）
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "detail": "content 必须为字符串" })),
+        ));
+    };
     match file_tree::write_workspace_file(&agent_id, &path, content) {
         Ok(v) => Ok(Json(v)),
         Err((status, detail)) => Err((
