@@ -97,8 +97,8 @@ export function FilePreview({ node, agentId, onContentSaved }: FilePreviewProps)
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* 标题区：图标 + 名称/元信息（与左标题区同为 h-14） */}
-      <div className="flex h-14 shrink-0 items-center gap-2 px-3">
+      {/* 标题区：图标 + 名称/元信息（含两行文字，故比左搜索条 h-9 略高） */}
+      <div className="flex h-10 shrink-0 items-center gap-2 px-3">
         <Icon className="size-6 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold text-foreground">{node.name}</h3>

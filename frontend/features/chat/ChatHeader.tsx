@@ -26,7 +26,7 @@ export function ChatHeader() {
   };
 
   return (
-    <div className="flex items-center h-16 px-4 border">
+    <div className="flex items-center h-11 px-4 border">
       <div className="flex items-center gap-1">
         {isCollapsed && (
           <button

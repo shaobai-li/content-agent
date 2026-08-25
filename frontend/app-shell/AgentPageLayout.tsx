@@ -103,7 +103,7 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, lef
         >
             {/* 左侧面板 */}
             <div className="overflow-hidden flex flex-col min-w-0">
-                <div className="flex h-16 px-8 border bg-card shrink-0 items-center gap-2">
+                <div className="flex h-11 px-8 border bg-card shrink-0 items-center gap-2">
                     <button
                         onClick={toggleSidebar}
                         className="lg:hidden p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
