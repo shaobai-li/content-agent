@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronsLeft, ChevronsRight, Menu, MessageSquarePlus, Smartphone } from "lucide-react";
 import { useDocumentCollapse } from "@/app-shell/DocumentCollapseContext";
-import { useSidebarToggle } from "@/app-shell/SidebarContext";
+import { useSidebar } from "@/app-shell/SidebarContext";
 import { WeChatBindDialog } from "./WeChatBindDialog";
 import { useTranslation } from "react-i18next";
 
@@ -10,7 +10,7 @@ const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL || "http://localhost:8001";
 export function ChatHeader() {
   const { t } = useTranslation();
   const { isCollapsed, toggle } = useDocumentCollapse();
-  const toggleSidebar = useSidebarToggle();
+  const { sidebarOpen, toggleSidebar } = useSidebar();
   const [wechatDialogOpen, setWechatDialogOpen] = useState(false);
   const [wechatConnected, setWechatConnected] = useState(false);
 
@@ -28,10 +28,11 @@ export function ChatHeader() {
   return (
     <div className="flex items-center h-11 px-4 border">
       <div className="flex items-center gap-1">
-        {isCollapsed && (
+        {/* 模块面板收起（纯聊天视图）且侧边栏收起时显示，与模块头部汉堡互斥兜底 */}
+        {isCollapsed && !sidebarOpen && (
           <button
             onClick={toggleSidebar}
-            className="lg:hidden p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
+            className="p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
             aria-label="打开侧边栏"
           >
             <Menu className="size-5" />

@@ -3,7 +3,7 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
 import { DocumentCollapseProvider, useDocumentCollapse } from "./DocumentCollapseContext";
-import { useSidebarToggle } from "./SidebarContext";
+import { useSidebar } from "./SidebarContext";
 import { Splitter } from "@/shared/ui/splitter";
 import { cn } from "@/shared/lib/cn";
 
@@ -50,7 +50,7 @@ export function AgentPageLayout({ agentId, leftHeader, leftBody, rightBody, auto
 
 function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, leftParam }: LayoutInnerProps) {
     const { isCollapsed, setCollapsed } = useDocumentCollapse();
-    const toggleSidebar = useSidebarToggle();
+    const { sidebarOpen, toggleSidebar } = useSidebar();
     const prevLeftParam = useRef(leftParam);
     const [chatWidth, setChatWidth] = useState(loadChatWidth);
     // 拖动中临时关闭 grid 过渡动画，避免拖拽被 300ms transition 拖慢
@@ -104,13 +104,16 @@ function AgentPageLayoutInner({ leftHeader, leftBody, rightBody, autoExpand, lef
             {/* 左侧面板 */}
             <div className="overflow-hidden flex flex-col min-w-0">
                 <div className="flex h-11 px-4 border bg-card shrink-0 items-center gap-2">
-                    <button
-                        onClick={toggleSidebar}
-                        className="lg:hidden p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
-                        aria-label="打开侧边栏"
-                    >
-                        <Menu className="size-5" />
-                    </button>
+                    {/* 侧边栏收起时显示（桌面/移动通用）；模块面板收起时被 0fr 裁掉，由聊天头部汉堡兜底 */}
+                    {!sidebarOpen && (
+                        <button
+                            onClick={toggleSidebar}
+                            className="p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
+                            aria-label="打开侧边栏"
+                        >
+                            <Menu className="size-5" />
+                        </button>
+                    )}
                     {leftHeader}
                 </div>
                 <div className="flex min-h-0 flex-1 flex-col p-6 border bg-neutral-50 min-w-0">
