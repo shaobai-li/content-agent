@@ -206,7 +206,7 @@ export function Sidebar({ routes }: SidebarProps) {
           aria-label="收起侧边栏"
           title="收起侧边栏"
         >
-          <PanelLeft className="size-4" />
+          <PanelLeft className="size-5" />
         </button>
       </div>
       <CardContent className="flex-grow flex flex-col p-4 gap-0 overflow-y-auto">
