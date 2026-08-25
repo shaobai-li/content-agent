@@ -20,9 +20,4 @@ export function useSidebar() {
   return useContext(SidebarContext);
 }
 
-/** 兼容旧调用方，仅取 toggle 函数（Commit 2 切到 useSidebar 后移除） */
-export function useSidebarToggle() {
-  return useContext(SidebarContext).toggleSidebar;
-}
-
 export { SidebarContext };
