@@ -7,6 +7,7 @@ import { AuthProvider, AuthGate } from "@/entities/auth/store";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { cn } from "@/shared/lib/cn";
+import { useMediaQuery } from "@/shared/lib/useMediaQuery";
 import { SidebarContext } from "@/app-shell/SidebarContext";
 import type { RouteItem } from "@/app-shell/Sidebar";
 
@@ -16,13 +17,26 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   const isLoginPage = location.pathname === "/login";
   const [routes, setRoutes] = useState<RouteItem[]>([]);
   const [ready, setReady] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   // 桌面端首屏展开、移动端首屏收起（与当前两端首屏行为一致）
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(min-width: 1024px)").matches;
-  });
+  const [sidebarOpen, setSidebarOpen] = useState(isDesktop);
   const toggleSidebar = useCallback(() => setSidebarOpen((v) => !v), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+
+  // 跨 lg 断点时同步侧边栏状态：缩小自动收起、放大自动展开（与改动前断点行为一致）。
+  // 在渲染期间调整 state（React 官方 prev-value 模式），避免在 effect 中同步 setState。
+  const [prevIsDesktop, setPrevIsDesktop] = useState(isDesktop);
+  if (prevIsDesktop !== isDesktop) {
+    setPrevIsDesktop(isDesktop);
+    setSidebarOpen(isDesktop);
+  }
+
+  // 路由切换时仅移动端自动收起 overlay 侧边栏（桌面端收起状态不受路由影响）
+  const [prevPathname, setPrevPathname] = useState(location.pathname);
+  if (prevPathname !== location.pathname) {
+    setPrevPathname(location.pathname);
+    if (!isDesktop) setSidebarOpen(false);
+  }
 
   useEffect(() => {
     loadAgents()
@@ -62,21 +76,6 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
       }
     }
   }, [ready, location.pathname, navigate]);
-
-  // 视口跨 lg 断点时同步侧边栏状态：缩小自动收起、放大自动展开（与改动前断点行为一致）
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const handleChange = (e: MediaQueryListEvent) => setSidebarOpen(e.matches);
-    mq.addEventListener("change", handleChange);
-    return () => mq.removeEventListener("change", handleChange);
-  }, []);
-
-  // 路由切换时仅移动端自动收起 overlay 侧边栏（桌面端收起状态不受路由影响）
-  useEffect(() => {
-    if (window.matchMedia("(max-width: 1023px)").matches) {
-      setSidebarOpen(false);
-    }
-  }, [location.pathname]);
 
   if (!ready) {
     return (
