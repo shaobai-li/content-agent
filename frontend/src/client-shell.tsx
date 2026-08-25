@@ -63,6 +63,14 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
     }
   }, [ready, location.pathname, navigate]);
 
+  // 视口跨 lg 断点时同步侧边栏状态：缩小自动收起、放大自动展开（与改动前断点行为一致）
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handleChange = (e: MediaQueryListEvent) => setSidebarOpen(e.matches);
+    mq.addEventListener("change", handleChange);
+    return () => mq.removeEventListener("change", handleChange);
+  }, []);
+
   // 路由切换时仅移动端自动收起 overlay 侧边栏（桌面端收起状态不受路由影响）
   useEffect(() => {
     if (window.matchMedia("(max-width: 1023px)").matches) {
