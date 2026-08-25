@@ -144,7 +144,7 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
     <div className="flex h-full min-h-0 gap-4">
       {/* 左：目录树矩形 */}
       <div className="flex w-64 shrink-0 flex-col rounded-lg border bg-white shadow-sm">
-        <div className="flex h-14 shrink-0 items-center gap-1 px-3">
+        <div className="flex h-9 shrink-0 items-center gap-1 px-3">
           <div className="flex min-w-0 flex-1 items-center rounded-md bg-muted px-3">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <Input
