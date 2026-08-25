@@ -191,7 +191,7 @@ export function Sidebar({ routes }: SidebarProps) {
   return (
     <>
       <Card className="w-70 h-full flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
-      <div className="flex items-center shrink-0 px-3">
+      <div className="flex items-center shrink-0 h-11 px-3">
         <img
           src="/OmniAge_Logo_4K.svg"
           alt="OmniAge Logo"
