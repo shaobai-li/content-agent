@@ -5,7 +5,7 @@ import { Button } from "@/shared/ui/button";
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/cn";
-import { Settings, Ellipsis, Monitor, History, BookOpen, PanelsTopLeft, FolderTree, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench, Cpu } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, PanelsTopLeft, FolderTree, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench, Cpu, PanelLeftClose } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useSidebar } from "./SidebarContext";
 import { GeneralSettings } from "./GeneralSettings";
 import { ProviderSettings } from "./ProviderSettings";
 import { AboutPanel } from "@/features/settings/AboutPanel";
@@ -109,6 +110,7 @@ function SortableRoute({ route, isActive, children }: { route: RouteItem; isActi
 
 export function Sidebar({ routes }: SidebarProps) {
   const { t } = useTranslation();
+  const { closeSidebar } = useSidebar();
   const currentPath = useLocation().pathname;
   const [hiddenIds, setHiddenIds] = useState<string[]>(() => getHiddenAgentIds());
   const { user, logout, enabled: authEnabled } = useAuth();
@@ -198,6 +200,14 @@ export function Sidebar({ routes }: SidebarProps) {
           width={100}
           height={42}
         />
+        <button
+          onClick={closeSidebar}
+          className="ml-auto p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          aria-label="收起侧边栏"
+          title="收起侧边栏"
+        >
+          <PanelLeftClose className="size-4" />
+        </button>
       </div>
       <CardContent className="flex-grow flex flex-col p-4 gap-0 overflow-y-auto">
         <DndContext

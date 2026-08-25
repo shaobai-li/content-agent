@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, type ComponentProps } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { AgentPageLayout } from "../AgentPageLayout";
-import { SidebarToggleContext } from "../SidebarContext";
+import { SidebarContext } from "../SidebarContext";
 
 const CHAT_WIDTH_KEY = "omniage.chatWidth";
 
@@ -9,7 +9,9 @@ type LayoutProps = ComponentProps<typeof AgentPageLayout>;
 
 function renderLayout(props: Partial<LayoutProps> = {}) {
   return render(
-    <SidebarToggleContext.Provider value={vi.fn()}>
+    <SidebarContext.Provider
+      value={{ sidebarOpen: false, toggleSidebar: vi.fn(), closeSidebar: vi.fn() }}
+    >
       <AgentPageLayout
         agentId="admin"
         leftBody={<div>模块面板</div>}
@@ -18,7 +20,7 @@ function renderLayout(props: Partial<LayoutProps> = {}) {
         leftParam="history"
         {...props}
       />
-    </SidebarToggleContext.Provider>,
+    </SidebarContext.Provider>,
   );
 }
 
