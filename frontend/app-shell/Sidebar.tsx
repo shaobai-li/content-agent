@@ -193,11 +193,10 @@ export function Sidebar({ routes }: SidebarProps) {
       <Card className="w-70 h-full flex flex-col gap-0 p-0 rounded-none shadow-none bg-white">
       <div className="flex items-center shrink-0 px-3">
         <img
-          className="mb-[-20px]"
           src="/OmniAge_Logo_4K.svg"
           alt="OmniAge Logo"
-          width={190}
-          height={80}
+          width={100}
+          height={42}
         />
       </div>
       <CardContent className="flex-grow flex flex-col p-4 gap-0 overflow-y-auto">
