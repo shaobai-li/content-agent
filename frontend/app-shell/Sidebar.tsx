@@ -5,7 +5,7 @@ import { Button } from "@/shared/ui/button";
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/shared/lib/cn";
-import { Settings, Ellipsis, Monitor, History, BookOpen, PanelsTopLeft, FolderTree, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench, Cpu, PanelLeftClose } from "lucide-react";
+import { Settings, Ellipsis, Monitor, History, BookOpen, PanelsTopLeft, FolderTree, EyeOff, LogOut, SlidersHorizontal, User, Info, Wrench, Cpu, PanelLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
@@ -206,7 +206,7 @@ export function Sidebar({ routes }: SidebarProps) {
           aria-label="收起侧边栏"
           title="收起侧边栏"
         >
-          <PanelLeftClose className="size-4" />
+          <PanelLeft className="size-4" />
         </button>
       </div>
       <CardContent className="flex-grow flex flex-col p-4 gap-0 overflow-y-auto">
