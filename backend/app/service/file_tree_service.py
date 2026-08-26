@@ -91,3 +91,40 @@ def write_workspace_file(agent_id: str, rel_path: str, content: str) -> Dict[str
         "size": stat.st_size,
         "modifiedAt": _iso(stat.st_mtime),
     }
+
+
+def move_workspace_file(agent_id: str, source: str, target_dir: str) -> Dict[str, Any]:
+    """移动 workspace 内文件/文件夹到目标目录。target_dir 为空或 "." 表示工作区根。"""
+    ws = get_agent_workspace_dir(agent_id).resolve()
+    src = (ws / source).resolve()
+    trimmed = target_dir.strip()
+    dst_dir = (ws / trimmed).resolve() if trimmed and trimmed != "." else ws
+    # 越界防护：source 与 target_dir 都必须在 workspace 内
+    for p in (src, dst_dir):
+        try:
+            p.relative_to(ws)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="路径越界")
+    if not src.exists():
+        raise HTTPException(status_code=404, detail="源文件不存在")
+    if not dst_dir.is_dir():
+        raise HTTPException(status_code=400, detail="目标必须是目录")
+    # 循环防护：不能把文件夹移入自身或子目录
+    if src.is_dir():
+        try:
+            dst_dir.relative_to(src)
+        except ValueError:
+            pass
+        else:
+            raise HTTPException(status_code=400, detail="不能移入自身或子目录")
+    dst = dst_dir / src.name
+    if dst == src:
+        raise HTTPException(status_code=400, detail="目标位置不变")
+    if dst.exists():
+        raise HTTPException(status_code=409, detail="目标已存在同名文件或文件夹")
+    try:
+        src.rename(dst)
+    except OSError:
+        raise HTTPException(status_code=500, detail="移动失败")
+    # as_posix()：统一为 `/` 分隔（Windows 下 relative_to 返回反斜杠，与前端/树结构不一致）
+    return {"ok": True, "from": source, "to": dst.relative_to(ws).as_posix()}
