@@ -163,6 +163,81 @@ pub fn write_workspace_file(
     write_workspace_file_at(&get_agent_workspace_dir(agent_id), rel_path, content)
 }
 
+/// 移动 workspace 内文件/文件夹到目标目录（target_dir 为空或 "." 表示工作区根）。
+/// 越界恒 400，源缺失 404，目标非目录 400，循环 400，同名 409，位置不变 400。
+fn move_workspace_file_at(
+    ws: &Path,
+    source: &str,
+    target_dir: &str,
+) -> Result<Value, (u16, String)> {
+    let ws_lex = normalize_lexically(ws);
+    let ws_canon = ws.canonicalize().unwrap_or_else(|_| ws.to_path_buf());
+
+    // 词法预检（不依赖文件存在）：source / target_dir 越界恒 400
+    let src_lex = normalize_lexically(&ws.join(source));
+    if !src_lex.starts_with(&ws_lex) {
+        return Err((400, "路径越界".to_string()));
+    }
+    let trimmed = target_dir.trim();
+    let dst_dir_lex = if trimmed.is_empty() || trimmed == "." {
+        ws_lex.clone()
+    } else {
+        let d = normalize_lexically(&ws.join(target_dir));
+        if !d.starts_with(&ws_lex) {
+            return Err((400, "路径越界".to_string()));
+        }
+        d
+    };
+
+    // canonicalize 后二次校验（防 symlink 逃逸）
+    let src_canon = src_lex
+        .canonicalize()
+        .map_err(|_| (404, "源文件不存在".to_string()))?;
+    if !src_canon.starts_with(&ws_canon) {
+        return Err((400, "路径越界".to_string()));
+    }
+    let dst_dir_canon = dst_dir_lex
+        .canonicalize()
+        .map_err(|_| (400, "目标必须是目录".to_string()))?;
+    if !dst_dir_canon.is_dir() {
+        return Err((400, "目标必须是目录".to_string()));
+    }
+    if !dst_dir_canon.starts_with(&ws_canon) {
+        return Err((400, "路径越界".to_string()));
+    }
+
+    // 循环防护：不能把文件夹移入自身或子目录
+    if src_canon.is_dir() && dst_dir_canon.starts_with(&src_canon) {
+        return Err((400, "不能移入自身或子目录".to_string()));
+    }
+    let name = src_canon
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("");
+    let dst = dst_dir_canon.join(name);
+    if dst == src_canon {
+        return Err((400, "目标位置不变".to_string()));
+    }
+    if dst.exists() {
+        return Err((409, "目标已存在同名文件或文件夹".to_string()));
+    }
+    std::fs::rename(&src_canon, &dst).map_err(|_| (500, "移动失败".to_string()))?;
+
+    // 相对路径（与 Python as_posix 一致，统一 / 分隔）
+    let rel = dst.strip_prefix(&ws_canon).unwrap_or(&dst);
+    let to = rel.to_string_lossy().replace('\\', "/");
+    Ok(json!({ "ok": true, "from": source, "to": to }))
+}
+
+/// 移动 workspace 内文件/文件夹到目标目录（含路径越界防护）。
+pub fn move_workspace_file(
+    agent_id: &str,
+    source: &str,
+    target_dir: &str,
+) -> Result<Value, (u16, String)> {
+    move_workspace_file_at(&get_agent_workspace_dir(agent_id), source, target_dir)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -256,5 +331,62 @@ mod tests {
         let (_dir, ws) = make_ws();
         let err = write_workspace_file_at(&ws, "docs/README.md", &"x".repeat(1_000_001)).unwrap_err();
         assert_eq!(err.0, 413);
+    }
+
+    #[test]
+    fn move_file_ok() {
+        let (_dir, ws) = make_ws();
+        let result = move_workspace_file_at(&ws, "SYSTEM.md", "docs").unwrap();
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["to"], "docs/SYSTEM.md");
+        assert!(!ws.join("SYSTEM.md").exists());
+        assert!(ws.join("docs/SYSTEM.md").is_file());
+    }
+
+    #[test]
+    fn move_file_to_root_ok() {
+        let (_dir, ws) = make_ws();
+        let result = move_workspace_file_at(&ws, "docs/README.md", "").unwrap();
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["to"], "README.md");
+        assert!(ws.join("README.md").is_file());
+        assert!(!ws.join("docs/README.md").exists());
+    }
+
+    #[test]
+    fn move_file_outside_returns_400() {
+        let (_dir, ws) = make_ws();
+        let err = move_workspace_file_at(&ws, "../secret.txt", "docs").unwrap_err();
+        assert_eq!(err.0, 400);
+    }
+
+    #[test]
+    fn move_file_missing_returns_404() {
+        let (_dir, ws) = make_ws();
+        let err = move_workspace_file_at(&ws, "nope.md", "docs").unwrap_err();
+        assert_eq!(err.0, 404);
+    }
+
+    #[test]
+    fn move_file_target_not_dir_returns_400() {
+        let (_dir, ws) = make_ws();
+        let err = move_workspace_file_at(&ws, "docs/README.md", "SYSTEM.md").unwrap_err();
+        assert_eq!(err.0, 400);
+    }
+
+    #[test]
+    fn move_file_loop_returns_400() {
+        let (_dir, ws) = make_ws();
+        std::fs::create_dir_all(ws.join("docs/sub")).unwrap();
+        let err = move_workspace_file_at(&ws, "docs", "docs/sub").unwrap_err();
+        assert_eq!(err.0, 400);
+    }
+
+    #[test]
+    fn move_file_conflict_returns_409() {
+        let (_dir, ws) = make_ws();
+        std::fs::write(ws.join("docs/SYSTEM.md"), "dup").unwrap();
+        let err = move_workspace_file_at(&ws, "SYSTEM.md", "docs").unwrap_err();
+        assert_eq!(err.0, 409);
     }
 }
