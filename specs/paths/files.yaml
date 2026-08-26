@@ -113,3 +113,38 @@ paths:
                     type: integer
                   modifiedAt:
                     type: string
+
+  /api/agents/{agent_id}/files/move:
+    post:
+      summary: 移动 Agent workspace 内文件或文件夹
+      operationId: moveWorkspaceFile
+      tags: [files]
+      parameters:
+        - $ref: "../components/parameters.yaml#/AgentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source, targetDir]
+              properties:
+                source:
+                  type: string
+                targetDir:
+                  type: string
+      responses:
+        "200":
+          description: 移动成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, from, to]
+                properties:
+                  ok:
+                    type: boolean
+                  from:
+                    type: string
+                  to:
+                    type: string
