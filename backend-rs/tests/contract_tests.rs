@@ -359,6 +359,49 @@ async fn test_update_workspace_file_content() {
 }
 
 #[tokio::test]
+async fn test_move_workspace_file() {
+    let base = format!("{}/api/agents/std/files", rust_base_url());
+    let upload_url = format!("{}/api/agents/std/attachments/cache", rust_base_url());
+    let client = reqwest::Client::new();
+
+    // 上传占位文件，确保 .local/cache 存在（作为移动源/目标；不碰 SYSTEM.md 以免与并行测试竞争）
+    let form = reqwest::multipart::Form::new()
+        .part("file", reqwest::multipart::Part::text("test").file_name("move-test.txt"));
+    let _ = client.post(&upload_url).multipart(form).send().await;
+
+    // 移动：.local/cache/move-test.txt → 根
+    let move_root = client
+        .post(format!("{}/move", base))
+        .json(&serde_json::json!({ "source": ".local/cache/move-test.txt", "targetDir": "" }))
+        .send()
+        .await
+        .expect("POST files/move 请求失败");
+    assert_eq!(move_root.status(), 200, "移入根应返回 200，实际 {}", move_root.status());
+    let body: serde_json::Value = move_root.json().await.expect("响应体应为有效 JSON");
+    assert_eq!(body["ok"], true);
+    assert_eq!(body["to"], "move-test.txt");
+
+    // 同名冲突：重新上传同名到 cache，再移根文件回 cache → 409
+    let form2 = reqwest::multipart::Form::new()
+        .part("file", reqwest::multipart::Part::text("test").file_name("move-test.txt"));
+    let _ = client.post(&upload_url).multipart(form2).send().await;
+    let conflict = client
+        .post(format!("{}/move", base))
+        .json(&serde_json::json!({ "source": "move-test.txt", "targetDir": ".local/cache" }))
+        .send()
+        .await
+        .expect("POST files/move 请求失败");
+    assert_eq!(conflict.status(), 409, "同名应返回 409，实际 {}", conflict.status());
+
+    // 清理：把根 move-test.txt 移入 .local，避免污染根目录
+    let _ = client
+        .post(format!("{}/move", base))
+        .json(&serde_json::json!({ "source": "move-test.txt", "targetDir": ".local" }))
+        .send()
+        .await;
+}
+
+#[tokio::test]
 async fn test_get_knowledge_bases() {
     let spec_path = "/api/agents/{agent_id}/knowledge-bases";
     let url_path = resolve_path(spec_path, &HashMap::from([("agent_id", "std")]));
@@ -488,6 +531,7 @@ const COVERED_ENDPOINTS: &[(&str, &str)] = &[
     ("get", "/api/agents/{agent_id}/files/tree"),
     ("get", "/api/agents/{agent_id}/files/content"),
     ("put", "/api/agents/{agent_id}/files/content"),
+    ("post", "/api/agents/{agent_id}/files/move"),
 ];
 
 #[tokio::test]
