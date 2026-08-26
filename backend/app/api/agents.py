@@ -317,6 +317,19 @@ async def update_workspace_file_content(agent_id: str, path: str, payload: dict 
     return write_workspace_file(agent_id, path, content)
 
 
+@router.post("/files/move")
+async def move_workspace_file_endpoint(agent_id: str, payload: dict = Body(...)):
+    from app.service.file_tree_service import move_workspace_file
+
+    source = payload.get("source")
+    target_dir = payload.get("targetDir", "")
+    if not isinstance(source, str) or not source.strip():
+        raise HTTPException(status_code=400, detail="source 必须为非空字符串")
+    if not isinstance(target_dir, str):
+        raise HTTPException(status_code=400, detail="targetDir 必须为字符串")
+    return move_workspace_file(agent_id, source, target_dir)
+
+
 @router.post("/attachments/cache")
 async def upload_attachment_to_agent_cache(agent_id: str, file: UploadFile = File(...)):
     """将单个文件持久化到该 Agent 的 ``workspace/local_data/cache/``，保留原始文件名。"""
