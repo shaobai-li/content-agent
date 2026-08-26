@@ -23,6 +23,10 @@ pub fn router() -> axum::Router {
             "/api/agents/:agent_id/files/content",
             axum::routing::get(get_workspace_file_content).put(update_workspace_file_content),
         )
+        .route(
+            "/api/agents/:agent_id/files/move",
+            axum::routing::post(move_workspace_file_endpoint),
+        )
 }
 
 async fn upload_attachment(
@@ -80,6 +84,26 @@ async fn update_workspace_file_content(
         ));
     };
     match file_tree::write_workspace_file(&agent_id, &path, content) {
+        Ok(v) => Ok(Json(v)),
+        Err((status, detail)) => Err((
+            StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+            Json(serde_json::json!({ "detail": detail })),
+        )),
+    }
+}
+
+async fn move_workspace_file_endpoint(
+    Path(agent_id): Path<String>,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    let Some(source) = payload.get("source").and_then(|s| s.as_str()) else {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "detail": "source 必须为非空字符串" })),
+        ));
+    };
+    let target_dir = payload.get("targetDir").and_then(|t| t.as_str()).unwrap_or("");
+    match file_tree::move_workspace_file(&agent_id, source, target_dir) {
         Ok(v) => Ok(Json(v)),
         Err((status, detail)) => Err((
             StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
