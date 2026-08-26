@@ -2,6 +2,7 @@ import pytest
 
 from app.service.file_tree_service import (
     build_workspace_tree,
+    move_workspace_file,
     read_workspace_file,
     write_workspace_file,
 )
@@ -97,6 +98,66 @@ def _make_app():
     app = FastAPI()
     app.include_router(router)
     return app
+
+
+def test_move_workspace_file_to_subdir(ws):
+    result = move_workspace_file("std", "SYSTEM.md", "docs")
+    assert result["ok"] is True
+    assert result["to"] == "docs/SYSTEM.md"
+    assert not (ws / "SYSTEM.md").exists()
+    assert (ws / "docs" / "SYSTEM.md").is_file()
+
+
+def test_move_workspace_file_to_root(ws):
+    result = move_workspace_file("std", "docs/README.md", "")
+    assert result["ok"] is True
+    assert result["to"] == "README.md"
+    assert (ws / "README.md").is_file()
+    assert not (ws / "docs" / "README.md").exists()
+
+
+def test_move_workspace_file_outside_source(ws):
+    with pytest.raises(Exception) as exc:
+        move_workspace_file("std", "../secret.txt", "docs")
+    assert exc.value.status_code == 400
+
+
+def test_move_workspace_file_outside_target(ws):
+    with pytest.raises(Exception) as exc:
+        move_workspace_file("std", "SYSTEM.md", "../outside")
+    assert exc.value.status_code == 400
+
+
+def test_move_workspace_file_missing(ws):
+    with pytest.raises(Exception) as exc:
+        move_workspace_file("std", "nope.md", "docs")
+    assert exc.value.status_code == 404
+
+
+def test_move_workspace_file_target_not_dir(ws):
+    with pytest.raises(Exception) as exc:
+        move_workspace_file("std", "docs/README.md", "SYSTEM.md")
+    assert exc.value.status_code == 400
+
+
+def test_move_workspace_file_loop(ws):
+    (ws / "docs" / "sub").mkdir()
+    with pytest.raises(Exception) as exc:
+        move_workspace_file("std", "docs", "docs/sub")
+    assert exc.value.status_code == 400
+
+
+def test_move_workspace_file_conflict(ws):
+    (ws / "docs" / "SYSTEM.md").write_text("dup", encoding="utf-8")
+    with pytest.raises(Exception) as exc:
+        move_workspace_file("std", "SYSTEM.md", "docs")
+    assert exc.value.status_code == 409
+
+
+def test_move_workspace_file_noop(ws):
+    with pytest.raises(Exception) as exc:
+        move_workspace_file("std", "SYSTEM.md", "")
+    assert exc.value.status_code == 400
 
 
 def test_update_workspace_file_content_requires_string(monkeypatch):
