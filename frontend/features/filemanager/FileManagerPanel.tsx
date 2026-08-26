@@ -1,15 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 import { FilePlus, FolderPlus, Search } from "lucide-react";
+import { toast } from "sonner";
 import type { AgentId } from "@/entities/agent/model";
 import type { FileNode } from "./types";
+import { cn } from "@/shared/lib/cn";
 import { Input } from "@/shared/ui/input";
 import { MOCK_TREE } from "./mockData";
 import { filterTree, findNode } from "./fileTreeUtils";
 import { FileTree } from "./FileTree";
 import { FilePreview } from "./FilePreview";
-import { fetchFileTree } from "@/shared/api/files";
+import { fetchFileTree, moveFile } from "@/shared/api/files";
 import { useTranslation } from "react-i18next";
 
 interface FileManagerPanelProps {
@@ -64,6 +75,16 @@ function getInitialExpanded(root: FileNode): Set<string> {
   };
   walk(root);
   return set;
+}
+
+/** 根目录放置目标：拖到空白/根 → targetDir 为空串（工作区根） */
+function TreeRootDrop({ children }: { children: ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: "tree-root", data: { targetDir: "" } });
+  return (
+    <div ref={setNodeRef} className={cn("min-h-full", isOver && "rounded-md bg-accent/40")}>
+      {children}
+    </div>
+  );
 }
 
 export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
@@ -140,6 +161,37 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
     fetchFileTree(agentId).then(setTree).catch(() => {});
   }, [agentId]);
 
+  // ── 拖拽移动 ─────────────────────────────────────────────────
+  const [activeNode, setActiveNode] = useState<FileNode | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      setActiveNode(findNode(root, String(event.active.id)) ?? null);
+    },
+    [root],
+  );
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      setActiveNode(null);
+      const { active, over } = event;
+      if (!active || !over) return;
+      // 放置目标的 targetDir 由各 droppable 的 data 提供（文件夹→自身、文件→父目录、根→""）
+      const targetDir = (over.data.current as { targetDir?: string } | undefined)?.targetDir;
+      if (targetDir === undefined) return;
+      try {
+        await moveFile(agentId, String(active.id), targetDir);
+        await fetchFileTree(agentId).then(setTree).catch(() => {});
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
+    },
+    [agentId],
+  );
+
   return (
     <div className="flex h-full min-h-0 gap-4">
       {/* 左：目录树矩形 */}
@@ -174,19 +226,30 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
         </div>
         <div className="h-px shrink-0 bg-border" />
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          {filteredNodes.length === 0 ? (
-            <div className="flex h-full items-center justify-center p-4 text-xs text-muted-foreground">
-              {t("filemanager.searchEmpty")}
-            </div>
-          ) : (
-            <FileTree
-              nodes={filteredNodes}
-              expandedIds={effectiveExpanded}
-              onToggleFolder={handleToggleFolder}
-              selectedId={selectedId}
-              onSelect={(node) => setSelectedId(node.id)}
-            />
-          )}
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            {filteredNodes.length === 0 ? (
+              <div className="flex h-full items-center justify-center p-4 text-xs text-muted-foreground">
+                {t("filemanager.searchEmpty")}
+              </div>
+            ) : (
+              <TreeRootDrop>
+                <FileTree
+                  nodes={filteredNodes}
+                  expandedIds={effectiveExpanded}
+                  onToggleFolder={handleToggleFolder}
+                  selectedId={selectedId}
+                  onSelect={(node) => setSelectedId(node.id)}
+                />
+              </TreeRootDrop>
+            )}
+            <DragOverlay>
+              {activeNode ? (
+                <div className="flex items-center gap-2 rounded-md border bg-white px-3 py-1.5 text-sm shadow-lg">
+                  {activeNode.name}
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </div>
       </div>
 
