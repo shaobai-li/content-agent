@@ -223,8 +223,9 @@ fn move_workspace_file_at(
     }
     std::fs::rename(&src_canon, &dst).map_err(|_| (500, "移动失败".to_string()))?;
 
-    // 相对路径（与 Python as_posix 一致，统一 / 分隔）
-    let rel = dst.strip_prefix(&ws_canon).unwrap_or(&dst);
+    // 相对路径（用词法路径计算，两侧均无 \\?\ 前缀、恒一致；与 Python as_posix 统一 / 分隔）
+    let dst_lex = dst_dir_lex.join(name);
+    let rel = dst_lex.strip_prefix(&ws_lex).unwrap_or(&dst_lex);
     let to = rel.to_string_lossy().replace('\\', "/");
     Ok(json!({ "ok": true, "from": source, "to": to }))
 }
