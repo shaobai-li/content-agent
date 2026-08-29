@@ -253,6 +253,10 @@
     "file": "文件",
     "noPreview": "无预览内容",
     "edit": "编辑",
-    "download": "下载"
+    "download": "下载",
+    "root": "根目录",
+    "moveTitle": "移动文件",
+    "moveConfirm": "确认将「{{source}}」移动到「{{target}}」？",
+    "moveAction": "确认移动"
   }
 }

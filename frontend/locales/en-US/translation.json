@@ -255,6 +255,10 @@
     "file": "File",
     "noPreview": "No preview",
     "edit": "Edit",
-    "download": "Download"
+    "download": "Download",
+    "root": "Root",
+    "moveTitle": "Move",
+    "moveConfirm": "Move \"{{source}}\" to \"{{target}}\"?",
+    "moveAction": "Move"
   }
 }
