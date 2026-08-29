@@ -11,6 +11,16 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/alert-dialog";
 import { FilePlus, FolderPlus, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { AgentId } from "@/entities/agent/model";
@@ -35,6 +45,14 @@ interface FileManagerState {
   version: number;
   expandedIds: string[];
   selectedId: string | null;
+}
+
+/** 待确认的移动：拖拽松手后先弹框，确认才执行 moveFile */
+interface PendingMove {
+  source: string;
+  sourceName: string;
+  targetDir: string;
+  targetName: string;
 }
 
 function getStorageKey(agentId: string): string {
@@ -164,6 +182,7 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
 
   // ── 拖拽移动 ─────────────────────────────────────────────────
   const [activeNode, setActiveNode] = useState<FileNode | null>(null);
+  const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
@@ -176,22 +195,38 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
   );
 
   const handleDragEnd = useCallback(
-    async (event: DragEndEvent) => {
+    (event: DragEndEvent) => {
       setActiveNode(null);
       const { active, over } = event;
       if (!active || !over) return;
       // 放置目标的 targetDir 由各 droppable 的 data 提供（文件夹→自身、文件→父目录、根→""）
       const targetDir = (over.data.current as { targetDir?: string } | undefined)?.targetDir;
       if (targetDir === undefined) return;
-      try {
-        await moveFile(agentId, String(active.id), targetDir);
-        await fetchFileTree(agentId).then(setTree).catch(() => {});
-      } catch (e) {
-        toast.error((e as Error).message);
-      }
+      const source = String(active.id);
+      const sourceNode = findNode(root, source);
+      if (!sourceNode) return;
+      // 不立即移动：先弹确认框
+      setPendingMove({
+        source,
+        sourceName: sourceNode.name,
+        targetDir,
+        targetName: targetDir ? (findNode(root, targetDir)?.name ?? targetDir) : t("filemanager.root"),
+      });
     },
-    [agentId],
+    [root, t],
   );
+
+  const confirmMove = useCallback(async () => {
+    if (!pendingMove) return;
+    const { source, targetDir } = pendingMove;
+    setPendingMove(null);
+    try {
+      await moveFile(agentId, source, targetDir);
+      await fetchFileTree(agentId).then(setTree).catch(() => {});
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }, [agentId, pendingMove]);
 
   return (
     <div className="flex h-full min-h-0 gap-4">
@@ -258,6 +293,25 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
       <div className="flex min-w-0 flex-1 flex-col rounded-lg border bg-white shadow-sm">
         <FilePreview node={selectedNode} agentId={agentId} onContentSaved={handleContentSaved} />
       </div>
+
+      {/* 移动确认弹框 */}
+      <AlertDialog open={!!pendingMove} onOpenChange={(open) => { if (!open) setPendingMove(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("filemanager.moveTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("filemanager.moveConfirm", {
+                source: pendingMove?.sourceName,
+                target: pendingMove?.targetName,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmMove}>{t("filemanager.moveAction")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
