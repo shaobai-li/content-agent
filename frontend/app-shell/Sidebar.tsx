@@ -209,7 +209,7 @@ export function Sidebar({ routes }: SidebarProps) {
           <PanelLeft className="size-5" />
         </button>
       </div>
-      <CardContent className="flex-grow flex flex-col p-4 gap-0 overflow-y-auto">
+      <CardContent className="flex-grow flex flex-col pt-1 px-4 pb-4 gap-0 overflow-y-auto">
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
