@@ -229,7 +229,7 @@ export function FileManagerPanel({ agentId }: FileManagerPanelProps) {
   }, [agentId, pendingMove]);
 
   return (
-    <div className="flex h-full min-h-0 gap-4">
+    <div className="flex h-[calc(100%+24px)] min-h-0 gap-3 -m-3">
       {/* 左：目录树矩形 */}
       <div className="flex w-64 shrink-0 flex-col rounded-lg border bg-white shadow-sm">
         <div className="flex h-9 shrink-0 items-center gap-1 px-3">
